@@ -2,12 +2,14 @@
 
 use crate::config::Mode;
 use crate::eval::Interp;
+use std::fs;
 use std::io::{self, BufRead, Write};
 
 pub struct CliConfig {
     pub quiet: bool,
     pub pipe: bool,
     pub mode: Mode,
+    pub file: Option<String>,
 }
 
 impl Default for CliConfig {
@@ -16,6 +18,7 @@ impl Default for CliConfig {
             quiet: false,
             pipe: false,
             mode: Mode::Real,
+            file: None,
         }
     }
 }
@@ -30,6 +33,13 @@ pub fn parse_args(args: &[String]) -> Result<(CliConfig, Vec<String>), String> {
         match arg.as_str() {
             "-q" => cfg.quiet = true,
             "-p" => cfg.pipe = true,
+            "-f" => {
+                i += 1;
+                if i >= args.len() {
+                    return Err("'-f' requires a filename".to_string());
+                }
+                cfg.file = Some(args[i].clone());
+            }
             "-m" => {
                 i += 1;
                 if i >= args.len() {
@@ -65,6 +75,7 @@ fn print_help() {
     println!("options:");
     println!("  -p              pipe mode (read from stdin)");
     println!("  -q              quiet (no output)");
+    println!("  -f file         read and execute from file");
     println!("  -m real|frac|int  output mode (default: real)");
     println!("  -v              version");
     println!("  -h              help");
@@ -73,6 +84,31 @@ fn print_help() {
 pub fn run(cfg: CliConfig, exprs: Vec<String>) -> Result<(), String> {
     let mut interp = Interp::new();
     interp.cfg.mode = cfg.mode;
+
+    // Handle file loading (-f flag)
+    if let Some(filename) = &cfg.file {
+        let contents = std::fs::read_to_string(filename)
+            .map_err(|e| format!("cannot read file '{}': {}", filename, e))?;
+        match interp.eval_all(&contents) {
+            Ok(vals) => {
+                if !cfg.quiet {
+                    for v in vals {
+                        let rendered = v.render(&interp.cfg);
+                        if !rendered.is_empty() {
+                            println!("{}", rendered);
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                if !cfg.quiet {
+                    eprintln!("error: {}", e);
+                }
+                return Err(e);
+            }
+        }
+        return Ok(());
+    }
 
     if cfg.pipe {
         let stdin = io::stdin();

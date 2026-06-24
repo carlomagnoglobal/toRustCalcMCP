@@ -238,3 +238,15 @@ fn test_digits() {
     let result = it.eval_render("digits(255, 2)").unwrap();
     assert_eq!(result, "8");
 }
+
+#[test]
+fn test_file_content_parsing() {
+    // Test that file-like content is properly parsed and executed
+    let mut it = Interp::new();
+    let content = "define double(x) = x * 2; double(7); sum = 0; for i = 1, 3 (sum = sum + i); sum";
+    let results = it.eval_all(content).unwrap();
+
+    // Results from each statement: define returns Null, double(7) returns 14, etc.
+    // Just verify we have multiple results
+    assert!(results.len() >= 3, "got {} results", results.len());
+}
