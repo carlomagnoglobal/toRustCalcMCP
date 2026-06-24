@@ -2163,6 +2163,185 @@ fn f_crc32(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_integer(BigInt::from(checksum as i64))))
 }
 
+// Phase 6.7: Residue Class & Modular Operations
+
+// Helper: normalize modulo result to [0, m)
+fn normalize_mod(val: &BigInt, m: &BigInt) -> BigInt {
+    let r = val % m;
+    if r.is_negative() {
+        &r + m
+    } else {
+        r
+    }
+}
+
+// Create residue class: reduce n modulo m
+fn f_rc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rc", a, 2)?;
+    let n = int(a, 0)?;
+    let m = int(a, 1)?;
+
+    if m.is_zero() {
+        return Err("rc: modulus cannot be zero".to_string());
+    }
+
+    let result = normalize_mod(&n, &m);
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// Add in residue class: (a + b) mod m
+fn f_rcadd(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcadd", a, 3)?;
+    let a_val = int(a, 0)?;
+    let b_val = int(a, 1)?;
+    let m = int(a, 2)?;
+
+    if m.is_zero() {
+        return Err("rcadd: modulus cannot be zero".to_string());
+    }
+
+    let sum = &a_val + &b_val;
+    let result = normalize_mod(&sum, &m);
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// Subtract in residue class: (a - b) mod m
+fn f_rcsub(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcsub", a, 3)?;
+    let a_val = int(a, 0)?;
+    let b_val = int(a, 1)?;
+    let m = int(a, 2)?;
+
+    if m.is_zero() {
+        return Err("rcsub: modulus cannot be zero".to_string());
+    }
+
+    let diff = &a_val - &b_val;
+    let result = normalize_mod(&diff, &m);
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// Multiply in residue class: (a * b) mod m
+fn f_rcmul(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcmul", a, 3)?;
+    let a_val = int(a, 0)?;
+    let b_val = int(a, 1)?;
+    let m = int(a, 2)?;
+
+    if m.is_zero() {
+        return Err("rcmul: modulus cannot be zero".to_string());
+    }
+
+    let prod = &a_val * &b_val;
+    let result = normalize_mod(&prod, &m);
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// Modular inverse using extended Euclidean algorithm
+fn f_rcinv(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcinv", a, 2)?;
+    let a_val = int(a, 0)?;
+    let m = int(a, 1)?;
+
+    if m.is_zero() {
+        return Err("rcinv: modulus cannot be zero".to_string());
+    }
+
+    // Extended Euclidean algorithm
+    let mut old_r = a_val.clone();
+    let mut r = m.clone();
+    let mut old_s = BigInt::from(1);
+    let mut s = BigInt::from(0);
+
+    while !r.is_zero() {
+        let quotient = &old_r / &r;
+        let temp_r = &old_r - &quotient * &r;
+        old_r = r;
+        r = temp_r;
+
+        let temp_s = &old_s - &quotient * &s;
+        old_s = s;
+        s = temp_s;
+    }
+
+    if old_r != BigInt::from(1) {
+        return Err("rcinv: modular inverse does not exist".to_string());
+    }
+
+    let result = normalize_mod(&old_s, &m);
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// Check equality in residue class: a ≡ b (mod m)
+fn f_rceq(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rceq", a, 3)?;
+    let a_val = int(a, 0)?;
+    let b_val = int(a, 1)?;
+    let m = int(a, 2)?;
+
+    if m.is_zero() {
+        return Err("rceq: modulus cannot be zero".to_string());
+    }
+
+    let a_norm = normalize_mod(&a_val, &m);
+    let b_norm = normalize_mod(&b_val, &m);
+    let result = a_norm == b_norm;
+    Ok(Value::Number(Num::from_integer(BigInt::from(if result { 1 } else { 0 }))))
+}
+
+// Negate in residue class: (-a) mod m
+fn f_rcneg(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcneg", a, 2)?;
+    let a_val = int(a, 0)?;
+    let m = int(a, 1)?;
+
+    if m.is_zero() {
+        return Err("rcneg: modulus cannot be zero".to_string());
+    }
+
+    let neg = &m - &a_val;
+    let result = normalize_mod(&neg, &m);
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// Divide in residue class: (a / b) mod m = a * (b^-1) mod m
+fn f_rcdiv(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcdiv", a, 3)?;
+    let a_val = int(a, 0)?;
+    let b_val = int(a, 1)?;
+    let m = int(a, 2)?;
+
+    if m.is_zero() {
+        return Err("rcdiv: modulus cannot be zero".to_string());
+    }
+
+    // Find modular inverse of b
+    let mut old_r = b_val.clone();
+    let mut r = m.clone();
+    let mut old_s = BigInt::from(1);
+    let mut s = BigInt::from(0);
+
+    while !r.is_zero() {
+        let quotient = &old_r / &r;
+        let temp_r = &old_r - &quotient * &r;
+        old_r = r;
+        r = temp_r;
+
+        let temp_s = &old_s - &quotient * &s;
+        old_s = s;
+        s = temp_s;
+    }
+
+    if old_r != BigInt::from(1) {
+        return Err("rcdiv: divisor has no modular inverse".to_string());
+    }
+
+    let b_inv = normalize_mod(&old_s, &m);
+    let prod = &a_val * &b_inv;
+    let result = normalize_mod(&prod, &m);
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -2782,6 +2961,15 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("sha1".to_string(), f_sha1 as BuiltinFn);
     builtins.insert("md5".to_string(), f_md5 as BuiltinFn);
     builtins.insert("crc32".to_string(), f_crc32 as BuiltinFn);
+    // Residue class & modular operations (Phase 6.7)
+    builtins.insert("rc".to_string(), f_rc as BuiltinFn);
+    builtins.insert("rcadd".to_string(), f_rcadd as BuiltinFn);
+    builtins.insert("rcsub".to_string(), f_rcsub as BuiltinFn);
+    builtins.insert("rcmul".to_string(), f_rcmul as BuiltinFn);
+    builtins.insert("rcinv".to_string(), f_rcinv as BuiltinFn);
+    builtins.insert("rceq".to_string(), f_rceq as BuiltinFn);
+    builtins.insert("rcneg".to_string(), f_rcneg as BuiltinFn);
+    builtins.insert("rcdiv".to_string(), f_rcdiv as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -3009,5 +3197,14 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("sha1", "sha1(str)", "SHA-1 hash (returns hex string)"),
         ("md5", "md5(str)", "MD5 hash (returns hex string)"),
         ("crc32", "crc32(str)", "CRC32 checksum (returns integer)"),
+        // Residue class & modular operations (Phase 6.7)
+        ("rc", "rc(n,m)", "residue class: reduce n modulo m"),
+        ("rcadd", "rcadd(a,b,m)", "residue addition: (a+b) mod m"),
+        ("rcsub", "rcsub(a,b,m)", "residue subtraction: (a-b) mod m"),
+        ("rcmul", "rcmul(a,b,m)", "residue multiplication: (a*b) mod m"),
+        ("rcdiv", "rcdiv(a,b,m)", "residue division: (a/b) mod m"),
+        ("rcinv", "rcinv(a,m)", "modular inverse of a mod m"),
+        ("rceq", "rceq(a,b,m)", "residue equality: check if a≡b (mod m)"),
+        ("rcneg", "rcneg(a,m)", "residue negation: (-a) mod m"),
     ]
 }

@@ -1964,3 +1964,77 @@ fn test_crc32_hello() {
     let val: i64 = result.trim().parse().unwrap_or(0);
     assert!(val != 0); // Should produce non-zero value
 }
+
+// Phase 6.7: Residue Class & Modular Operations
+
+#[test]
+fn test_rc_basic() {
+    let mut it = Interp::new();
+    // rc(17, 5) = 17 mod 5 = 2
+    let result = it.eval_render("rc(17, 5)").unwrap();
+    assert_eq!(result.trim(), "2");
+}
+
+#[test]
+fn test_rcadd() {
+    let mut it = Interp::new();
+    // rcadd(3, 4, 5) = (3 + 4) mod 5 = 7 mod 5 = 2
+    let result = it.eval_render("rcadd(3, 4, 5)").unwrap();
+    assert_eq!(result.trim(), "2");
+}
+
+#[test]
+fn test_rcsub() {
+    let mut it = Interp::new();
+    // rcsub(3, 7, 5) = (3 - 7) mod 5 = -4 mod 5 = 1
+    let result = it.eval_render("rcsub(3, 7, 5)").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_rcmul() {
+    let mut it = Interp::new();
+    // rcmul(3, 4, 5) = (3 * 4) mod 5 = 12 mod 5 = 2
+    let result = it.eval_render("rcmul(3, 4, 5)").unwrap();
+    assert_eq!(result.trim(), "2");
+}
+
+#[test]
+fn test_rcinv() {
+    let mut it = Interp::new();
+    // rcinv(3, 7) = modular inverse of 3 mod 7 = 5 (since 3*5 = 15 ≡ 1 mod 7)
+    let result = it.eval_render("rcinv(3, 7)").unwrap();
+    assert_eq!(result.trim(), "5");
+}
+
+#[test]
+fn test_rceq_true() {
+    let mut it = Interp::new();
+    // rceq(7, 12, 5) checks if 7 ≡ 12 (mod 5), which is true (both ≡ 2)
+    let result = it.eval_render("rceq(7, 12, 5)").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_rceq_false() {
+    let mut it = Interp::new();
+    // rceq(7, 11, 5) checks if 7 ≡ 11 (mod 5), which is false (7≡2, 11≡1)
+    let result = it.eval_render("rceq(7, 11, 5)").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_rcneg() {
+    let mut it = Interp::new();
+    // rcneg(3, 7) = (-3) mod 7 = 4 (since -3 + 7 = 4)
+    let result = it.eval_render("rcneg(3, 7)").unwrap();
+    assert_eq!(result.trim(), "4");
+}
+
+#[test]
+fn test_rcdiv() {
+    let mut it = Interp::new();
+    // rcdiv(6, 3, 7) = (6 / 3) mod 7 = 2 (since 6 * inv(3) mod 7 = 6 * 5 mod 7 = 30 mod 7 = 2)
+    let result = it.eval_render("rcdiv(6, 3, 7)").unwrap();
+    assert_eq!(result.trim(), "2");
+}

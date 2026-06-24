@@ -15,14 +15,14 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 6.6 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 227 builtins, CLI, MCP server, and 214 integration
+Current status: **Phase 6.7 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 235 builtins, CLI, MCP server, and 223 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
-Phase 6.1-6.6 complete (file I/O, memory & stack, error handling, command & script, obscure trig, cryptographic hashing).
+Phase 6.1-6.7 complete (file I/O, memory & stack, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -491,10 +491,20 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 224 → 227 (+3)
    - Total tests: 208 → 214 (+6)
 
-### 6.7 Residue Class & Modular (8+ functions)
-   - [ ] `rc(n, m)` — residue class
-   - [ ] `rcadd`, `rcsub`, `rcmul`, `rcdiv` — RC arithmetic
-   - [ ] And specialized modular operations
+### 6.7 Residue Class & Modular — DONE (8 of 8+ functions)
+   - ✅ `rc(n, m)` — reduce n modulo m (create residue class)
+   - ✅ `rcadd(a,b,m)` — residue addition: (a+b) mod m
+   - ✅ `rcsub(a,b,m)` — residue subtraction: (a-b) mod m
+   - ✅ `rcmul(a,b,m)` — residue multiplication: (a*b) mod m
+   - ✅ `rcdiv(a,b,m)` — residue division: (a/b) mod m
+   - ✅ `rcinv(a,m)` — modular inverse of a mod m
+   - ✅ `rceq(a,b,m)` — check equality: a ≡ b (mod m)
+   - ✅ `rcneg(a,m)` — residue negation: (-a) mod m
+   - ✅ normalize_mod helper function for proper modulo reduction
+   - ✅ Extended Euclidean algorithm for modular inverse
+   - ✅ 9 new integration tests added and passing
+   - Builtins: 227 → 235 (+8)
+   - Total tests: 214 → 223 (+9)
 
 ---
 
