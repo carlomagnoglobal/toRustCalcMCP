@@ -15,14 +15,15 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 3 mostly complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 99 builtins, CLI, MCP server, and 91 integration
+Current status: **Phase 4 in progress.** The project has a full `src/` structure
+with lexer, parser, evaluator, 109 builtins, CLI, MCP server, and 103 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
-Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops).
+Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
+Phase 4.1 complete (reciprocal trig and hyperbolic variants).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
-(e.g., `2^256`), complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), string/type introspection is built-in,
-angle conversions between degrees/radians/gradians work, and the MCP server provides structured JSON alongside text results.
+(e.g., `2^256`), complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), comprehensive trigonometric coverage,
+and the MCP server provides structured JSON alongside text results.
 
 ---
 
@@ -273,12 +274,14 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
 
 ## Phase 4: High-Value Functions (TBD)
 
-### 4.1 More Trigonometric Variants (10 functions)
-   - [ ] `cot(x)`, `sec(x)`, `csc(x)` (basic reciprocal trig)
-   - [ ] `acot(x)`, `asec(x)`, `acsc(x)` (inverse reciprocal trig)
-   - [ ] `coth(x)`, `sech(x)`, `csch(x)` (hyperbolic reciprocal)
-   - [ ] `acoth(x)`, `asech(x)`, `acsch(x)` (inverse hyperbolic reciprocal)
-   - Integration tests: verify identities (e.g., `tan(x) * cot(x) = 1`)
+### 4.1 More Trigonometric Variants — DONE
+   - ✅ `cot(x)`, `sec(x)`, `csc(x)` (basic reciprocal trig)
+   - ✅ `acot(x)`, `asec(x)`, `acsc(x)` (inverse reciprocal trig)
+   - ✅ `coth(x)`, `sech(x)`, `csch(x)` (hyperbolic reciprocal)
+   - ✅ `acoth(x)`, `asech(x)`, `acsch(x)` (inverse hyperbolic reciprocal)
+   - ✅ 12 new integration tests added and passing
+   - Builtins: 99 → 109 (+10)
+   - Total tests: 91 → 103 (+12)
 
 ### 4.2 Root & Logarithm Variants (9 functions)
    - [ ] `root(x, n)` — nth root (generalized sqrt)
