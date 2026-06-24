@@ -2109,6 +2109,60 @@ fn f_exsec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     f_exsecant(it, a)
 }
 
+// Phase 6.6: Cryptographic & Hashing
+
+use sha1::{Sha1, Digest};
+use md5;
+use crc::{Crc, CRC_32_CKSUM};
+
+// SHA-1 hash
+fn f_sha1(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("sha1", a, 1)?;
+    let data = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("sha1: argument must be a string".to_string()),
+    };
+
+    let mut hasher = Sha1::new();
+    hasher.update(data.as_bytes());
+    let result = hasher.finalize();
+
+    // Convert to hex string
+    let hex_string = format!("{:x}", result);
+    Ok(Value::Str(hex_string))
+}
+
+// MD5 hash
+fn f_md5(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("md5", a, 1)?;
+    let data = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("md5: argument must be a string".to_string()),
+    };
+
+    let digest = md5::compute(data.as_bytes());
+
+    // Convert to hex string
+    let hex_string = format!("{:x}", digest);
+    Ok(Value::Str(hex_string))
+}
+
+// CRC32 checksum
+fn f_crc32(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("crc32", a, 1)?;
+    let data = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("crc32: argument must be a string".to_string()),
+    };
+
+    let crc = Crc::<u32>::new(&CRC_32_CKSUM);
+    let mut digest = crc.digest();
+    digest.update(data.as_bytes());
+    let checksum = digest.finalize();
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(checksum as i64))))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -2724,6 +2778,10 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("hacoversin".to_string(), f_hacoversin as BuiltinFn);
     builtins.insert("vers".to_string(), f_vers as BuiltinFn);
     builtins.insert("exsec".to_string(), f_exsec as BuiltinFn);
+    // Cryptographic & hashing (Phase 6.6)
+    builtins.insert("sha1".to_string(), f_sha1 as BuiltinFn);
+    builtins.insert("md5".to_string(), f_md5 as BuiltinFn);
+    builtins.insert("crc32".to_string(), f_crc32 as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -2947,5 +3005,9 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("hacoversin", "hacoversin(x)", "havercosine: (1 + cos(x)) / 2"),
         ("vers", "vers(x)", "versed sine: alias for versin"),
         ("exsec", "exsec(x)", "exsecant: alias for exsecant"),
+        // Cryptographic & hashing (Phase 6.6)
+        ("sha1", "sha1(str)", "SHA-1 hash (returns hex string)"),
+        ("md5", "md5(str)", "MD5 hash (returns hex string)"),
+        ("crc32", "crc32(str)", "CRC32 checksum (returns integer)"),
     ]
 }

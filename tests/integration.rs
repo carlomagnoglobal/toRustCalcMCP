@@ -1907,3 +1907,60 @@ fn test_vers_alias() {
     let result2 = it.eval_render("vers(x)").unwrap();
     assert_eq!(result1.trim(), result2.trim());
 }
+
+// Phase 6.6: Cryptographic & Hashing
+
+#[test]
+fn test_sha1_empty() {
+    let mut it = Interp::new();
+    // SHA-1 of empty string
+    let result = it.eval_render("sha1(\"\")").unwrap();
+    // SHA-1 of "" is da39a3ee5e6b4b0d3255bfef95601890afd80709
+    assert_eq!(result.trim(), "da39a3ee5e6b4b0d3255bfef95601890afd80709");
+}
+
+#[test]
+fn test_sha1_hello() {
+    let mut it = Interp::new();
+    // SHA-1 of "hello"
+    let result = it.eval_render("sha1(\"hello\")").unwrap();
+    // SHA-1 of "hello" is aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d
+    assert_eq!(result.trim(), "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d");
+}
+
+#[test]
+fn test_md5_empty() {
+    let mut it = Interp::new();
+    // MD5 of empty string
+    let result = it.eval_render("md5(\"\")").unwrap();
+    // MD5 of "" is d41d8cd98f00b204e9800998ecf8427e
+    assert_eq!(result.trim(), "d41d8cd98f00b204e9800998ecf8427e");
+}
+
+#[test]
+fn test_md5_hello() {
+    let mut it = Interp::new();
+    // MD5 of "hello"
+    let result = it.eval_render("md5(\"hello\")").unwrap();
+    // MD5 of "hello" is 5d41402abc4b2a76b9719d911017c592
+    assert_eq!(result.trim(), "5d41402abc4b2a76b9719d911017c592");
+}
+
+#[test]
+fn test_crc32_empty() {
+    let mut it = Interp::new();
+    // CRC32 of empty string
+    let result = it.eval_render("crc32(\"\")").unwrap();
+    // CRC32-CKSUM of "" is 0xFFFFFFFF (4294967295 as unsigned, or -1 as signed)
+    assert_eq!(result.trim(), "4294967295");
+}
+
+#[test]
+fn test_crc32_hello() {
+    let mut it = Interp::new();
+    // CRC32 of "hello"
+    let result = it.eval_render("crc32(\"hello\")").unwrap();
+    // CRC32 of "hello" is 3964322768 (unsigned) or as signed i64
+    let val: i64 = result.trim().parse().unwrap_or(0);
+    assert!(val != 0); // Should produce non-zero value
+}

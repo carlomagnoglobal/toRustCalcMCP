@@ -15,14 +15,14 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 6.5 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 224 builtins, CLI, MCP server, and 208 integration
+Current status: **Phase 6.6 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 227 builtins, CLI, MCP server, and 214 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
-Phase 6.1-6.5 complete (file I/O, memory & stack, error handling, command & script, obscure trig variants).
+Phase 6.1-6.6 complete (file I/O, memory & stack, error handling, command & script, obscure trig, cryptographic hashing).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -482,10 +482,14 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 215 → 224 (+9)
    - Total tests: 201 → 208 (+7)
 
-### 6.6 Cryptographic & Hashing (3 functions)
-   - [ ] `sha1(data)` — SHA-1 hash
-   - [ ] `md5(data)` — MD5 hash
-   - [ ] `crc32(data)` — CRC32 checksum
+### 6.6 Cryptographic & Hashing — DONE (3 of 3 functions)
+   - ✅ `sha1(str)` — SHA-1 hash (returns hex string)
+   - ✅ `md5(str)` — MD5 hash (returns hex string)
+   - ✅ `crc32(str)` — CRC32 checksum (returns integer)
+   - ✅ Cryptographic hash functions using sha1, md5, crc crates
+   - ✅ 6 new integration tests added and passing
+   - Builtins: 224 → 227 (+3)
+   - Total tests: 208 → 214 (+6)
 
 ### 6.7 Residue Class & Modular (8+ functions)
    - [ ] `rc(n, m)` — residue class
