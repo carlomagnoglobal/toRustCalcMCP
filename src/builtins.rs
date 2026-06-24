@@ -200,6 +200,38 @@ fn f_sqrt(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// Nth root
+fn f_root(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("root", a, 2)?;
+    let x = n(a, 0)?;
+    let n_val = int(a, 1)?;
+    let n_i64 = n_val.to_i64().ok_or("root: n out of range")?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::root(x, n_i64, &eps)?))
+}
+
+// Cube root
+fn f_cbrt(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cbrt", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::cbrt(n(a, 0)?, &eps)?))
+}
+
+// Integer square root
+fn f_isqrt(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isqrt", a, 1)?;
+    Ok(Value::Number(number::isqrt(n(a, 0)?)?))
+}
+
+// Integer nth root
+fn f_iroot(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("iroot", a, 2)?;
+    let x = n(a, 0)?;
+    let n_val = int(a, 1)?;
+    let n_i64 = n_val.to_i64().ok_or("iroot: n out of range")?;
+    Ok(Value::Number(number::iroot(x, n_i64)?))
+}
+
 // Real part of a complex number
 fn f_re(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("re", a, 1)?;
@@ -433,6 +465,43 @@ fn f_log2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let xf = x.to_f64().ok_or("overflow")?;
     let r = xf.log2();
     Num::from_float(r).ok_or_else(|| "non-finite".to_string()).map(Value::Number)
+}
+
+// Log base n
+fn f_logn(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("logn", a, 2)?;
+    let x = n(a, 0)?;
+    let n = n(a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::logn(x, n, &eps)?))
+}
+
+// Integer log base 10
+fn f_ilog10(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ilog10", a, 1)?;
+    Ok(Value::Number(number::ilog10(n(a, 0)?)?))
+}
+
+// Integer log base 2
+fn f_ilog2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ilog2", a, 1)?;
+    Ok(Value::Number(number::ilog2(n(a, 0)?)?))
+}
+
+// Integer log base e
+fn f_ilog(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ilog", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::ilog(n(a, 0)?, &eps)?))
+}
+
+// Integer log base n
+fn f_ilogn(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ilogn", a, 2)?;
+    let x = n(a, 0)?;
+    let n = n(a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::ilogn(x, n, &eps)?))
 }
 
 // Sine
@@ -1085,6 +1154,10 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("lcm".to_string(), f_lcm as BuiltinFn);
     builtins.insert("mod".to_string(), f_mod as BuiltinFn);
     builtins.insert("sqrt".to_string(), f_sqrt as BuiltinFn);
+    builtins.insert("root".to_string(), f_root as BuiltinFn);
+    builtins.insert("cbrt".to_string(), f_cbrt as BuiltinFn);
+    builtins.insert("isqrt".to_string(), f_isqrt as BuiltinFn);
+    builtins.insert("iroot".to_string(), f_iroot as BuiltinFn);
     builtins.insert("re".to_string(), f_re as BuiltinFn);
     builtins.insert("im".to_string(), f_im as BuiltinFn);
     builtins.insert("arg".to_string(), f_arg as BuiltinFn);
@@ -1103,6 +1176,11 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("ln".to_string(), f_ln as BuiltinFn);
     builtins.insert("log".to_string(), f_log as BuiltinFn);
     builtins.insert("log2".to_string(), f_log2 as BuiltinFn);
+    builtins.insert("logn".to_string(), f_logn as BuiltinFn);
+    builtins.insert("ilog10".to_string(), f_ilog10 as BuiltinFn);
+    builtins.insert("ilog2".to_string(), f_ilog2 as BuiltinFn);
+    builtins.insert("ilog".to_string(), f_ilog as BuiltinFn);
+    builtins.insert("ilogn".to_string(), f_ilogn as BuiltinFn);
     builtins.insert("sin".to_string(), f_sin as BuiltinFn);
     builtins.insert("cos".to_string(), f_cos as BuiltinFn);
     builtins.insert("tan".to_string(), f_tan as BuiltinFn);
@@ -1193,6 +1271,10 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("lcm", "lcm(x,y)", "least common multiple"),
         ("mod", "mod(x,y)", "modulus"),
         ("sqrt", "sqrt(x)", "square root (returns complex for negative x)"),
+        ("root", "root(x,n)", "nth root"),
+        ("cbrt", "cbrt(x)", "cube root"),
+        ("isqrt", "isqrt(x)", "integer square root"),
+        ("iroot", "iroot(x,n)", "integer nth root"),
         ("re", "re(z)", "real part of complex number"),
         ("im", "im(z)", "imaginary part of complex number"),
         ("arg", "arg(z)", "argument (phase angle) of complex number"),
@@ -1211,6 +1293,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("ln", "ln(x)", "natural logarithm"),
         ("log", "log(x)", "base-10 logarithm"),
         ("log2", "log2(x)", "base-2 logarithm"),
+        ("logn", "logn(x,n)", "logarithm base n"),
+        ("ilog10", "ilog10(x)", "integer log base 10"),
+        ("ilog2", "ilog2(x)", "integer log base 2"),
+        ("ilog", "ilog(x)", "integer log base e"),
+        ("ilogn", "ilogn(x,n)", "integer log base n"),
         ("sin", "sin(x)", "sine (radians)"),
         ("cos", "cos(x)", "cosine (radians)"),
         ("tan", "tan(x)", "tangent (radians)"),

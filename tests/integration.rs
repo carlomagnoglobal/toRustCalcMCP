@@ -839,6 +839,82 @@ fn test_asech() {
     assert!((val - 1.317).abs() < 0.01);
 }
 
+// Phase 4.2: Root & Logarithm Variants
+
+#[test]
+fn test_root() {
+    let mut it = Interp::new();
+    // root(8, 3) = 2
+    let result = it.eval_render("root(8, 3)").unwrap();
+    assert!(result == "2" || result == "~2");
+}
+
+#[test]
+fn test_cbrt() {
+    let mut it = Interp::new();
+    // cbrt(27) = 3
+    let result = it.eval_render("cbrt(27)").unwrap();
+    assert!(result == "3" || result == "~3");
+}
+
+#[test]
+fn test_isqrt() {
+    let mut it = Interp::new();
+    // isqrt(25) = 5
+    let result = it.eval_render("isqrt(25)").unwrap();
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_iroot() {
+    let mut it = Interp::new();
+    // iroot(8, 3) = 2
+    let result = it.eval_render("iroot(8, 3)").unwrap();
+    assert_eq!(result, "2");
+}
+
+#[test]
+fn test_logn() {
+    let mut it = Interp::new();
+    // logn(100, 10) = 2
+    let result = it.eval_render("logn(100, 10)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 2.0).abs() < 0.01);
+}
+
+#[test]
+fn test_ilog10() {
+    let mut it = Interp::new();
+    // ilog10(100) = 2
+    let result = it.eval_render("ilog10(100)").unwrap();
+    assert_eq!(result, "2");
+}
+
+#[test]
+fn test_ilog2() {
+    let mut it = Interp::new();
+    // ilog2(8) = 3
+    let result = it.eval_render("ilog2(8)").unwrap();
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_ilog() {
+    let mut it = Interp::new();
+    // ilog(10) = 2 (floor(ln(10)) = 2)
+    let result = it.eval_render("ilog(10)").unwrap();
+    assert_eq!(result, "2");
+}
+
+#[test]
+fn test_ilogn() {
+    let mut it = Interp::new();
+    // ilogn(1000, 10) = 3
+    let result = it.eval_render("ilogn(1000, 10)").unwrap();
+    assert_eq!(result, "3");
+}
+
 #[test]
 fn test_acsch() {
     let mut it = Interp::new();

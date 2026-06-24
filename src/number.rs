@@ -196,6 +196,129 @@ pub fn sqrt_complex(a: &Num, b: &Num, epsilon: &Num) -> Result<(Num, Num), Strin
     Ok((real, imag_final))
 }
 
+/// Nth root: x^(1/n) to within `epsilon`. Computed via Newton's method.
+pub fn root(x: &Num, n: i64, epsilon: &Num) -> Result<Num, String> {
+    if n == 0 {
+        return Err("root: n must be nonzero".to_string());
+    }
+    if n == 1 {
+        return Ok(x.clone());
+    }
+    if n == 2 {
+        return sqrt(x, epsilon);
+    }
+    if n < 0 {
+        // x^(1/n) = 1 / x^(1/-n)
+        let abs_n = (-n) as u32;
+        return Ok(Num::one() / root(x, -n, epsilon)?);
+    }
+
+    // x^(1/n) via Newton's method: g_{k+1} = ((n-1)*g_k + x/g_k^(n-1)) / n
+    if x.is_zero() {
+        return Ok(Num::zero());
+    }
+    if x.is_negative() && n % 2 == 0 {
+        return Err("root: even root of negative number".to_string());
+    }
+
+    let is_negative = x.is_negative();
+    let abs_x = if is_negative { -x } else { x.clone() };
+
+    let n_bi = Num::from_integer(bi(n));
+    let mut g = match abs_x.to_f64().map(|v| v.powf(1.0 / n as f64)) {
+        Some(v) if v.is_finite() && v > 0.0 => {
+            Num::from_float(v).unwrap_or_else(|| &abs_x / &n_bi)
+        }
+        _ => &abs_x / &n_bi,
+    };
+
+    for _ in 0..200 {
+        let g_pow_n_minus_1 = {
+            let mut res = Num::one();
+            for _ in 0..(n - 1) {
+                res = &res * &g;
+            }
+            res
+        };
+        let next = (&(&Num::from_integer(bi(n - 1)) * &g) + &(&abs_x / &g_pow_n_minus_1)) / &n_bi;
+        let diff = (&next - &g).abs();
+        g = next;
+        if &diff < epsilon {
+            break;
+        }
+    }
+
+    let result = round_to_epsilon(&g, epsilon);
+    Ok(if is_negative { -result } else { result })
+}
+
+/// Cube root: cbrt(x) = x^(1/3)
+pub fn cbrt(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    root(x, 3, epsilon)
+}
+
+/// Integer square root: largest integer n such that n^2 <= x
+pub fn isqrt(x: &Num) -> Result<Num, String> {
+    if x.is_negative() {
+        return Err("isqrt: negative argument".to_string());
+    }
+    if !x.is_integer() {
+        return Err("isqrt: argument must be an integer".to_string());
+    }
+    let bi_x = x.to_integer();
+    let result = bi_x.sqrt();
+    Ok(Num::from_integer(result))
+}
+
+/// Integer nth root: largest integer n such that n^k <= x
+pub fn iroot(x: &Num, k: i64) -> Result<Num, String> {
+    if k == 0 {
+        return Err("iroot: k must be nonzero".to_string());
+    }
+    if !x.is_integer() {
+        return Err("iroot: argument must be an integer".to_string());
+    }
+    if k < 0 {
+        return Err("iroot: k must be positive".to_string());
+    }
+    if k == 1 {
+        return Ok(x.clone());
+    }
+    if x.is_negative() && k % 2 == 0 {
+        return Err("iroot: even root of negative number".to_string());
+    }
+
+    let is_negative = x.is_negative();
+    let bi_x = if is_negative { -x.to_integer() } else { x.to_integer() };
+
+    // Binary search for the integer root
+    let mut low = bi(0);
+    let mut high = bi_x.clone();
+
+    while &low <= &high {
+        let mid = (&low + &high) / bi(2);
+        let mut power = bi(1);
+        for _ in 0..k {
+            power = &power * &mid;
+            if power > bi_x {
+                break;
+            }
+        }
+
+        if power == bi_x {
+            let result = Num::from_integer(mid);
+            return Ok(if is_negative { -result } else { result });
+        } else if power < bi_x {
+            low = &mid + bi(1);
+        } else {
+            high = &mid - bi(1);
+        }
+    }
+
+    let result = Num::from_integer(high);
+    Ok(if is_negative { -result } else { result })
+}
+
 /// Exponential: e^x to within `epsilon`, computed via Taylor series.
 /// exp(x) = sum(x^n / n!) for n=0..∞
 pub fn exp(x: &Num, epsilon: &Num) -> Result<Num, String> {
@@ -279,6 +402,83 @@ pub fn ln(x: &Num, epsilon: &Num) -> Result<Num, String> {
     result = &(&two * &result) + Num::from_integer(bi(reduction));
 
     Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Logarithm base n: logn(x, n) = ln(x) / ln(n)
+pub fn logn(x: &Num, n: &Num, epsilon: &Num) -> Result<Num, String> {
+    if n <= &Num::zero() || n == &Num::one() {
+        return Err("logn: base must be positive and not 1".to_string());
+    }
+    let ln_x = ln(x, epsilon)?;
+    let ln_n = ln(n, epsilon)?;
+    Ok(round_to_epsilon(&(&ln_x / &ln_n), epsilon))
+}
+
+/// Integer logarithm base 10: largest integer n such that 10^n <= x
+pub fn ilog10(x: &Num) -> Result<Num, String> {
+    if x <= &Num::zero() {
+        return Err("ilog10: argument must be positive".to_string());
+    }
+    if !x.is_integer() {
+        return Err("ilog10: argument must be an integer".to_string());
+    }
+    let bi_x = x.to_integer();
+    if bi_x < num_bigint::BigInt::from(10) {
+        return Ok(Num::zero());
+    }
+
+    let mut count: i64 = 0;
+    let mut val = bi_x.clone();
+    let ten = bi(10);
+    while val >= ten {
+        val = &val / &ten;
+        count += 1;
+    }
+    Ok(Num::from_integer(bi(count)))
+}
+
+/// Integer logarithm base 2: largest integer n such that 2^n <= x
+pub fn ilog2(x: &Num) -> Result<Num, String> {
+    if x <= &Num::zero() {
+        return Err("ilog2: argument must be positive".to_string());
+    }
+    if !x.is_integer() {
+        return Err("ilog2: argument must be an integer".to_string());
+    }
+    let bi_x = x.to_integer();
+    if bi_x < num_bigint::BigInt::from(2) {
+        return Ok(Num::zero());
+    }
+
+    let mut count: i64 = 0;
+    let mut val = bi_x.clone();
+    let two = bi(2);
+    while val >= two {
+        val = &val / &two;
+        count += 1;
+    }
+    Ok(Num::from_integer(bi(count)))
+}
+
+/// Integer logarithm base e: largest integer n such that e^n <= x
+pub fn ilog(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x <= &Num::zero() {
+        return Err("ilog: argument must be positive".to_string());
+    }
+    let ln_x = ln(x, epsilon)?;
+    Ok(ln_x.floor())
+}
+
+/// Integer logarithm base n: largest integer k such that n^k <= x
+pub fn ilogn(x: &Num, n: &Num, epsilon: &Num) -> Result<Num, String> {
+    if n <= &Num::zero() || n == &Num::one() {
+        return Err("ilogn: base must be positive and not 1".to_string());
+    }
+    if x <= &Num::zero() {
+        return Err("ilogn: argument must be positive".to_string());
+    }
+    let logn_result = logn(x, n, epsilon)?;
+    Ok(logn_result.floor())
 }
 
 /// Sine to within `epsilon`, computed via Taylor series with range reduction.
