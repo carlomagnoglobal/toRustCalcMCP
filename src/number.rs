@@ -355,6 +355,188 @@ pub fn tan(x: &Num, epsilon: &Num) -> Result<Num, String> {
     Ok(round_to_epsilon(&(&s / &c), epsilon))
 }
 
+/// Inverse sine: asin(x) via Newton's method or series, to within `epsilon`.
+pub fn asin(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if &x.abs() > &Num::one() {
+        return Err("asin: domain error (|x| > 1)".to_string());
+    }
+    if x.is_zero() {
+        return Ok(Num::zero());
+    }
+    // Use series: asin(x) = sum((-1)^n * (2n)! / (2^(2n) * (n!)^2 * (2n+1)) * x^(2n+1))
+    let mut result = x.clone();
+    let mut term = x.clone();
+    let x_sq = x * x;
+
+    for n in 1..500 {
+        let n_bi = bi(n as i64);
+        let coeff = Num::from_integer(bi(2 * n as i64 - 1)) / Num::from_integer(bi(2 * n as i64));
+        term = &term * &(&x_sq * &coeff);
+        result = &result + &(&term / Num::from_integer(bi(2 * n as i64 + 1)));
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Inverse cosine: acos(x) = pi/2 - asin(x), to within `epsilon`.
+pub fn acos(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if &x.abs() > &Num::one() {
+        return Err("acos: domain error (|x| > 1)".to_string());
+    }
+    let asin_val = asin(x, epsilon)?;
+    Ok(round_to_epsilon(&(&pi() / Num::from_integer(bi(2)) - asin_val), epsilon))
+}
+
+/// Inverse tangent: atan(x) via series, to within `epsilon`.
+pub fn atan(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x.is_zero() {
+        return Ok(Num::zero());
+    }
+    // Use series: atan(x) = x - x^3/3 + x^5/5 - ... for |x| <= 1
+    // For |x| > 1, use: atan(x) = sign(x)*pi/2 - atan(1/x)
+    let use_reciprocal = &x.abs() > &Num::one();
+    let y = if use_reciprocal {
+        Num::one() / x
+    } else {
+        x.clone()
+    };
+
+    let mut result = y.clone();
+    let mut term = y.clone();
+    let y_sq = &y * &y;
+    let neg_y_sq = -&y_sq;
+
+    for n in 1..500 {
+        term = &term * &neg_y_sq;
+        result = &result + &(&term / Num::from_integer(bi(2 * n as i64 + 1)));
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+
+    let result = if use_reciprocal {
+        let pi_half = &pi() / Num::from_integer(bi(2));
+        if x.is_negative() {
+            -&pi_half - result
+        } else {
+            &pi_half - result
+        }
+    } else {
+        result
+    };
+
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Two-argument arctangent: atan2(y, x), to within `epsilon`.
+pub fn atan2(y: &Num, x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x.is_zero() && y.is_zero() {
+        return Err("atan2: both arguments are zero".to_string());
+    }
+    if x.is_zero() {
+        let pi_half = &pi() / Num::from_integer(bi(2));
+        return Ok(if y.is_positive() { pi_half } else { -pi_half });
+    }
+    let atan_val = atan(&(y / x), epsilon)?;
+    let result = if x.is_positive() {
+        atan_val
+    } else if y.is_negative() {
+        atan_val - pi()
+    } else {
+        atan_val + pi()
+    };
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Hyperbolic sine: sinh(x) = (e^x - e^-x) / 2, to within `epsilon`.
+pub fn sinh(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let exp_x = exp(x, epsilon)?;
+    let exp_neg_x = exp(&(-x), epsilon)?;
+    Ok(round_to_epsilon(&((&exp_x - &exp_neg_x) / Num::from_integer(bi(2))), epsilon))
+}
+
+/// Hyperbolic cosine: cosh(x) = (e^x + e^-x) / 2, to within `epsilon`.
+pub fn cosh(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let exp_x = exp(x, epsilon)?;
+    let exp_neg_x = exp(&(-x), epsilon)?;
+    Ok(round_to_epsilon(&((&exp_x + &exp_neg_x) / Num::from_integer(bi(2))), epsilon))
+}
+
+/// Hyperbolic tangent: tanh(x) = sinh(x) / cosh(x), to within `epsilon`.
+pub fn tanh(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let sinh_val = sinh(x, epsilon)?;
+    let cosh_val = cosh(x, epsilon)?;
+    if cosh_val.is_zero() {
+        return Err("tanh: cosh is zero".to_string());
+    }
+    Ok(round_to_epsilon(&(&sinh_val / &cosh_val), epsilon))
+}
+
+/// Inverse hyperbolic sine: asinh(x) = ln(x + sqrt(x^2 + 1)), to within `epsilon`.
+pub fn asinh(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let x_sq = x * x;
+    let sqrt_val = sqrt(&(&x_sq + Num::one()), epsilon)?;
+    let arg = x + &sqrt_val;
+    ln(&arg, epsilon)
+}
+
+/// Inverse hyperbolic cosine: acosh(x) = ln(x + sqrt(x^2 - 1)), to within `epsilon`.
+pub fn acosh(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x < &Num::one() {
+        return Err("acosh: domain error (x < 1)".to_string());
+    }
+    let x_sq = x * x;
+    let sqrt_val = sqrt(&(&x_sq - Num::one()), epsilon)?;
+    let arg = x + &sqrt_val;
+    ln(&arg, epsilon)
+}
+
+/// Inverse hyperbolic tangent: atanh(x) = 0.5 * ln((1+x)/(1-x)), to within `epsilon`.
+pub fn atanh(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if &x.abs() >= &Num::one() {
+        return Err("atanh: domain error (|x| >= 1)".to_string());
+    }
+    let one = Num::one();
+    let numerator = &one + x;
+    let denominator = &one - x;
+    let ratio = &numerator / &denominator;
+    let ln_val = ln(&ratio, epsilon)?;
+    Ok(round_to_epsilon(&(&ln_val / Num::from_integer(bi(2))), epsilon))
+}
+
+/// Cosine + Sine: cas(x) = cos(x) + sin(x), to within `epsilon`.
+pub fn cas(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let c = cos(x, epsilon)?;
+    let s = sin(x, epsilon)?;
+    Ok(round_to_epsilon(&(&c + &s), epsilon))
+}
+
+/// Euler's formula: cis(x) = cos(x) + i*sin(x) = e^(ix)
+/// Returns a complex number (real, imaginary)
+pub fn cis(x: &Num, epsilon: &Num) -> Result<(Num, Num), String> {
+    let c = cos(x, epsilon)?;
+    let s = sin(x, epsilon)?;
+    Ok((c, s))
+}
+
+/// Complex conjugate of (real, imag): returns (real, -imag)
+pub fn conj_complex(real: &Num, imag: &Num) -> (Num, Num) {
+    (real.clone(), -imag)
+}
+
+/// Rounding: round x to n decimal places
+pub fn round_decimal(x: &Num, n: i64) -> Num {
+    if n < 0 {
+        return x.clone();
+    }
+    let factor = Num::from_integer(bi(10).pow(n as u32));
+    let scaled = x * &factor;
+    let rounded = scaled.round();
+    rounded / factor
+}
+
 /// Snap a value to a multiple of `epsilon`, keeping results compact.
 pub fn round_to_epsilon(x: &Num, epsilon: &Num) -> Num {
     if epsilon.is_zero() {

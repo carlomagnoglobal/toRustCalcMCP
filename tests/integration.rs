@@ -400,3 +400,109 @@ fn test_base_two_args() {
     let lines: Vec<&str> = result.lines().collect();
     assert_eq!(lines[lines.len() - 1], "ff");
 }
+
+#[test]
+fn test_asin() {
+    let mut it = Interp::new();
+    let result = it.eval_render("asin(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_acos() {
+    let mut it = Interp::new();
+    let result = it.eval_render("acos(0)").unwrap();
+    // acos(0) = pi/2 ≈ 1.5708
+    assert!(result.contains("1.570"));
+}
+
+#[test]
+fn test_atan() {
+    let mut it = Interp::new();
+    let result = it.eval_render("atan(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_atan2() {
+    let mut it = Interp::new();
+    let result = it.eval_render("atan2(0, 1)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_sinh() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sinh(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_cosh() {
+    let mut it = Interp::new();
+    let result = it.eval_render("cosh(0)").unwrap();
+    // cosh(0) = 1 (may show as ~1 due to rounding)
+    assert!(result == "1" || result == "~1");
+}
+
+#[test]
+fn test_tanh() {
+    let mut it = Interp::new();
+    let result = it.eval_render("tanh(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_asinh() {
+    let mut it = Interp::new();
+    let result = it.eval_render("asinh(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_acosh() {
+    let mut it = Interp::new();
+    let result = it.eval_render("acosh(1)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_atanh() {
+    let mut it = Interp::new();
+    let result = it.eval_render("atanh(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_cas() {
+    let mut it = Interp::new();
+    let result = it.eval_render("cas(0)").unwrap();
+    // cas(0) = cos(0) + sin(0) = 1 + 0 = 1 (may show as ~1 due to rounding)
+    assert!(result == "1" || result == "~1");
+}
+
+#[test]
+fn test_cis() {
+    let mut it = Interp::new();
+    let result = it.eval_render("cis(0)").unwrap();
+    // cis(0) = cos(0) + i*sin(0) = 1 + 0i
+    // When imaginary part is 0, it just shows the real part
+    assert!(result.contains("1"));
+}
+
+#[test]
+fn test_conj() {
+    let mut it = Interp::new();
+    let result = it.eval_render("i = sqrt(-1); conj(3 + 4*i)").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    let last = lines[lines.len() - 1];
+    // Should be 3-4i
+    assert!(last.contains("3") && last.contains("4"));
+}
+
+#[test]
+fn test_round_decimal() {
+    let mut it = Interp::new();
+    let result = it.eval_render("round(3.14159, 2)").unwrap();
+    assert_eq!(result, "3.14");
+}

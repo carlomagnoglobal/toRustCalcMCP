@@ -107,8 +107,18 @@ fn f_ceil(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
 // Round to nearest integer
 fn f_round(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
-    argc("round", a, 1)?;
-    Ok(Value::Number(n(a, 0)?.round()))
+    argc_range("round", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let places = if a.len() == 2 {
+        int(a, 1)?.to_i64().ok_or("round: places out of range")?
+    } else {
+        0
+    };
+    if places == 0 {
+        Ok(Value::Number(x.round()))
+    } else {
+        Ok(Value::Number(number::round_decimal(x, places)))
+    }
 }
 
 // Minimum
@@ -446,6 +456,104 @@ fn f_tan(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(number::tan(n(a, 0)?, &eps)?))
 }
 
+// Inverse sine
+fn f_asin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("asin", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::asin(n(a, 0)?, &eps)?))
+}
+
+// Inverse cosine
+fn f_acos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acos", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::acos(n(a, 0)?, &eps)?))
+}
+
+// Inverse tangent
+fn f_atan(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("atan", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::atan(n(a, 0)?, &eps)?))
+}
+
+// Two-argument arctangent
+fn f_atan2(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("atan2", a, 2)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::atan2(n(a, 0)?, n(a, 1)?, &eps)?))
+}
+
+// Hyperbolic sine
+fn f_sinh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("sinh", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::sinh(n(a, 0)?, &eps)?))
+}
+
+// Hyperbolic cosine
+fn f_cosh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cosh", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::cosh(n(a, 0)?, &eps)?))
+}
+
+// Hyperbolic tangent
+fn f_tanh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("tanh", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::tanh(n(a, 0)?, &eps)?))
+}
+
+// Inverse hyperbolic sine
+fn f_asinh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("asinh", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::asinh(n(a, 0)?, &eps)?))
+}
+
+// Inverse hyperbolic cosine
+fn f_acosh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acosh", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::acosh(n(a, 0)?, &eps)?))
+}
+
+// Inverse hyperbolic tangent
+fn f_atanh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("atanh", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::atanh(n(a, 0)?, &eps)?))
+}
+
+// Cosine + sine
+fn f_cas(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cas", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::cas(n(a, 0)?, &eps)?))
+}
+
+// Euler's formula: cis(x) = cos(x) + i*sin(x)
+fn f_cis(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cis", a, 1)?;
+    let eps = it.epsilon();
+    let (real, imag) = number::cis(n(a, 0)?, &eps)?;
+    Ok(Value::Complex(real, imag))
+}
+
+// Complex conjugate
+fn f_conj(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("conj", a, 1)?;
+    match &a[0] {
+        Value::Number(n) => Ok(Value::Number(n.clone())),
+        Value::Complex(r, i) => {
+            let (real, imag) = number::conj_complex(r, i);
+            Ok(Value::Complex(real, imag))
+        }
+        _ => Err("conj: argument must be a number".to_string()),
+    }
+}
+
 // Simple primality test (trial division for small primes, then test a few bases)
 fn is_prime(n: u64) -> bool {
     if n < 2 {
@@ -734,6 +842,20 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("sin".to_string(), f_sin as BuiltinFn);
     builtins.insert("cos".to_string(), f_cos as BuiltinFn);
     builtins.insert("tan".to_string(), f_tan as BuiltinFn);
+    builtins.insert("asin".to_string(), f_asin as BuiltinFn);
+    builtins.insert("acos".to_string(), f_acos as BuiltinFn);
+    builtins.insert("atan".to_string(), f_atan as BuiltinFn);
+    builtins.insert("atan2".to_string(), f_atan2 as BuiltinFn);
+    builtins.insert("sinh".to_string(), f_sinh as BuiltinFn);
+    builtins.insert("cosh".to_string(), f_cosh as BuiltinFn);
+    builtins.insert("tanh".to_string(), f_tanh as BuiltinFn);
+    builtins.insert("asinh".to_string(), f_asinh as BuiltinFn);
+    builtins.insert("acosh".to_string(), f_acosh as BuiltinFn);
+    builtins.insert("atanh".to_string(), f_atanh as BuiltinFn);
+    builtins.insert("cas".to_string(), f_cas as BuiltinFn);
+    builtins.insert("cis".to_string(), f_cis as BuiltinFn);
+    builtins.insert("conj".to_string(), f_conj as BuiltinFn);
+    builtins.insert("round".to_string(), f_round as BuiltinFn);
     // Bitwise operations
     builtins.insert("and".to_string(), f_and as BuiltinFn);
     builtins.insert("or".to_string(), f_or as BuiltinFn);
@@ -792,6 +914,20 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("sin", "sin(x)", "sine (radians)"),
         ("cos", "cos(x)", "cosine (radians)"),
         ("tan", "tan(x)", "tangent (radians)"),
+        ("asin", "asin(x)", "inverse sine"),
+        ("acos", "acos(x)", "inverse cosine"),
+        ("atan", "atan(x)", "inverse tangent"),
+        ("atan2", "atan2(y,x)", "two-argument inverse tangent"),
+        ("sinh", "sinh(x)", "hyperbolic sine"),
+        ("cosh", "cosh(x)", "hyperbolic cosine"),
+        ("tanh", "tanh(x)", "hyperbolic tangent"),
+        ("asinh", "asinh(x)", "inverse hyperbolic sine"),
+        ("acosh", "acosh(x)", "inverse hyperbolic cosine"),
+        ("atanh", "atanh(x)", "inverse hyperbolic tangent"),
+        ("cas", "cas(x)", "cosine + sine"),
+        ("cis", "cis(x)", "cos(x) + i*sin(x) (returns complex)"),
+        ("conj", "conj(x)", "complex conjugate"),
+        ("round", "round(x[,places])", "round to decimal places"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),
         ("xor", "xor(x,y)", "bitwise XOR"),
