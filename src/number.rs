@@ -168,6 +168,34 @@ pub fn sqrt(x: &Num, epsilon: &Num) -> Result<Num, String> {
     Ok(round_to_epsilon(&g, epsilon))
 }
 
+/// Complex square root: returns (real, imaginary) parts.
+/// For a negative real number -x, returns (0, sqrt(x)).
+pub fn sqrt_complex(a: &Num, b: &Num, epsilon: &Num) -> Result<(Num, Num), String> {
+    if b.is_zero() && a.is_negative() {
+        // Special case: sqrt(-x) = i*sqrt(x) for x > 0
+        let imag = sqrt(&(-a), epsilon)?;
+        return Ok((Num::zero(), imag));
+    }
+
+    // General case: sqrt(a + bi)
+    // Magnitude: r = sqrt(a^2 + b^2)
+    let a_sq = a * a;
+    let b_sq = b * b;
+    let magnitude_sq = &a_sq + &b_sq;
+    let magnitude = sqrt(&magnitude_sq, epsilon)?;
+
+    // Real part: sqrt((magnitude + a) / 2)
+    let real_part_arg = (&magnitude + a) / Num::from_integer(bi(2));
+    let real = sqrt(&real_part_arg, epsilon)?;
+
+    // Imaginary part: sign(b) * sqrt((magnitude - a) / 2)
+    let imag_part_arg = (&magnitude - a) / Num::from_integer(bi(2));
+    let imag = sqrt(&imag_part_arg, epsilon)?;
+    let imag_final = if b.is_negative() { -imag } else { imag };
+
+    Ok((real, imag_final))
+}
+
 /// Exponential: e^x to within `epsilon`, computed via Taylor series.
 /// exp(x) = sum(x^n / n!) for n=0..∞
 pub fn exp(x: &Num, epsilon: &Num) -> Result<Num, String> {

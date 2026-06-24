@@ -45,6 +45,22 @@ fn int(args: &[Value], i: usize) -> Result<BigInt, String> {
     Ok(rat.numer().clone())
 }
 
+fn real_part(v: &Value) -> Result<Num, String> {
+    match v {
+        Value::Number(r) => Ok(r.clone()),
+        Value::Complex(r, _) => Ok(r.clone()),
+        _ => Err("not a number".to_string()),
+    }
+}
+
+fn imag_part(v: &Value) -> Result<Num, String> {
+    match v {
+        Value::Number(_) => Ok(Num::zero()),
+        Value::Complex(_, i) => Ok(i.clone()),
+        _ => Err("not a number".to_string()),
+    }
+}
+
 // Absolute value
 fn f_abs(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("abs", a, 1)?;
@@ -164,8 +180,43 @@ fn f_mod(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Square root
 fn f_sqrt(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("sqrt", a, 1)?;
+    let x = n(a, 0)?;
     let eps = it.epsilon();
-    Ok(Value::Number(number::sqrt(n(a, 0)?, &eps)?))
+    if x.is_negative() {
+        let (real, imag) = number::sqrt_complex(x, &Num::zero(), &eps)?;
+        Ok(Value::Complex(real, imag))
+    } else {
+        Ok(Value::Number(number::sqrt(x, &eps)?))
+    }
+}
+
+// Real part of a complex number
+fn f_re(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("re", a, 1)?;
+    Ok(Value::Number(real_part(&a[0])?))
+}
+
+// Imaginary part of a complex number
+fn f_im(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("im", a, 1)?;
+    Ok(Value::Number(imag_part(&a[0])?))
+}
+
+// Argument (phase angle) of a complex number
+fn f_arg(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("arg", a, 1)?;
+    let r = real_part(&a[0])?;
+    let i = imag_part(&a[0])?;
+    if r.is_zero() && i.is_zero() {
+        return Ok(Value::Number(Num::zero()));
+    }
+    // atan2(imag, real)
+    let angle_f64 = i.to_f64()
+        .and_then(|im| r.to_f64().map(|re| im.atan2(re)))
+        .ok_or("overflow in arg")?;
+    let angle = Num::from_float(angle_f64)
+        .ok_or("non-finite result in arg")?;
+    Ok(Value::Number(angle))
 }
 
 // Factorial
@@ -627,6 +678,9 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("lcm".to_string(), f_lcm as BuiltinFn);
     builtins.insert("mod".to_string(), f_mod as BuiltinFn);
     builtins.insert("sqrt".to_string(), f_sqrt as BuiltinFn);
+    builtins.insert("re".to_string(), f_re as BuiltinFn);
+    builtins.insert("im".to_string(), f_im as BuiltinFn);
+    builtins.insert("arg".to_string(), f_arg as BuiltinFn);
     builtins.insert("fact".to_string(), f_fact as BuiltinFn);
     builtins.insert("comb".to_string(), f_comb as BuiltinFn);
     builtins.insert("perm".to_string(), f_perm as BuiltinFn);
@@ -680,7 +734,10 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("gcd", "gcd(x,y)", "greatest common divisor"),
         ("lcm", "lcm(x,y)", "least common multiple"),
         ("mod", "mod(x,y)", "modulus"),
-        ("sqrt", "sqrt(x)", "square root"),
+        ("sqrt", "sqrt(x)", "square root (returns complex for negative x)"),
+        ("re", "re(z)", "real part of complex number"),
+        ("im", "im(z)", "imaginary part of complex number"),
+        ("arg", "arg(z)", "argument (phase angle) of complex number"),
         ("fact", "fact(n)", "factorial"),
         ("comb", "comb(n,k)", "combinations"),
         ("perm", "perm(n,k)", "permutations"),

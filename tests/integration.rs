@@ -296,3 +296,59 @@ fn test_list_slice() {
     let result = it.eval_render("slice(list(1, 2, 3, 4, 5), 1, 4)").unwrap();
     assert_eq!(result, "[2, 3, 4]");
 }
+
+#[test]
+fn test_sqrt_negative() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sqrt(-1)").unwrap();
+    assert_eq!(result, "1i");
+}
+
+#[test]
+fn test_sqrt_negative_four() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sqrt(-4)").unwrap();
+    assert_eq!(result, "2i");
+}
+
+#[test]
+fn test_complex_real_part() {
+    let mut it = Interp::new();
+    let result = it.eval_render("z = sqrt(-1); re(z)").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "0");
+}
+
+#[test]
+fn test_complex_imag_part() {
+    let mut it = Interp::new();
+    let result = it.eval_render("z = sqrt(-1); im(z)").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "1");
+}
+
+#[test]
+fn test_complex_addition() {
+    let mut it = Interp::new();
+    let result = it.eval_render("i = sqrt(-1); (1 + 2*i) + (3 + 4*i)").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "4+6i");
+}
+
+#[test]
+fn test_complex_multiplication() {
+    let mut it = Interp::new();
+    let result = it.eval_render("i = sqrt(-1); (1 + i) * (2 - i)").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "3+1i");
+}
+
+#[test]
+fn test_complex_division() {
+    let mut it = Interp::new();
+    let result = it.eval_render("i = sqrt(-1); a = 3 + 4*i; b = 1 + i; a / b").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    // (3+4i)/(1+i) = 3.5+0.5i
+    assert!(lines[lines.len() - 1].contains("3.5"));
+    assert!(lines[lines.len() - 1].contains("0.5"));
+}

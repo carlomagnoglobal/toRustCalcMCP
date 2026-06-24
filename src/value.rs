@@ -4,11 +4,13 @@ use crate::config::Config;
 use crate::number::{self, Num};
 use crate::parser::Expr;
 use num_bigint::BigInt;
+use num_traits::{Signed, Zero};
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub enum Value {
     Number(Num),
+    Complex(Num, Num), // real, imaginary
     Str(String),
     Null,
     Function(Vec<String>, Rc<Expr>), // params, body (as Expr)
@@ -19,6 +21,7 @@ impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Value::Number(a), Value::Number(b)) => a == b,
+            (Value::Complex(ar, ai), Value::Complex(br, bi)) => ar == br && ai == bi,
             (Value::Str(a), Value::Str(b)) => a == b,
             (Value::Null, Value::Null) => true,
             (Value::List(a), Value::List(b)) => a == b,
@@ -57,6 +60,21 @@ impl Value {
                 }
                 crate::config::Mode::Int => number::trunc(n).numer().to_string(),
             },
+            Value::Complex(r, i) => {
+                let real_str = number::to_decimal_string(r, cfg.display);
+                let imag_str = number::to_decimal_string(i, cfg.display);
+                // Remove ~ prefix for imaginary part if present
+                let imag_clean = imag_str.trim_start_matches('~');
+                if i.is_zero() {
+                    real_str
+                } else if r.is_zero() {
+                    format!("{}i", imag_clean)
+                } else if i.numer().is_positive() {
+                    format!("{}+{}i", real_str, imag_clean)
+                } else {
+                    format!("{}-{}i", real_str, imag_clean.trim_start_matches('-'))
+                }
+            }
             Value::Str(s) => s.clone(),
             Value::Null => String::new(),
             Value::Function(_, _) => String::new(), // Functions don't render

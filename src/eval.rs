@@ -95,10 +95,17 @@ impl Interp {
             }
             Expr::Unary(op, inner) => {
                 let v = self.eval(inner)?;
-                let n = v.as_number()?.clone();
                 Ok(match op {
-                    UnOp::Neg => Value::Number(-n),
-                    UnOp::Pos => Value::Number(n),
+                    UnOp::Neg => match v {
+                        Value::Number(n) => Value::Number(-n),
+                        Value::Complex(r, i) => Value::Complex(-r, -i),
+                        _ => return Err("not a number".to_string()),
+                    }
+                    UnOp::Pos => match v {
+                        Value::Number(n) => Value::Number(n),
+                        Value::Complex(r, i) => Value::Complex(r, i),
+                        _ => return Err("not a number".to_string()),
+                    }
                 })
             }
             Expr::Binary(op, l, r) => self.eval_binary(*op, l, r),
@@ -235,39 +242,95 @@ impl Interp {
     fn eval_binary(&mut self, op: BinOp, l: &Expr, r: &Expr) -> Result<Value, String> {
         let lv = self.eval(l)?;
         let rv = self.eval(r)?;
-        let a = lv.as_number()?.clone();
-        let b = rv.as_number()?.clone();
-        Ok(match op {
-            BinOp::Add => Value::Number(a + b),
-            BinOp::Sub => Value::Number(a - b),
-            BinOp::Mul => Value::Number(a * b),
+
+        // Extract real and imaginary parts
+        let (lr, li) = match &lv {
+            Value::Number(n) => (n.clone(), Num::zero()),
+            Value::Complex(r, i) => (r.clone(), i.clone()),
+            _ => return Err("not a number".to_string()),
+        };
+        let (rr, ri) = match &rv {
+            Value::Number(n) => (n.clone(), Num::zero()),
+            Value::Complex(r, i) => (r.clone(), i.clone()),
+            _ => return Err("not a number".to_string()),
+        };
+
+        // Perform operation on complex numbers
+        let result = match op {
+            BinOp::Add => {
+                Value::Complex(&lr + &rr, &li + &ri)
+            }
+            BinOp::Sub => {
+                Value::Complex(&lr - &rr, &li - &ri)
+            }
+            BinOp::Mul => {
+                // (a+bi)(c+di) = (ac-bd) + (ad+bc)i
+                let real = &lr * &rr - &li * &ri;
+                let imag = &lr * &ri + &li * &rr;
+                Value::Complex(real, imag)
+            }
             BinOp::Div => {
-                if b.is_zero() {
+                // (a+bi)/(c+di) = ((ac+bd) + (bc-ad)i) / (c^2 + d^2)
+                if rr.is_zero() && ri.is_zero() {
                     return Err("division by zero".into());
                 }
-                Value::Number(a / b)
+                let denom = &rr * &rr + &ri * &ri;
+                let real = (&lr * &rr + &li * &ri) / &denom;
+                let imag = (&li * &rr - &lr * &ri) / &denom;
+                Value::Complex(real, imag)
             }
-            BinOp::IntDiv => {
-                if b.is_zero() {
-                    return Err("division by zero".into());
+            BinOp::Pow => {
+                // For now, only support integer/real powers, not general complex powers
+                if !ri.is_zero() || !rr.is_integer() {
+                    return Err("complex exponentiation not supported".to_string());
                 }
-                Value::Number(number::trunc(&(a / b)))
-            }
-            BinOp::Mod => {
-                if b.is_zero() {
-                    return Err("modulus by zero".into());
+                if li.is_zero() {
+                    Value::Number(number::pow(&lr, &rr)?)
+                } else {
+                    return Err("complex base exponentiation not supported".to_string());
                 }
-                let q = number::trunc(&(&a / &b));
-                Value::Number(&a - &b * q)
             }
-            BinOp::Pow => Value::Number(number::pow(&a, &b)?),
-            BinOp::Eq => Value::boolean(a == b),
-            BinOp::Ne => Value::boolean(a != b),
-            BinOp::Lt => Value::boolean(a < b),
-            BinOp::Le => Value::boolean(a <= b),
-            BinOp::Gt => Value::boolean(a > b),
-            BinOp::Ge => Value::boolean(a >= b),
-        })
+            BinOp::IntDiv | BinOp::Mod => {
+                return Err(format!("{:?} not supported for complex numbers", op));
+            }
+            BinOp::Eq => Value::boolean(&lr == &rr && &li == &ri),
+            BinOp::Ne => Value::boolean(&lr != &rr || &li != &ri),
+            BinOp::Lt => {
+                if !li.is_zero() || !ri.is_zero() {
+                    return Err("comparison not defined for complex numbers".to_string());
+                }
+                Value::boolean(&lr < &rr)
+            }
+            BinOp::Le => {
+                if !li.is_zero() || !ri.is_zero() {
+                    return Err("comparison not defined for complex numbers".to_string());
+                }
+                Value::boolean(&lr <= &rr)
+            }
+            BinOp::Gt => {
+                if !li.is_zero() || !ri.is_zero() {
+                    return Err("comparison not defined for complex numbers".to_string());
+                }
+                Value::boolean(&lr > &rr)
+            }
+            BinOp::Ge => {
+                if !li.is_zero() || !ri.is_zero() {
+                    return Err("comparison not defined for complex numbers".to_string());
+                }
+                Value::boolean(&lr >= &rr)
+            }
+        };
+
+        // Simplify: if imaginary part is zero, return just the real part
+        if let Value::Complex(r, i) = &result {
+            if i.is_zero() {
+                Ok(Value::Number(r.clone()))
+            } else {
+                Ok(result)
+            }
+        } else {
+            Ok(result)
+        }
     }
 
     pub fn epsilon(&self) -> Num {

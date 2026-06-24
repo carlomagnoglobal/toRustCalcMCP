@@ -15,12 +15,13 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 1 complete, Phase 2 mostly done.** The project has a full `src/` structure
-with lexer, parser, evaluator, 47 builtins, CLI, MCP server, and 36 integration
-tests. `cargo build --release` succeeds; all tests pass. TODO #1–#5 complete (exact rationals, 
-transcendentals, control flow, bitwise ops, lists). The exact-rational engine works correctly 
+Current status: **Phase 2 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 50 builtins, CLI, MCP server, and 43 integration
+tests. `cargo build --release` succeeds; all tests pass. TODO #1–#6 complete (exact rationals, 
+transcendentals, control flow, bitwise ops, lists, complex numbers). The exact-rational engine works correctly 
 (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit (e.g., `2^256`), 
-and the MCP server responds correctly. Remaining work (TODO #6–#8 in §6) is enumerated below.
+complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), and the MCP server responds correctly. 
+Remaining work (TODO #7–#8 in §6) is enumerated below.
 
 ---
 
@@ -110,18 +111,18 @@ live in `src/` and compile cleanly.
 |------|----------------|
 | `number.rs` | numeric core. `Num = BigRational`. parsing, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `round_to_epsilon`, decimal rendering (`~` marks inexact). **Start here for precision work.** |
 | `number.rs` | **DONE.** Exact rationals, `parse_number`, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `pi()`/`e()` (60-digit constants), `exp`/`ln`/`sin`/`cos`/`tan` (Taylor series, epsilon-aware). |
-| `value.rs` | **DONE.** `Value` enum (`Number`/`Str`/`Null`/`Function`) + `render(&Config)` for all modes. Functions stored as params + body. |
+| `value.rs` | **DONE.** `Value` enum (`Number`/`Complex`/`Str`/`Null`/`Function`/`List`) + `render(&Config)` for all modes. Functions stored as params + body. Complex numbers rendered as `a+bi` or `a-bi`. |
 | `config.rs` | **DONE.** `Config { epsilon, display, mode }` + `Mode {Real,Frac,Int}` with `parse()`. |
 | `lexer.rs` | **DONE.** Tokenizer: keywords (define/if/for/while/print), `**`→`^`, `//`, blocks `{}`, strings, `0x`/`0b`, sci-notation. |
 | `parser.rs` | **DONE.** Pratt parser: `Expr` including Define, If, While, For, Block, Print. `^` right-assoc. Assignments, calls, control flow. |
 | `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
-| `builtins.rs` | **DONE.** 47 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits, list ops (list/size/append/first/last/slice). All registered + catalog. |
+| `builtins.rs` | **DONE.** 50 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits, list ops (list/size/append/first/last/slice), complex ops (re/im/arg). All registered + catalog. |
 | `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-f` file, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, file, and expression modes. |
 | `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (3 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
-| `tests/integration.rs` | **DONE.** 36 tests: exactness, transcendentals, control flow, bitwise operations, file loading, and list operations. All passing. |
+| `tests/integration.rs` | **DONE.** 43 tests: exactness, transcendentals, control flow, bitwise operations, file loading, list operations, and complex numbers. All passing. |
 | `docs/MCP_TOOL_SCHEMA.json` | **DONE.** Server-emitted schema. Regenerate after tool changes via §7 script. |
 
 ---
@@ -200,9 +201,15 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - ✅ Verified: `x=list(1,2,3); append(x,4); size(x)` → 4; 7 new integration tests pass
    - Total tests: 36 passing (added 7 for lists)
 
-6. **Complex numbers** (`a+bi`, `re`, `im`, `arg`, complex `sqrt`).
-   - Where: extend `Num`/`Value` (or add `Complex`); thread through ops.
-   - Done when: `sqrt(-1)` → `i`; arithmetic on complex values has tests.
+~~6. **Complex numbers** — DONE.~~
+   - ✅ Value: added `Complex(Num, Num)` variant for real and imaginary parts
+   - ✅ Rendering: complex numbers render as `a+bi` or `a-bi` with proper sign handling
+   - ✅ sqrt: negative numbers now return complex results (e.g., `sqrt(-1)` → `i`)
+   - ✅ Arithmetic: complex addition, subtraction, multiplication, division all working
+   - ✅ Builtins: implemented `re()` (real part), `im()` (imaginary part), `arg()` (phase angle)
+   - ✅ Comparisons: allowed for real numbers, error for complex values
+   - ✅ Verified: `sqrt(-1)` → `i`, `(1+i)*(2-i)` → `3+1i`; 7 new integration tests pass
+   - Total tests: 43 passing (added 7 for complex)
 
 7. **Display/base faithfulness** (`base()`/`obase`, `config()` surface, exact `~`
    semantics, scientific output) to match calc output byte-for-byte where sane.
