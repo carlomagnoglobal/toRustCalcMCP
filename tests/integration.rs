@@ -1842,3 +1842,68 @@ fn test_argv_empty() {
     let result = it.eval_render("argv(0)").unwrap();
     assert_eq!(result.trim(), "");
 }
+
+// Phase 6.5: Obscure Trigonometric Variants
+
+#[test]
+fn test_haversin_zero() {
+    let mut it = Interp::new();
+    // haversin(0) = (1 - cos(0)) / 2 ≈ 0 (very close to zero)
+    let result = it.eval_render("haversin(0)").unwrap();
+    let val: f64 = result.trim().trim_start_matches('~').parse().unwrap_or(0.0);
+    assert!(val.abs() < 1e-10);
+}
+
+#[test]
+fn test_versin_zero() {
+    let mut it = Interp::new();
+    // versin(0) = 1 - cos(0) ≈ 0 (very close to zero)
+    let result = it.eval_render("versin(0)").unwrap();
+    let val: f64 = result.trim().trim_start_matches('~').parse().unwrap_or(0.0);
+    assert!(val.abs() < 1e-10);
+}
+
+#[test]
+fn test_coversin_zero() {
+    let mut it = Interp::new();
+    // coversin(0) = 1 - sin(0) = 1 - 0 = 1
+    let result = it.eval_render("coversin(0)").unwrap();
+    assert!(result.trim().contains("1"));
+}
+
+#[test]
+fn test_exsecant_zero() {
+    let mut it = Interp::new();
+    // exsecant(0) = sec(0) - 1 ≈ 0 (very close to zero)
+    let result = it.eval_render("exsecant(0)").unwrap();
+    let val: f64 = result.trim().trim_start_matches('~').parse().unwrap_or(0.0);
+    assert!(val.abs() < 1e-10);
+}
+
+#[test]
+fn test_chord_zero() {
+    let mut it = Interp::new();
+    // chord(0) = 2 * sin(0/2) = 2 * sin(0) = 2 * 0 = 0
+    let result = it.eval_render("chord(0)").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_semiversin_alias() {
+    let mut it = Interp::new();
+    // semiversin should be same as haversin
+    it.eval_render("x = 1").ok();
+    let result1 = it.eval_render("haversin(x)").unwrap();
+    let result2 = it.eval_render("semiversin(x)").unwrap();
+    assert_eq!(result1.trim(), result2.trim());
+}
+
+#[test]
+fn test_vers_alias() {
+    let mut it = Interp::new();
+    // vers should be same as versin
+    it.eval_render("x = 1").ok();
+    let result1 = it.eval_render("versin(x)").unwrap();
+    let result2 = it.eval_render("vers(x)").unwrap();
+    assert_eq!(result1.trim(), result2.trim());
+}

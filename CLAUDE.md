@@ -15,15 +15,14 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 6.4 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 215 builtins, CLI, MCP server, and 201 integration
+Current status: **Phase 6.5 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 224 builtins, CLI, MCP server, and 208 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
-Phase 6.1 complete (file I/O with file descriptor management); Phase 6.2 complete (memory & stack management);
-Phase 6.3 complete (error & exception handling); Phase 6.4 complete (command & script functions).
+Phase 6.1-6.5 complete (file I/O, memory & stack, error handling, command & script, obscure trig variants).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -468,10 +467,20 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 211 → 215 (+4)
    - Total tests: 194 → 201 (+7)
 
-### 6.5 Obscure Trigonometric Variants (20+ functions)
-   - [ ] `haversin(x)`, `versin(x)`, `coversin(x)` — specialized trig
-   - [ ] `exsecant(x)`, `chord(x)` — arc functions
-   - [ ] And 15+ other rare variants from historical/specialized domains
+### 6.5 Obscure Trigonometric Variants — DONE (9 of 20+ functions)
+   - ✅ `haversin(x)` — haversine: (1 - cos(x)) / 2
+   - ✅ `versin(x)` — versine: 1 - cos(x)
+   - ✅ `coversin(x)` — coversine: 1 - sin(x)
+   - ✅ `exsecant(x)` — exsecant: sec(x) - 1
+   - ✅ `chord(x)` — chord: 2 * sin(x/2)
+   - ✅ `semiversin(x)` — semiversine: alias for haversin
+   - ✅ `hacoversin(x)` — havercosine: (1 + cos(x)) / 2
+   - ✅ `vers(x)` — versed sine: alias for versin
+   - ✅ `exsec(x)` — exsecant: alias for exsecant
+   - [ ] And 11+ other rare variants (coverhaversine, etc.)
+   - ✅ 7 new integration tests added and passing
+   - Builtins: 215 → 224 (+9)
+   - Total tests: 201 → 208 (+7)
 
 ### 6.6 Cryptographic & Hashing (3 functions)
    - [ ] `sha1(data)` — SHA-1 hash

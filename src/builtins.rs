@@ -2030,6 +2030,85 @@ fn f_eval(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(result)
 }
 
+// Phase 6.5: Obscure Trigonometric Variants
+
+// Haversine: (1 - cos(x)) / 2
+fn f_haversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("haversin", a, 1)?;
+    let x = n(a, 0)?;
+    let cos_x = number::cos(&x, &it.cfg.epsilon)?;
+    let result = (&Num::from_integer(BigInt::from(1)) - &cos_x) / &Num::from_integer(BigInt::from(2));
+    Ok(Value::Number(result))
+}
+
+// Versine: 1 - cos(x)
+fn f_versin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("versin", a, 1)?;
+    let x = n(a, 0)?;
+    let cos_x = number::cos(&x, &it.cfg.epsilon)?;
+    let result = Num::from_integer(BigInt::from(1)) - &cos_x;
+    Ok(Value::Number(result))
+}
+
+// Coversine: 1 - sin(x)
+fn f_coversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("coversin", a, 1)?;
+    let x = n(a, 0)?;
+    let sin_x = number::sin(&x, &it.cfg.epsilon)?;
+    let result = Num::from_integer(BigInt::from(1)) - &sin_x;
+    Ok(Value::Number(result))
+}
+
+// Exsecant: sec(x) - 1
+fn f_exsecant(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("exsecant", a, 1)?;
+    let x = n(a, 0)?;
+    let cos_x = number::cos(&x, &it.cfg.epsilon)?;
+    if cos_x.is_zero() {
+        return Err("exsecant: division by zero".to_string());
+    }
+    let sec_x = Num::from_integer(BigInt::from(1)) / &cos_x;
+    let result = sec_x - &Num::from_integer(BigInt::from(1));
+    Ok(Value::Number(result))
+}
+
+// Chord: 2 * sin(x/2)
+fn f_chord(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("chord", a, 1)?;
+    let x = n(a, 0)?;
+    let half_x = x / &Num::from_integer(BigInt::from(2));
+    let sin_half = number::sin(&half_x, &it.cfg.epsilon)?;
+    let result = &Num::from_integer(BigInt::from(2)) * &sin_half;
+    Ok(Value::Number(result))
+}
+
+// Semiversine: haversine(x)
+fn f_semiversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for haversine
+    f_haversin(it, a)
+}
+
+// Havercosine: (1 + cos(x)) / 2
+fn f_hacoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hacoversin", a, 1)?;
+    let x = n(a, 0)?;
+    let cos_x = number::cos(&x, &it.cfg.epsilon)?;
+    let result = (&Num::from_integer(BigInt::from(1)) + &cos_x) / &Num::from_integer(BigInt::from(2));
+    Ok(Value::Number(result))
+}
+
+// Versed sine (alternative name)
+fn f_vers(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for versin
+    f_versin(it, a)
+}
+
+// Exsecant alternative spelling
+fn f_exsec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for exsecant
+    f_exsecant(it, a)
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -2635,6 +2714,16 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("cmdbuf".to_string(), f_cmdbuf as BuiltinFn);
     builtins.insert("command".to_string(), f_command as BuiltinFn);
     builtins.insert("eval".to_string(), f_eval as BuiltinFn);
+    // Obscure trigonometric variants (Phase 6.5)
+    builtins.insert("haversin".to_string(), f_haversin as BuiltinFn);
+    builtins.insert("versin".to_string(), f_versin as BuiltinFn);
+    builtins.insert("coversin".to_string(), f_coversin as BuiltinFn);
+    builtins.insert("exsecant".to_string(), f_exsecant as BuiltinFn);
+    builtins.insert("chord".to_string(), f_chord as BuiltinFn);
+    builtins.insert("semiversin".to_string(), f_semiversin as BuiltinFn);
+    builtins.insert("hacoversin".to_string(), f_hacoversin as BuiltinFn);
+    builtins.insert("vers".to_string(), f_vers as BuiltinFn);
+    builtins.insert("exsec".to_string(), f_exsec as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -2848,5 +2937,15 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("cmdbuf", "cmdbuf()", "get current command buffer"),
         ("command", "command(str)", "execute shell command"),
         ("eval", "eval(str)", "evaluate string expression"),
+        // Obscure trigonometric variants (Phase 6.5)
+        ("haversin", "haversin(x)", "haversine: (1 - cos(x)) / 2"),
+        ("versin", "versin(x)", "versine: 1 - cos(x)"),
+        ("coversin", "coversin(x)", "coversine: 1 - sin(x)"),
+        ("exsecant", "exsecant(x)", "exsecant: sec(x) - 1"),
+        ("chord", "chord(x)", "chord: 2 * sin(x/2)"),
+        ("semiversin", "semiversin(x)", "semiversine: alias for haversin"),
+        ("hacoversin", "hacoversin(x)", "havercosine: (1 + cos(x)) / 2"),
+        ("vers", "vers(x)", "versed sine: alias for versin"),
+        ("exsec", "exsec(x)", "exsecant: alias for exsecant"),
     ]
 }
