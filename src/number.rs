@@ -537,6 +537,152 @@ pub fn round_decimal(x: &Num, n: i64) -> Num {
     rounded / factor
 }
 
+/// Hypot: sqrt(x^2 + y^2) without overflow
+pub fn hypot(x: &Num, y: &Num, epsilon: &Num) -> Result<Num, String> {
+    let x_sq = x * x;
+    let y_sq = y * y;
+    sqrt(&(&x_sq + &y_sq), epsilon)
+}
+
+/// Error function: erf(x) ≈ (2/√π) * integral(e^(-t^2), 0, x)
+/// Computed via Taylor series: erf(x) = (2/√π) * sum((-1)^n * x^(2n+1) / (n! * (2n+1)))
+pub fn erf(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x.is_zero() {
+        return Ok(Num::zero());
+    }
+
+    let sqrt_pi = sqrt(&pi(), epsilon)?;
+    let coeff = Num::from_integer(bi(2)) / &sqrt_pi;
+
+    let mut result = x.clone();
+    let mut term = x.clone();
+    let x_sq = x * x;
+    let neg_x_sq = -&x_sq;
+
+    for n in 1..500 {
+        let n_bi = bi(n as i64);
+        term = &term * &(&neg_x_sq / Num::from_integer(n_bi));
+        let contrib = &term / Num::from_integer(bi(2 * n as i64 + 1));
+        result = &result + &contrib;
+        if &contrib.abs() < epsilon {
+            break;
+        }
+    }
+
+    Ok(round_to_epsilon(&(&coeff * &result), epsilon))
+}
+
+/// Complementary error function: erfc(x) = 1 - erf(x)
+pub fn erfc(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let erf_val = erf(x, epsilon)?;
+    Ok(round_to_epsilon(&(Num::one() - erf_val), epsilon))
+}
+
+/// Gudermannian function: gd(x) = 2 * atan(tanh(x/2))
+pub fn gd(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let half = Num::one() / Num::from_integer(bi(2));
+    let tanh_val = tanh(&(x * &half), epsilon)?;
+    let atan_val = atan(&tanh_val, epsilon)?;
+    Ok(round_to_epsilon(&(&Num::from_integer(bi(2)) * &atan_val), epsilon))
+}
+
+/// Inverse Gudermannian: agd(x) = (1/2) * ln((1 + sin(x)) / (1 - sin(x)))
+pub fn agd(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let sin_val = sin(x, epsilon)?;
+    let one = Num::one();
+    let numerator = &one + &sin_val;
+    let denominator = &one - &sin_val;
+    if denominator.is_zero() {
+        return Err("agd: denominator is zero".to_string());
+    }
+    let ratio = &numerator / &denominator;
+    let ln_val = ln(&ratio, epsilon)?;
+    Ok(round_to_epsilon(&(&ln_val / Num::from_integer(bi(2))), epsilon))
+}
+
+/// Bessel function of the first kind, order 0: J0(x)
+/// Uses series: J0(x) = sum((-1)^n * (x/2)^(2n) / (n!)^2)
+pub fn j0(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let x_half = x / Num::from_integer(bi(2));
+    let mut result = Num::one();
+    let mut term = Num::one();
+    let x_sq = &x_half * &x_half;
+    let neg_x_sq = -&x_sq;
+
+    for n in 1..500 {
+        let n_sq = Num::from_integer(bi(n as i64 * n as i64));
+        term = &term * &(&neg_x_sq / &n_sq);
+        result = &result + &term;
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Bessel function of the first kind, order 1: J1(x)
+/// Uses series: J1(x) = (x/2) * sum((-1)^n * (x/2)^(2n) / (n! * (n+1)!))
+pub fn j1(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let x_half = x / Num::from_integer(bi(2));
+    let mut result = x_half.clone();
+    let mut term = x_half.clone();
+    let x_sq = &x_half * &x_half;
+    let neg_x_sq = -&x_sq;
+
+    for n in 1..500 {
+        let denom = Num::from_integer(bi(n as i64 * (n as i64 + 1)));
+        term = &term * &(&neg_x_sq / &denom);
+        result = &result + &term;
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Catalan number: C_n = (2n)! / ((n+1)! * n!)
+pub fn catalan_num(n: i64) -> Result<BigInt, String> {
+    if n < 0 {
+        return Err("catalan: negative index".to_string());
+    }
+    if n == 0 {
+        return Ok(bi(1));
+    }
+
+    // Compute using the formula: C_n = (2n * (2n-1) * ... * (n+2)) / (n * (n-1) * ... * 1)
+    let mut numer = bi(1);
+    let mut denom = bi(1);
+    for k in 1..=n {
+        numer = numer * bi(n + k);
+        denom = denom * bi(k);
+    }
+    Ok(numer / denom / (n + 1))
+}
+
+/// Fibonacci: compute nth Fibonacci number
+pub fn fibonacci(n: i64) -> Result<BigInt, String> {
+    if n < 0 {
+        return Err("fib: negative index".to_string());
+    }
+    if n == 0 {
+        return Ok(bi(0));
+    }
+    if n == 1 {
+        return Ok(bi(1));
+    }
+
+    let mut a = bi(0);
+    let mut b = bi(1);
+    for _ in 2..=n {
+        let temp = &a + &b;
+        a = b;
+        b = temp;
+    }
+    Ok(b)
+}
+
 /// Snap a value to a multiple of `epsilon`, keeping results compact.
 pub fn round_to_epsilon(x: &Num, epsilon: &Num) -> Num {
     if epsilon.is_zero() {

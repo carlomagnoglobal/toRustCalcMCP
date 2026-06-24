@@ -116,13 +116,13 @@ live in `src/` and compile cleanly.
 | `lexer.rs` | **DONE.** Tokenizer: keywords (define/if/for/while/print), `**`→`^`, `//`, blocks `{}`, strings, `0x`/`0b`, sci-notation. |
 | `parser.rs` | **DONE.** Pratt parser: `Expr` including Define, If, While, For, Block, Print. `^` right-assoc. Assignments, calls, control flow. |
 | `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
-| `builtins.rs` | **DONE.** 67 builtins: arithmetic, rounding, number theory, transcendentals (sin/cos/tan/asin/acos/atan/atan2/sinh/cosh/tanh/asinh/acosh/atanh/cas/cis), bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits, list ops, complex ops, base conversion. All registered + catalog. |
+| `builtins.rs` | **DONE.** 79 builtins: arithmetic, rounding, number theory, transcendentals (sin/cos/tan/asin/acos/atan/atan2/sinh/cosh/tanh/asinh/acosh/atanh/cas/cis), special functions (erf/erfc/hypot/gd/agd/j0/j1), Catalan, bitwise/shifts/bits, digits, list ops, complex ops, base conversion. All registered + catalog. |
 | `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-f` file, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, file, and expression modes. |
 | `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (4 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`, `calc_session`. Structured JSON output alongside text. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
-| `tests/integration.rs` | **DONE.** 63 tests: exactness, transcendentals, control flow, bitwise operations, file loading, list operations, complex numbers, base conversion, and inverse/hyperbolic trig. All passing. |
+| `tests/integration.rs` | **DONE.** 71 tests: exactness, transcendentals, control flow, bitwise operations, file loading, list operations, complex numbers, base conversion, inverse/hyperbolic trig, and special functions. All passing. |
 | `docs/MCP_TOOL_SCHEMA.json` | **DONE.** Server-emitted schema. Regenerate after tool changes via §7 script. |
 
 ---
@@ -247,8 +247,18 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - Builtins: 51 → 67 (+16)
    - Total tests: 49 → 63 (+14)
 
-### 3.2 Number Theory & Special Functions — NEXT
-   - To implement: `bernoulli`, `catalan`, `euler`, `factor`, `pix`, Bessel functions
+### 3.2 Number Theory & Special Functions — DONE
+   - ✅ Special functions: `hypot(x,y)`, `erf(x)`, `erfc(x)` (error functions)
+   - ✅ Geometric: `gd(x)` (Gudermannian), `agd(x)` (inverse Gudermannian)
+   - ✅ Bessel functions: `j0(x)`, `j1(x)` (first kind, orders 0 and 1)
+   - ✅ Number theory: `catalan(n)` (Catalan numbers, C_n = (2n)!/(n!(n+1)!))
+   - ✅ All functions respect epsilon for precision
+   - ✅ 8 new integration tests added and passing
+   - Builtins: 67 → 79 (+12)
+   - Total tests: 63 → 71 (+8)
+
+### 3.3 String & Type Functions — NEXT
+   - To implement: `strlen`, `index`, `isalpha`, `isdigit`, `typeof`, conversions
 
 When you finish an item: update §6 (strike/remove it), update the **Scope** section
 of `README.md`, add tests, and re-run the §3 smoke tests.

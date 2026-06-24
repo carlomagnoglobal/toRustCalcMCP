@@ -554,6 +554,63 @@ fn f_conj(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// Hypot: sqrt(x^2 + y^2)
+fn f_hypot(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hypot", a, 2)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::hypot(n(a, 0)?, n(a, 1)?, &eps)?))
+}
+
+// Error function
+fn f_erf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("erf", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::erf(n(a, 0)?, &eps)?))
+}
+
+// Complementary error function
+fn f_erfc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("erfc", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::erfc(n(a, 0)?, &eps)?))
+}
+
+// Gudermannian function
+fn f_gd(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gd", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::gd(n(a, 0)?, &eps)?))
+}
+
+// Inverse Gudermannian function
+fn f_agd(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("agd", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::agd(n(a, 0)?, &eps)?))
+}
+
+// Bessel J0
+fn f_j0(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("j0", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::j0(n(a, 0)?, &eps)?))
+}
+
+// Bessel J1
+fn f_j1(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("j1", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::j1(n(a, 0)?, &eps)?))
+}
+
+// Catalan number
+fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("catalan", a, 1)?;
+    let n = int(a, 0)?.to_i64().ok_or("catalan: index out of range")?;
+    let result = number::catalan_num(n)?;
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
 // Simple primality test (trial division for small primes, then test a few bases)
 fn is_prime(n: u64) -> bool {
     if n < 2 {
@@ -856,6 +913,14 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("cis".to_string(), f_cis as BuiltinFn);
     builtins.insert("conj".to_string(), f_conj as BuiltinFn);
     builtins.insert("round".to_string(), f_round as BuiltinFn);
+    builtins.insert("hypot".to_string(), f_hypot as BuiltinFn);
+    builtins.insert("erf".to_string(), f_erf as BuiltinFn);
+    builtins.insert("erfc".to_string(), f_erfc as BuiltinFn);
+    builtins.insert("gd".to_string(), f_gd as BuiltinFn);
+    builtins.insert("agd".to_string(), f_agd as BuiltinFn);
+    builtins.insert("j0".to_string(), f_j0 as BuiltinFn);
+    builtins.insert("j1".to_string(), f_j1 as BuiltinFn);
+    builtins.insert("catalan".to_string(), f_catalan as BuiltinFn);
     // Bitwise operations
     builtins.insert("and".to_string(), f_and as BuiltinFn);
     builtins.insert("or".to_string(), f_or as BuiltinFn);
@@ -928,6 +993,14 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("cis", "cis(x)", "cos(x) + i*sin(x) (returns complex)"),
         ("conj", "conj(x)", "complex conjugate"),
         ("round", "round(x[,places])", "round to decimal places"),
+        ("hypot", "hypot(x,y)", "sqrt(x^2 + y^2)"),
+        ("erf", "erf(x)", "error function"),
+        ("erfc", "erfc(x)", "complementary error function"),
+        ("gd", "gd(x)", "Gudermannian function"),
+        ("agd", "agd(x)", "inverse Gudermannian function"),
+        ("j0", "j0(x)", "Bessel function J0"),
+        ("j1", "j1(x)", "Bessel function J1"),
+        ("catalan", "catalan(n)", "Catalan number"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),
         ("xor", "xor(x,y)", "bitwise XOR"),

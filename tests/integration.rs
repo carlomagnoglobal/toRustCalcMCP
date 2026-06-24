@@ -506,3 +506,65 @@ fn test_round_decimal() {
     let result = it.eval_render("round(3.14159, 2)").unwrap();
     assert_eq!(result, "3.14");
 }
+
+#[test]
+fn test_hypot() {
+    let mut it = Interp::new();
+    let result = it.eval_render("hypot(3, 4)").unwrap();
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_erf() {
+    let mut it = Interp::new();
+    let result = it.eval_render("erf(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_erfc() {
+    let mut it = Interp::new();
+    let result = it.eval_render("erfc(0)").unwrap();
+    // erfc(0) = 1 (may show as ~1 due to rounding)
+    assert!(result == "1" || result == "~1");
+}
+
+#[test]
+fn test_gd() {
+    let mut it = Interp::new();
+    let result = it.eval_render("gd(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_agd() {
+    let mut it = Interp::new();
+    let result = it.eval_render("agd(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_j0() {
+    let mut it = Interp::new();
+    let result = it.eval_render("j0(0)").unwrap();
+    // j0(0) = 1 (may show as ~1 due to rounding)
+    assert!(result == "1" || result == "~1");
+}
+
+#[test]
+fn test_j1() {
+    let mut it = Interp::new();
+    let result = it.eval_render("j1(0)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_catalan() {
+    let mut it = Interp::new();
+    let result = it.eval_render("catalan(0); catalan(1); catalan(2); catalan(5)").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[0], "1"); // C_0 = 1
+    assert_eq!(lines[1], "1"); // C_1 = 1
+    assert_eq!(lines[2], "2"); // C_2 = 2
+    assert_eq!(lines[3], "42"); // C_5 = 42
+}
