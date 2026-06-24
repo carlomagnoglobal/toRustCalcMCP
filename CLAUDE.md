@@ -15,13 +15,13 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 5.1 in progress.** The project has a full `src/` structure
-with lexer, parser, evaluator, 160 builtins, CLI, MCP server, and 154 integration
+Current status: **Phase 5.2 in progress.** The project has a full `src/` structure
+with lexer, parser, evaluator, 165 builtins, CLI, MCP server, and 159 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
-Phase 5.1 complete (character classification and string functions).
+Phase 5.1–5.2 complete (character classification, string functions, advanced modular arithmetic).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -358,11 +358,15 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 148 → 160 (+12)
    - Total tests: 142 → 154 (+12)
 
-### 5.2 Advanced Modular Arithmetic (5 functions)
-   - [ ] `pmod(x, y)` — positive modulus
-   - [ ] `quomod(x, y)` — quotient and modulus
-   - [ ] `quo(x, y)`, `rem(x, y)` — quotient and remainder (distinct from //)
-   - [ ] `hnrmod(x, y)` — Hensel modular
+### 5.2 Advanced Modular Arithmetic — DONE
+   - ✅ `pmod(x, y)` — positive modulus (result in [0, y))
+   - ✅ `quomod(x, y)` — quotient and modulus (returns [q, r])
+   - ✅ `quo(x, y)` — quotient (floor(x/y))
+   - ✅ `rem(x, y)` — remainder (x - y*floor(x/y))
+   - ✅ `hnrmod(x, y)` — Hensel modular (alias for pmod)
+   - ✅ 5 new integration tests added and passing
+   - Builtins: 160 → 165 (+5)
+   - Total tests: 154 → 159 (+5)
 
 ### 5.3 Rational Approximations (4 functions)
    - [ ] `appr(x, [eps])` — approximate rational

@@ -73,7 +73,7 @@ changes them for the session.
 - Lists: `list(1,2,3); append(x,4); slice(x,1,3)`.
 - Complex numbers: `sqrt(-1)` → `i`; arithmetic with `+`, `-`, `*`, `/`.
 - String literals: `"hello"; strlen(s); index(haystack, needle)`.
-- **160 builtins** (46% of calc's ~350) organized by category — see implementation status below.
+- **165 builtins** (47% of calc's ~350) organized by category — see implementation status below.
 
 ## Precision model
 
@@ -84,9 +84,9 @@ and Newton's method. `sqrt`, `sin`, `cos`, etc. converge until term < epsilon.
 `pi`/`e` are 60-digit constants. A leading `~` in real-mode output marks an
 inexact (rounded/non-terminating) rendering, as in calc.
 
-## Implementation Status — 160 of ~350 builtins (46% coverage)
+## Implementation Status — 165 of ~350 builtins (47% coverage)
 
-calc upstream has ~350 builtins. This port implements **160 core functions** organized by category:
+calc upstream has ~350 builtins. This port implements **165 core functions** organized by category:
 
 ### ✅ Fully Implemented Categories
 
@@ -155,9 +155,9 @@ calc upstream has ~350 builtins. This port implements **160 core functions** org
 - ✅ Random number functions (rand, random, randbit, seed, srand, srandom, randint, randperm) — 8
 - ✅ Environment/system functions (time, systime, ctime, sleep, getenv, putenv, system, usertime) — 8
 
-**Phase 5: Utility & Compatibility** (12+ complete, estimated 50+ remaining)
+**Phase 5: Utility & Compatibility** (17+ complete, estimated 45+ remaining)
 - ✅ Character classification (isalnum, isupper, islower, isprint, isgraph, iscntrl, ispunct, isxdigit, isascii, toupper, tolower, strrev) — 12
-- [ ] Advanced modular arithmetic (pmod, quomod, quo, rem, hnrmod) — 5
+- ✅ Advanced modular arithmetic (pmod, quomod, quo, rem, hnrmod) — 5
 - [ ] Rational approximations (appr, cfappr, cfsim, scale) — 4
 - [ ] Matrix operations (det, inverse, mattrans, mattrace, matdim, matfill, matmin, matmax, matsum) — 9
 - [ ] Hash/associative arrays (assoc, indices, insert, delete, count, join) — 6

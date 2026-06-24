@@ -1087,6 +1087,48 @@ fn f_strrev(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Str(number::strrev(&s)))
 }
 
+// Phase 5.2: Advanced Modular Arithmetic Functions
+
+fn f_pmod(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("pmod", a, 2)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let result = number::pmod(x, y)?;
+    Ok(Value::Number(result))
+}
+
+fn f_quomod(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("quomod", a, 2)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let (quotient, remainder) = number::quomod(x, y)?;
+    Ok(Value::List(vec![Value::Number(quotient), Value::Number(remainder)]))
+}
+
+fn f_quo(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("quo", a, 2)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let result = number::quo(x, y)?;
+    Ok(Value::Number(result))
+}
+
+fn f_rem(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rem", a, 2)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let result = number::rem(x, y)?;
+    Ok(Value::Number(result))
+}
+
+fn f_hnrmod(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hnrmod", a, 2)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let result = number::hnrmod(x, y)?;
+    Ok(Value::Number(result))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -1592,6 +1634,12 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("toupper".to_string(), f_toupper as BuiltinFn);
     builtins.insert("tolower".to_string(), f_tolower as BuiltinFn);
     builtins.insert("strrev".to_string(), f_strrev as BuiltinFn);
+    // Advanced modular arithmetic functions
+    builtins.insert("pmod".to_string(), f_pmod as BuiltinFn);
+    builtins.insert("quomod".to_string(), f_quomod as BuiltinFn);
+    builtins.insert("quo".to_string(), f_quo as BuiltinFn);
+    builtins.insert("rem".to_string(), f_rem as BuiltinFn);
+    builtins.insert("hnrmod".to_string(), f_hnrmod as BuiltinFn);
     builtins.insert("catalan".to_string(), f_catalan as BuiltinFn);
     // Bitwise operations
     builtins.insert("and".to_string(), f_and as BuiltinFn);
@@ -1750,6 +1798,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("toupper", "toupper(s)", "convert to uppercase"),
         ("tolower", "tolower(s)", "convert to lowercase"),
         ("strrev", "strrev(s)", "reverse string"),
+        ("pmod", "pmod(x,y)", "positive modulus (result in [0,y))"),
+        ("quomod", "quomod(x,y)", "quotient and modulus (returns [q,r])"),
+        ("quo", "quo(x,y)", "quotient (floor(x/y))"),
+        ("rem", "rem(x,y)", "remainder (x - y*floor(x/y))"),
+        ("hnrmod", "hnrmod(x,y)", "Hensel modular"),
         ("catalan", "catalan(n)", "Catalan number"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),

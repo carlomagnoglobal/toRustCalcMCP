@@ -1321,3 +1321,61 @@ fn test_iscntrl() {
     assert_eq!(it.eval_render("iscntrl(\"a\")").unwrap(), "0");
     assert_eq!(it.eval_render("iscntrl(\" \")").unwrap(), "0");
 }
+
+// Phase 5.2: Advanced Modular Arithmetic
+#[test]
+fn test_pmod() {
+    let mut it = Interp::new();
+    // pmod should always return positive results
+    let result = it.eval_render("pmod(7, 3)").unwrap();
+    assert_eq!(result, "1"); // 7 mod 3 = 1
+
+    let result = it.eval_render("pmod(-7, 3)").unwrap();
+    assert_eq!(result, "2"); // -7 mod 3 = 2 (positive)
+}
+
+#[test]
+fn test_quomod() {
+    let mut it = Interp::new();
+    // quomod should return [quotient, remainder]
+    let result = it.eval_render("quomod(17, 5)").unwrap();
+    assert!(result.contains('[') && result.contains(']'));
+    assert!(result.contains(','));
+    // quomod(17, 5) = [3, 2] (17 = 5*3 + 2)
+    assert!(result.contains("3") && result.contains("2"));
+}
+
+#[test]
+fn test_quo() {
+    let mut it = Interp::new();
+    // quo should return the quotient (floor(x/y))
+    let result = it.eval_render("quo(17, 5)").unwrap();
+    assert_eq!(result, "3"); // floor(17/5) = 3
+
+    let result = it.eval_render("quo(-17, 5)").unwrap();
+    assert_eq!(result, "-4"); // floor(-17/5) = -4
+}
+
+#[test]
+fn test_rem() {
+    let mut it = Interp::new();
+    // rem should return the remainder
+    let result = it.eval_render("rem(17, 5)").unwrap();
+    assert_eq!(result, "2"); // 17 - 5*3 = 2
+
+    let result = it.eval_render("rem(-17, 5)").unwrap();
+    let val: i64 = result.parse().unwrap_or(0);
+    // rem(-17, 5) = -17 - 5*(-4) = -17 + 20 = 3
+    assert_eq!(val, 3);
+}
+
+#[test]
+fn test_hnrmod() {
+    let mut it = Interp::new();
+    // hnrmod is like pmod
+    let result = it.eval_render("hnrmod(7, 3)").unwrap();
+    assert_eq!(result, "1");
+
+    let result = it.eval_render("hnrmod(-7, 3)").unwrap();
+    assert_eq!(result, "2");
+}

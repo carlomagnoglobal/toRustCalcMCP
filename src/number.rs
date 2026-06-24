@@ -1639,6 +1639,57 @@ pub fn strrev(s: &str) -> String {
     s.chars().rev().collect()
 }
 
+// Phase 5.2: Advanced Modular Arithmetic Functions
+
+/// Positive modulus: returns result in range [0, y)
+/// pmod(x, y) = ((x mod y) + y) mod y
+pub fn pmod(x: &Num, y: &Num) -> Result<Num, String> {
+    if y.is_zero() {
+        return Err("pmod: division by zero".to_string());
+    }
+    let m = x % y;
+    if m.is_negative() {
+        Ok(&m + y)
+    } else {
+        Ok(m)
+    }
+}
+
+/// Quotient and modulus: returns [quotient, remainder]
+pub fn quomod(x: &Num, y: &Num) -> Result<(Num, Num), String> {
+    if y.is_zero() {
+        return Err("quomod: division by zero".to_string());
+    }
+    // Quotient is floor(x / y)
+    let quotient = (x / y).floor();
+    // Remainder is x - y * quotient
+    let remainder = x - &(&quotient * y);
+    Ok((quotient, remainder))
+}
+
+/// Quotient: floor(x / y), similar to integer division
+pub fn quo(x: &Num, y: &Num) -> Result<Num, String> {
+    if y.is_zero() {
+        return Err("quo: division by zero".to_string());
+    }
+    Ok((x / y).floor())
+}
+
+/// Remainder: x - y * floor(x / y)
+pub fn rem(x: &Num, y: &Num) -> Result<Num, String> {
+    if y.is_zero() {
+        return Err("rem: division by zero".to_string());
+    }
+    let quotient = (x / y).floor();
+    Ok(x - &(&quotient * y))
+}
+
+/// Hensel modular: similar to pmod but used in Hensel lifting contexts
+/// For now, implemented as pmod for compatibility
+pub fn hnrmod(x: &Num, y: &Num) -> Result<Num, String> {
+    pmod(x, y)
+}
+
 /// Snap a value to a multiple of `epsilon`, keeping results compact.
 pub fn round_to_epsilon(x: &Num, epsilon: &Num) -> Num {
     if epsilon.is_zero() {
