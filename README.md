@@ -73,7 +73,7 @@ changes them for the session.
 - Lists: `list(1,2,3); append(x,4); slice(x,1,3)`.
 - Complex numbers: `sqrt(-1)` → `i`; arithmetic with `+`, `-`, `*`, `/`.
 - String literals: `"hello"; strlen(s); index(haystack, needle)`.
-- **99 builtins** (28% of calc's ~350) organized by category — see implementation status below.
+- **140 builtins** (40% of calc's ~350) organized by category — see implementation status below.
 
 ## Precision model
 
@@ -84,9 +84,9 @@ and Newton's method. `sqrt`, `sin`, `cos`, etc. converge until term < epsilon.
 `pi`/`e` are 60-digit constants. A leading `~` in real-mode output marks an
 inexact (rounded/non-terminating) rendering, as in calc.
 
-## Implementation Status — 99 of ~350 builtins (28% coverage)
+## Implementation Status — 140 of ~350 builtins (40% coverage)
 
-calc upstream has ~350 builtins. This port implements **99 core functions** organized by category:
+calc upstream has ~350 builtins. This port implements **140 core functions** organized by category:
 
 ### ✅ Fully Implemented Categories
 
@@ -112,29 +112,25 @@ calc upstream has ~350 builtins. This port implements **99 core functions** orga
 
 | Category | Implemented | Missing |
 |----------|-----------|---------|
-| **Trigonometric Variants** | 13 | ~25 (cot, sec, csc, acot, asec, acsc, coth, sech, csch, haversin, versin, etc.) |
-| **Logarithmic** | 4 | 5 (logn, ilog, ilog2, ilog10, ilogn) |
-| **Root Functions** | 1 | 4 (root, power, isqrt, cbrt, iroot) |
-| **Prime Functions** | 3 | 4 (prevprime, nextcand, prevcand, pfact, ptest) |
+| **Trigonometric Variants** | 25 | ~13 (haversin, versin, coversin, exsecant, etc.) |
+| **Prime Functions** | 7 | 3 (nextcand, prevcand, gcdrem) |
 | **Rounding** | 1 | 2 (bround, btrunc) |
 
-### ❌ Not Yet Implemented (250+ functions)
+### ❌ Not Yet Implemented (~200 functions)
 
 | Category | Missing | Purpose |
 |----------|---------|---------|
 | **File I/O** | 24 | `fopen`, `fclose`, `fgets`, `fprintf`, `fscan`, etc. |
 | **Matrix Ops** | 9 | `det`, `inverse`, `matdim`, `matfill`, `mattrace`, `mattrans`, etc. |
 | **Hash/Assoc Arrays** | 6 | `assoc`, `indices`, `insert`, `delete`, `count`, `join` |
-| **Random Numbers** | 10 | `rand`, `random`, `randbit`, `seed`, `srand`, `srandom`, etc. |
 | **Character Class** | 12 | `isalnum`, `isupper`, `islower`, `isprint`, `isgraph`, `iscntrl`, `ispunct`, `isxdigit`, etc. |
 | **Environment/System** | 8 | `getenv`, `putenv`, `system`, `time`, `systime`, `ctime`, `sleep`, `usertime` |
 | **Memory Management** | 10 | `blk`, `blkcpy`, `blkfree`, `blocks`, `free`, `freeglobals`, etc. |
 | **Error Handling** | 7 | `errcount`, `errmax`, `errno`, `errsym`, `error`, `newerror`, etc. |
 | **Modular Arithmetic** | 5 | `pmod`, `hnrmod`, `quomod`, `quo`, `rem` |
 | **Rational Approx** | 4 | `appr`, `cfappr`, `cfsim`, `scale` |
-| **Advanced Number Theory** | 7 | `gcdrem`, `lcmfact`, `euler`, `bernoulli`, `jacobi`, `factor`, `lfactor` |
-| **Bessel (extended)** | 2 | `y0`, `y1` (have j0, j1) |
-| **Other** | ~180 | Stack ops, command/script, variable manipulation, cryptographic (sha1), etc. |
+| **Rare Trig Variants** | ~13 | `haversin`, `versin`, `coversin`, `exsecant`, chord, etc. |
+| **Other** | ~110 | Stack ops, command/script, variable manipulation, cryptographic (sha1), etc. |
 
 ### ✨ Full Language Features Implemented
 
@@ -151,12 +147,15 @@ calc upstream has ~350 builtins. This port implements **99 core functions** orga
 
 ### 📋 Roadmap for Remaining Work
 
-**Phase 4: High-Value Functions** (estimated 40–80 builtins)
+**Phase 4: High-Value Functions** (43 added, mostly complete)
+- ✅ Reciprocal trig variants (cot, sec, csc, acot, asec, acsc, coth, sech, csch, acoth, asech, acsch) — 12
+- ✅ Root & logarithm functions (root, cbrt, isqrt, iroot, logn, ilog, ilog2, ilog10, ilogn) — 9
+- ✅ Prime & number theory (prevprime, factor, lfactor, ptest, euler, bernoulli, jacobi) — 8
+- ✅ Special functions (y0, y1, gamma, lgamma, polygamma, zeta) — 6
+- ✅ Random number functions (rand, random, randbit, seed, srand, srandom, randint, randperm) — 8
 - [ ] File I/O suite (24) — enables automation
 - [ ] Matrix operations (9) — linear algebra
-- [ ] More trig variants (cot, sec, csc, etc.) — ~10
 - [ ] Environment/system functions (8) — scripting integration
-- [ ] Random number functions (10) — simulation
 
 **Phase 5: Utility & Compatibility** (estimated 100+ builtins)
 - [ ] Character classification (12)
