@@ -512,6 +512,106 @@ fn f_digits(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_integer(BigInt::from(count))))
 }
 
+// Create a list from arguments
+fn f_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    Ok(Value::List(a.to_vec()))
+}
+
+// Get size of a list
+fn f_size(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("size", a, 1)?;
+    match &a[0] {
+        Value::List(items) => {
+            Ok(Value::Number(Num::from_integer(BigInt::from(items.len()))))
+        }
+        _ => Err("size() requires a list".to_string()),
+    }
+}
+
+// Append item(s) to a list (mutates in-place and returns the list)
+fn f_append(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("append", a, 2, 100)?;
+    match a[0].clone() {
+        Value::List(mut items) => {
+            for v in &a[1..] {
+                items.push(v.clone());
+            }
+            Ok(Value::List(items))
+        }
+        _ => Err("append() requires a list as first argument".to_string()),
+    }
+}
+
+// Get the first item of a list
+fn f_first(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("first", a, 1)?;
+    match &a[0] {
+        Value::List(items) => {
+            items.first()
+                .cloned()
+                .ok_or("list is empty".to_string())
+        }
+        _ => Err("first() requires a list".to_string()),
+    }
+}
+
+// Get the last item of a list
+fn f_last(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("last", a, 1)?;
+    match &a[0] {
+        Value::List(items) => {
+            items.last()
+                .cloned()
+                .ok_or("list is empty".to_string())
+        }
+        _ => Err("last() requires a list".to_string()),
+    }
+}
+
+// Get a sublist (slice)
+fn f_slice(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("slice", a, 2, 3)?;
+    match &a[0] {
+        Value::List(items) => {
+            let start_num = n(a, 1)?;
+            if !start_num.is_integer() {
+                return Err("start index must be an integer".to_string());
+            }
+            let start = start_num.numer();
+            let start_idx = if start < &BigInt::from(0) {
+                let len = items.len() as i64;
+                ((len + start.to_i64().unwrap_or(0)) as usize)
+            } else {
+                start.to_usize().unwrap_or(0)
+            };
+
+            let end_idx = if a.len() == 3 {
+                let end_num = n(a, 2)?;
+                if !end_num.is_integer() {
+                    return Err("end index must be an integer".to_string());
+                }
+                let end = end_num.numer();
+                if end < &BigInt::from(0) {
+                    let len = items.len() as i64;
+                    ((len + end.to_i64().unwrap_or(0)) as usize)
+                } else {
+                    end.to_usize().unwrap_or(items.len())
+                }
+            } else {
+                items.len()
+            };
+
+            let result: Vec<Value> = items.iter()
+                .skip(start_idx)
+                .take(end_idx.saturating_sub(start_idx))
+                .cloned()
+                .collect();
+            Ok(Value::List(result))
+        }
+        _ => Err("slice() requires a list".to_string()),
+    }
+}
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -556,6 +656,13 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("lowbit".to_string(), f_lowbit as BuiltinFn);
     builtins.insert("fcnt".to_string(), f_fcnt as BuiltinFn);
     builtins.insert("digits".to_string(), f_digits as BuiltinFn);
+    // List operations
+    builtins.insert("list".to_string(), f_list as BuiltinFn);
+    builtins.insert("size".to_string(), f_size as BuiltinFn);
+    builtins.insert("append".to_string(), f_append as BuiltinFn);
+    builtins.insert("first".to_string(), f_first as BuiltinFn);
+    builtins.insert("last".to_string(), f_last as BuiltinFn);
+    builtins.insert("slice".to_string(), f_slice as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -602,5 +709,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("lowbit", "lowbit(x)", "position of lowest set bit"),
         ("fcnt", "fcnt(x)", "count of set bits"),
         ("digits", "digits(x[,base])", "number of digits (base 10 or specified)"),
+        ("list", "list(x,...)", "create a list from items"),
+        ("size", "size(list)", "number of items in list"),
+        ("append", "append(list,x,...)", "append items to list"),
+        ("first", "first(list)", "get first item"),
+        ("last", "last(list)", "get last item"),
+        ("slice", "slice(list,start[,end])", "get sublist from start to end"),
     ]
 }

@@ -12,6 +12,7 @@ pub enum Value {
     Str(String),
     Null,
     Function(Vec<String>, Rc<Expr>), // params, body (as Expr)
+    List(Vec<Value>), // homogeneous list
 }
 
 impl PartialEq for Value {
@@ -20,6 +21,7 @@ impl PartialEq for Value {
             (Value::Number(a), Value::Number(b)) => a == b,
             (Value::Str(a), Value::Str(b)) => a == b,
             (Value::Null, Value::Null) => true,
+            (Value::List(a), Value::List(b)) => a == b,
             // Functions are not compared for equality
             _ => false,
         }
@@ -58,6 +60,12 @@ impl Value {
             Value::Str(s) => s.clone(),
             Value::Null => String::new(),
             Value::Function(_, _) => String::new(), // Functions don't render
+            Value::List(items) => {
+                let rendered: Vec<String> = items.iter()
+                    .map(|v| v.render(cfg))
+                    .collect();
+                format!("[{}]", rendered.join(", "))
+            }
         }
     }
 }

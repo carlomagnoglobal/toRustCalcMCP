@@ -11,6 +11,7 @@ pub enum Expr {
     Unary(UnOp, Box<Expr>),
     Binary(BinOp, Box<Expr>, Box<Expr>),
     Call(String, Vec<Expr>),
+    Index(Box<Expr>, Box<Expr>), // list[index]
     // Control flow
     Define(String, Vec<String>, Box<Expr>), // name, params, body
     If(Box<Expr>, Box<Expr>, Option<Box<Expr>>), // cond, then_branch, else_branch
@@ -297,18 +298,26 @@ impl Parser {
         let mut expr = self.parse_primary()?;
 
         loop {
-            if self.peek() == Some(&Tok::LParen) {
-                // Function call
-                if let Expr::Var(name) = expr {
-                    self.advance();
-                    let args = self.parse_args()?;
-                    self.expect(Tok::RParen)?;
-                    expr = Expr::Call(name, args);
-                } else {
-                    break;
+            match self.peek() {
+                Some(Tok::LParen) => {
+                    // Function call
+                    if let Expr::Var(name) = expr {
+                        self.advance();
+                        let args = self.parse_args()?;
+                        self.expect(Tok::RParen)?;
+                        expr = Expr::Call(name, args);
+                    } else {
+                        break;
+                    }
                 }
-            } else {
-                break;
+                Some(Tok::LBracket) => {
+                    // List indexing: expr[index]
+                    self.advance();
+                    let index = self.parse_expr()?;
+                    self.expect(Tok::RBracket)?;
+                    expr = Expr::Index(Box::new(expr), Box::new(index));
+                }
+                _ => break,
             }
         }
 

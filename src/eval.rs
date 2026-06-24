@@ -5,7 +5,7 @@ use crate::config::Config;
 use crate::number::{self, Num};
 use crate::parser::{BinOp, Expr, UnOp};
 use crate::value::Value;
-use num_traits::Zero;
+use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
 
 pub type BuiltinFn = fn(&mut Interp, &[Value]) -> Result<Value, String>;
@@ -200,6 +200,34 @@ impl Interp {
                     }
                 }
                 Ok(Value::Str(output.join(" ")))
+            }
+            Expr::Index(list_expr, index_expr) => {
+                let list_val = self.eval(list_expr)?;
+                let index_val = self.eval(index_expr)?;
+
+                match list_val {
+                    Value::List(items) => {
+                        let idx_num = index_val.as_number()?;
+                        if !idx_num.is_integer() {
+                            return Err("index must be an integer".to_string());
+                        }
+                        let idx = idx_num.numer();
+                        let idx_i64 = idx.to_i64()
+                            .ok_or("index out of range".to_string())?;
+                        let idx_usize = if idx_i64 < 0 {
+                            // Negative indexing: -1 is last element
+                            let len = items.len() as i64;
+                            ((len + idx_i64) as usize)
+                        } else {
+                            idx_i64 as usize
+                        };
+
+                        items.get(idx_usize)
+                            .cloned()
+                            .ok_or("index out of bounds".to_string())
+                    }
+                    _ => Err("cannot index non-list value".to_string()),
+                }
             }
         }
     }

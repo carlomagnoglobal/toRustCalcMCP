@@ -250,3 +250,49 @@ fn test_file_content_parsing() {
     // Just verify we have multiple results
     assert!(results.len() >= 3, "got {} results", results.len());
 }
+
+#[test]
+fn test_list_creation() {
+    let mut it = Interp::new();
+    let result = it.eval_render("list(1, 2, 3)").unwrap();
+    assert_eq!(result, "[1, 2, 3]");
+}
+
+#[test]
+fn test_list_size() {
+    let mut it = Interp::new();
+    let result = it.eval_render("size(list(1, 2, 3, 4))").unwrap();
+    assert_eq!(result, "4");
+}
+
+#[test]
+fn test_list_indexing() {
+    let mut it = Interp::new();
+    let result = it.eval_render("x = list(10, 20, 30); x[0]").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "10");
+}
+
+#[test]
+fn test_list_append() {
+    let mut it = Interp::new();
+    let result = it.eval_render("x = list(1, 2); y = append(x, 3, 4); size(y)").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "4");
+}
+
+#[test]
+fn test_list_first_last() {
+    let mut it = Interp::new();
+    let result = it.eval_render("x = list(10, 20, 30); first(x); last(x)").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 2], "10");
+    assert_eq!(lines[lines.len() - 1], "30");
+}
+
+#[test]
+fn test_list_slice() {
+    let mut it = Interp::new();
+    let result = it.eval_render("slice(list(1, 2, 3, 4, 5), 1, 4)").unwrap();
+    assert_eq!(result, "[2, 3, 4]");
+}

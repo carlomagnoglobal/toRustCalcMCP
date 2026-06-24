@@ -15,12 +15,12 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 1 complete.** The project now has a full `src/` structure
-with lexer, parser, evaluator, ~40 builtins, CLI, MCP server, and 11 integration
-tests. `cargo build --release` succeeds; all tests pass. The exact-rational
-engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to
-the last digit (e.g., `2^256`), and the MCP server responds correctly. Remaining
-work (TODO #1–#8 in §6) is enumerated below.
+Current status: **Phase 1 complete, Phase 2 mostly done.** The project has a full `src/` structure
+with lexer, parser, evaluator, 47 builtins, CLI, MCP server, and 36 integration
+tests. `cargo build --release` succeeds; all tests pass. TODO #1–#5 complete (exact rationals, 
+transcendentals, control flow, bitwise ops, lists). The exact-rational engine works correctly 
+(e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit (e.g., `2^256`), 
+and the MCP server responds correctly. Remaining work (TODO #6–#8 in §6) is enumerated below.
 
 ---
 
@@ -115,13 +115,13 @@ live in `src/` and compile cleanly.
 | `lexer.rs` | **DONE.** Tokenizer: keywords (define/if/for/while/print), `**`→`^`, `//`, blocks `{}`, strings, `0x`/`0b`, sci-notation. |
 | `parser.rs` | **DONE.** Pratt parser: `Expr` including Define, If, While, For, Block, Print. `^` right-assoc. Assignments, calls, control flow. |
 | `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
-| `builtins.rs` | **DONE.** 41 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits. All registered + catalog. |
+| `builtins.rs` | **DONE.** 47 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits, list ops (list/size/append/first/last/slice). All registered + catalog. |
 | `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-f` file, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, file, and expression modes. |
 | `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (3 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
-| `tests/integration.rs` | **DONE.** 30 tests: exactness, transcendentals, control flow, bitwise operations, and file loading. All passing. |
+| `tests/integration.rs` | **DONE.** 36 tests: exactness, transcendentals, control flow, bitwise operations, file loading, and list operations. All passing. |
 | `docs/MCP_TOOL_SCHEMA.json` | **DONE.** Server-emitted schema. Regenerate after tool changes via §7 script. |
 
 ---
@@ -191,10 +191,14 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - Where: `cli.rs` (read file → `Interp::eval_all`); honor `-s`/`-q` interplay.
    - Done when: a small `.cal` script with `define` + loop runs and prints expected output.
 
-5. **More of the type system: lists & associative arrays** (`list()`, `[]`,
-   `append`, `size`, `mat`/matrices later).
-   - Where: new `Value` variants + indexing in `parser.rs`/`eval.rs`; builtins.
-   - Done when: `x=list(1,2,3); append(x,4); size(x)` → 4.
+~~5. **More of the type system: lists & associative arrays** — DONE.~~
+   - ✅ Value: added `List(Vec<Value>)` variant with proper rendering as `[item1, item2, ...]`
+   - ✅ Parser: added `Index(Box<Expr>, Box<Expr>)` for `list[index]` syntax; updated `parse_postfix()`
+   - ✅ Lexer: added `LBracket`, `RBracket` tokens for `[` and `]`
+   - ✅ Builtins: implemented `list()`, `size()`, `append()`, `first()`, `last()`, `slice()`
+   - ✅ Indexing: supports 0-based and negative indices (Python-style)
+   - ✅ Verified: `x=list(1,2,3); append(x,4); size(x)` → 4; 7 new integration tests pass
+   - Total tests: 36 passing (added 7 for lists)
 
 6. **Complex numbers** (`a+bi`, `re`, `im`, `arg`, complex `sqrt`).
    - Where: extend `Num`/`Value` (or add `Complex`); thread through ops.

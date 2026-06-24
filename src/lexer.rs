@@ -34,6 +34,8 @@ pub enum Tok {
     RParen,
     LBrace,
     RBrace,
+    LBracket,
+    RBracket,
     Comma,
     Semicolon,
     Equal,
@@ -67,6 +69,8 @@ impl fmt::Display for Tok {
             Tok::RParen => write!(f, ")"),
             Tok::LBrace => write!(f, "{{"),
             Tok::RBrace => write!(f, "}}"),
+            Tok::LBracket => write!(f, "["),
+            Tok::RBracket => write!(f, "]"),
             Tok::Comma => write!(f, ","),
             Tok::Semicolon => write!(f, ";"),
             Tok::Equal => write!(f, "="),
@@ -177,6 +181,14 @@ pub fn lex(src: &str) -> Result<Vec<Tok>, String> {
             '}' => {
                 chars.next();
                 toks.push(Tok::RBrace);
+            }
+            '[' => {
+                chars.next();
+                toks.push(Tok::LBracket);
+            }
+            ']' => {
+                chars.next();
+                toks.push(Tok::RBracket);
             }
             ',' => {
                 chars.next();
