@@ -370,6 +370,59 @@ fn f_nextprime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// Previous prime
+fn f_prevprime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("prevprime", a, 1)?;
+    let n = int(a, 0)?.to_i64().ok_or("prevprime: number too large")?;
+    Ok(Value::Number(Num::from_integer(number::prevprime(n)?)))
+}
+
+// Prime factorization
+fn f_factor(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("factor", a, 1)?;
+    let n = int(a, 0)?.to_i64().ok_or("factor: number too large")?;
+    let factors = number::factor(n)?;
+    let result_list: Vec<Value> = factors.iter().map(|f| Value::Number(Num::from_integer(f.clone()))).collect();
+    Ok(Value::List(result_list))
+}
+
+// Largest prime factor
+fn f_lfactor(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("lfactor", a, 1)?;
+    let n = int(a, 0)?.to_i64().ok_or("lfactor: number too large")?;
+    Ok(Value::Number(Num::from_integer(number::lfactor(n)?)))
+}
+
+// Probabilistic primality test
+fn f_ptest(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ptest", a, 2)?;
+    let n = int(a, 0)?.to_i64().ok_or("ptest: n too large")?;
+    let k = int(a, 1)?.to_i64().ok_or("ptest: k too large")?;
+    Ok(Value::Number(number::ptest(n, k)?))
+}
+
+// Euler numbers
+fn f_euler(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("euler", a, 1)?;
+    let n = int(a, 0)?.to_i64().ok_or("euler: index too large")?;
+    Ok(Value::Number(Num::from_integer(number::euler(n)?)))
+}
+
+// Bernoulli numbers
+fn f_bernoulli(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("bernoulli", a, 1)?;
+    let n = int(a, 0)?.to_i64().ok_or("bernoulli: index too large")?;
+    Ok(Value::Number(number::bernoulli(n)?))
+}
+
+// Jacobi symbol
+fn f_jacobi(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("jacobi", a, 2)?;
+    let a_val = int(a, 0)?.to_i64().ok_or("jacobi: a too large")?;
+    let n_val = int(a, 1)?.to_i64().ok_or("jacobi: n too large")?;
+    Ok(Value::Number(number::jacobi(a_val, n_val)?))
+}
+
 // Numerator
 fn f_num(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("num", a, 1)?;
@@ -1167,6 +1220,13 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("fib".to_string(), f_fib as BuiltinFn);
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
+    builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("factor".to_string(), f_factor as BuiltinFn);
+    builtins.insert("lfactor".to_string(), f_lfactor as BuiltinFn);
+    builtins.insert("ptest".to_string(), f_ptest as BuiltinFn);
+    builtins.insert("euler".to_string(), f_euler as BuiltinFn);
+    builtins.insert("bernoulli".to_string(), f_bernoulli as BuiltinFn);
+    builtins.insert("jacobi".to_string(), f_jacobi as BuiltinFn);
     builtins.insert("num".to_string(), f_num as BuiltinFn);
     builtins.insert("den".to_string(), f_den as BuiltinFn);
     builtins.insert("pi".to_string(), f_pi as BuiltinFn);
@@ -1284,6 +1344,13 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("fib", "fib(n)", "nth Fibonacci number"),
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
+        ("prevprime", "prevprime(n)", "previous prime before n"),
+        ("factor", "factor(n)", "prime factorization (returns list)"),
+        ("lfactor", "lfactor(n)", "largest prime factor"),
+        ("ptest", "ptest(n,k)", "probabilistic primality test"),
+        ("euler", "euler(n)", "Euler number E_n"),
+        ("bernoulli", "bernoulli(n)", "Bernoulli number B_n"),
+        ("jacobi", "jacobi(a,n)", "Jacobi symbol (a|n)"),
         ("num", "num(x)", "numerator"),
         ("den", "den(x)", "denominator"),
         ("pi", "pi()", "π constant (60 digits)"),

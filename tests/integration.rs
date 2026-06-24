@@ -924,3 +924,70 @@ fn test_acsch() {
     let val: f64 = clean.parse().unwrap_or(0.0);
     assert!((val - 0.881).abs() < 0.01);
 }
+
+// Phase 4.3: Prime & Number Theory Extensions
+
+#[test]
+fn test_prevprime() {
+    let mut it = Interp::new();
+    // prevprime(20) = 19
+    let result = it.eval_render("prevprime(20)").unwrap();
+    assert_eq!(result, "19");
+}
+
+#[test]
+fn test_factor() {
+    let mut it = Interp::new();
+    // factor(12) = [2, 2, 3]
+    let result = it.eval_render("factor(12)").unwrap();
+    // Result is a list: [2, 2, 3]
+    assert!(result.contains("2"));
+}
+
+#[test]
+fn test_lfactor() {
+    let mut it = Interp::new();
+    // lfactor(12) = 3
+    let result = it.eval_render("lfactor(12)").unwrap();
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_ptest() {
+    let mut it = Interp::new();
+    // ptest(17, 5) = 1 (17 is prime)
+    let result = it.eval_render("ptest(17, 5)").unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_ptest_composite() {
+    let mut it = Interp::new();
+    // ptest(4, 5) = 0 (4 is not prime)
+    let result = it.eval_render("ptest(4, 5)").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_euler() {
+    let mut it = Interp::new();
+    // euler(0) = 1
+    let result = it.eval_render("euler(0)").unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_bernoulli() {
+    let mut it = Interp::new();
+    // bernoulli(0) = 1
+    let result = it.eval_render("bernoulli(0)").unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_jacobi() {
+    let mut it = Interp::new();
+    // jacobi(2, 5) = -1
+    let result = it.eval_render("jacobi(2, 5)").unwrap();
+    assert_eq!(result, "-1");
+}
