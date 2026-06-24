@@ -15,13 +15,13 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 2 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 50 builtins, CLI, MCP server, and 43 integration
-tests. `cargo build --release` succeeds; all tests pass. TODO #1–#6 complete (exact rationals, 
-transcendentals, control flow, bitwise ops, lists, complex numbers). The exact-rational engine works correctly 
+Current status: **Phase 2 complete, Phase 3 underway.** The project has a full `src/` structure
+with lexer, parser, evaluator, 51 builtins, CLI, MCP server, and 49 integration
+tests. `cargo build --release` succeeds; all tests pass. TODO #1–#7 complete (exact rationals, 
+transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion). The exact-rational engine works correctly 
 (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit (e.g., `2^256`), 
-complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), and the MCP server responds correctly. 
-Remaining work (TODO #7–#8 in §6) is enumerated below.
+complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), base conversion handles 2-36 bases (e.g., `base(16); 255` → `ff`), 
+and the MCP server responds correctly. Remaining work (TODO #8 in §6) is enumerated below.
 
 ---
 
@@ -112,17 +112,17 @@ live in `src/` and compile cleanly.
 | `number.rs` | numeric core. `Num = BigRational`. parsing, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `round_to_epsilon`, decimal rendering (`~` marks inexact). **Start here for precision work.** |
 | `number.rs` | **DONE.** Exact rationals, `parse_number`, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `pi()`/`e()` (60-digit constants), `exp`/`ln`/`sin`/`cos`/`tan` (Taylor series, epsilon-aware). |
 | `value.rs` | **DONE.** `Value` enum (`Number`/`Complex`/`Str`/`Null`/`Function`/`List`) + `render(&Config)` for all modes. Functions stored as params + body. Complex numbers rendered as `a+bi` or `a-bi`. |
-| `config.rs` | **DONE.** `Config { epsilon, display, mode }` + `Mode {Real,Frac,Int}` with `parse()`. |
+| `config.rs` | **DONE.** `Config { epsilon, display, mode, ibase, obase }` + `Mode {Real,Frac,Int}` with `parse()`. Supports bases 2-36. |
 | `lexer.rs` | **DONE.** Tokenizer: keywords (define/if/for/while/print), `**`→`^`, `//`, blocks `{}`, strings, `0x`/`0b`, sci-notation. |
 | `parser.rs` | **DONE.** Pratt parser: `Expr` including Define, If, While, For, Block, Print. `^` right-assoc. Assignments, calls, control flow. |
 | `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
-| `builtins.rs` | **DONE.** 50 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits, list ops (list/size/append/first/last/slice), complex ops (re/im/arg). All registered + catalog. |
+| `builtins.rs` | **DONE.** 51 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits, list ops (list/size/append/first/last/slice), complex ops (re/im/arg), base conversion (base). All registered + catalog. |
 | `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-f` file, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, file, and expression modes. |
 | `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (3 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
-| `tests/integration.rs` | **DONE.** 43 tests: exactness, transcendentals, control flow, bitwise operations, file loading, list operations, and complex numbers. All passing. |
+| `tests/integration.rs` | **DONE.** 49 tests: exactness, transcendentals, control flow, bitwise operations, file loading, list operations, complex numbers, and base conversion. All passing. |
 | `docs/MCP_TOOL_SCHEMA.json` | **DONE.** Server-emitted schema. Regenerate after tool changes via §7 script. |
 
 ---
@@ -211,9 +211,16 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - ✅ Verified: `sqrt(-1)` → `i`, `(1+i)*(2-i)` → `3+1i`; 7 new integration tests pass
    - Total tests: 43 passing (added 7 for complex)
 
-7. **Display/base faithfulness** (`base()`/`obase`, `config()` surface, exact `~`
-   semantics, scientific output) to match calc output byte-for-byte where sane.
-   - Where: `value.rs`/`number.rs` rendering; `config.rs`; expose via `calc_config`.
+~~7. **Display/base faithfulness** — DONE.~~
+   - ✅ Config: added `ibase` and `obase` fields (default 10, supports 2-36)
+   - ✅ Base conversion: `to_base()` converts BigInt to any base 2-36
+   - ✅ Rendering: numbers output in obase in all modes (Real, Frac, Int)
+   - ✅ Builtin `base()`: get/set ibase and obase; `base(16)` sets both; `base(10, 16)` sets separately
+   - ✅ Fractional numbers: support bases for both integer and fractional parts
+   - ✅ Complex numbers: real and imaginary parts render in obase
+   - ✅ Verified: `base(16); 255` → `ff`, `base(2); 255` → `11111111`, `base(16); 1/2` → `0.8`
+   - ✅ 6 new integration tests added and passing
+   - Total tests: 49 passing (added 6 for base conversion)
 
 8. **Broaden MCP** (optional): a `calc_session` reset tool; structured (JSON)
    results alongside text; resources for the function catalog.

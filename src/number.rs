@@ -456,3 +456,126 @@ fn assemble(neg: bool, int_part: &BigInt, frac: &str, exact: bool) -> String {
 pub fn gcd_int(a: &BigInt, b: &BigInt) -> BigInt {
     a.gcd(b)
 }
+
+/// Convert a BigInt to a given base (2-36). Returns the string representation.
+pub fn to_base(n: &BigInt, base: u32) -> String {
+    if base < 2 || base > 36 {
+        return n.to_string(); // fallback to base 10
+    }
+    if n.is_zero() {
+        return "0".to_string();
+    }
+
+    let is_neg = n.is_negative();
+    let n = n.abs();
+    let base_bi = BigInt::from(base);
+    let mut digits = String::new();
+    let mut val = n.clone();
+
+    while !val.is_zero() {
+        let digit = (&val % &base_bi).to_u32().unwrap_or(0);
+        let char = if digit < 10 {
+            (b'0' + digit as u8) as char
+        } else {
+            (b'a' + (digit - 10) as u8) as char
+        };
+        digits.insert(0, char);
+        val /= &base_bi;
+    }
+
+    if is_neg {
+        format!("-{}", digits)
+    } else {
+        digits
+    }
+}
+
+/// Convert a rational number to a string in a given base (2-36).
+pub fn to_string_in_base(x: &Num, base: u32, digits: usize) -> String {
+    if base < 2 || base > 36 {
+        return to_decimal_string(x, digits); // fallback
+    }
+
+    if x.is_integer() {
+        return to_base(x.numer(), base);
+    }
+
+    let neg = x.is_negative();
+    let x = x.abs();
+    let numer = x.numer().clone();
+    let denom = x.denom().clone();
+    let base_bi = BigInt::from(base);
+
+    let int_part = &numer / &denom;
+    let mut rem = &numer % &denom;
+
+    let mut frac_digits = String::new();
+    let mut exact = false;
+    for _ in 0..(digits + 1) {
+        if rem.is_zero() {
+            exact = true;
+            break;
+        }
+        rem *= &base_bi;
+        let d = &rem / &denom;
+        rem %= &denom;
+        let digit = d.to_u32().unwrap_or(0);
+        let char = if digit < 10 {
+            (b'0' + digit as u8) as char
+        } else {
+            (b'a' + (digit - 10) as u8) as char
+        };
+        frac_digits.push(char);
+    }
+
+    let mut frac_chars: Vec<u8> = frac_digits.into_bytes();
+    if !exact && frac_chars.len() > digits {
+        let guard = frac_chars.pop();
+        if let Some(g) = guard {
+            let guard_val = if g >= b'0' && g <= b'9' {
+                g - b'0'
+            } else {
+                g - b'a' + 10
+            };
+            let threshold = base / 2;
+            if guard_val >= threshold as u8 {
+                let mut i = frac_chars.len();
+                let mut carry = true;
+                while carry && i > 0 {
+                    i -= 1;
+                    let c = frac_chars[i];
+                    if c == b'z' || (c >= b'0' && c <= b'9' && c == b'9') ||
+                       (c >= b'a' && c < b'z') {
+                        frac_chars[i] = if c >= b'0' && c <= b'8' {
+                            c + 1
+                        } else if c >= b'a' && c < b'z' {
+                            c + 1
+                        } else {
+                            b'0'
+                        };
+                        if frac_chars[i] != b'0' {
+                            carry = false;
+                        }
+                    }
+                }
+                if carry {
+                    let int_inc = &int_part + 1;
+                    return assemble_base(neg, &int_inc, &String::from_utf8_lossy(&frac_chars).to_string(), exact, base);
+                }
+            }
+        }
+    }
+    assemble_base(neg, &int_part, &String::from_utf8_lossy(&frac_chars).to_string(), exact, base)
+}
+
+fn assemble_base(neg: bool, int_part: &BigInt, frac: &str, exact: bool, base: u32) -> String {
+    let sign = if neg { "-" } else { "" };
+    let tilde = if exact { "" } else { "~" };
+    let int_str = to_base(int_part, base);
+    let frac_trimmed = frac.trim_end_matches('0');
+    if frac_trimmed.is_empty() {
+        format!("{tilde}{sign}{int_str}")
+    } else {
+        format!("{tilde}{sign}{int_str}.{frac_trimmed}")
+    }
+}

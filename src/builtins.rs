@@ -352,6 +352,41 @@ fn f_e(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(number::e()))
 }
 
+// Get or set input/output base
+fn f_base(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() {
+        // No arguments: return current obase
+        Ok(Value::Number(Num::from_integer(BigInt::from(it.cfg.obase))))
+    } else if a.len() == 1 {
+        // One argument: set both ibase and obase
+        let base_val = int(a, 0)?;
+        let base_u32 = base_val.to_u32().ok_or("base out of range")?;
+        if base_u32 < 2 || base_u32 > 36 {
+            return Err("base must be between 2 and 36".to_string());
+        }
+        it.cfg.ibase = base_u32;
+        it.cfg.obase = base_u32;
+        Ok(Value::Number(Num::from_integer(BigInt::from(base_u32))))
+    } else if a.len() == 2 {
+        // Two arguments: set ibase and obase separately
+        let ibase_val = int(a, 0)?;
+        let obase_val = int(a, 1)?;
+        let ibase_u32 = ibase_val.to_u32().ok_or("ibase out of range")?;
+        let obase_u32 = obase_val.to_u32().ok_or("obase out of range")?;
+        if ibase_u32 < 2 || ibase_u32 > 36 {
+            return Err("ibase must be between 2 and 36".to_string());
+        }
+        if obase_u32 < 2 || obase_u32 > 36 {
+            return Err("obase must be between 2 and 36".to_string());
+        }
+        it.cfg.ibase = ibase_u32;
+        it.cfg.obase = obase_u32;
+        Ok(Value::Number(Num::from_integer(BigInt::from(obase_u32))))
+    } else {
+        Err("base() expects 0, 1, or 2 arguments".to_string())
+    }
+}
+
 // Exponential
 fn f_exp(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("exp", a, 1)?;
@@ -691,6 +726,7 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("den".to_string(), f_den as BuiltinFn);
     builtins.insert("pi".to_string(), f_pi as BuiltinFn);
     builtins.insert("e".to_string(), f_e as BuiltinFn);
+    builtins.insert("base".to_string(), f_base as BuiltinFn);
     builtins.insert("exp".to_string(), f_exp as BuiltinFn);
     builtins.insert("ln".to_string(), f_ln as BuiltinFn);
     builtins.insert("log".to_string(), f_log as BuiltinFn);
@@ -748,6 +784,7 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("den", "den(x)", "denominator"),
         ("pi", "pi()", "π constant (60 digits)"),
         ("e", "e()", "e constant (60 digits)"),
+        ("base", "base([ibase[,obase]])", "get/set input and output base (2-36)"),
         ("exp", "exp(x)", "e^x"),
         ("ln", "ln(x)", "natural logarithm"),
         ("log", "log(x)", "base-10 logarithm"),

@@ -352,3 +352,51 @@ fn test_complex_division() {
     assert!(lines[lines.len() - 1].contains("3.5"));
     assert!(lines[lines.len() - 1].contains("0.5"));
 }
+
+#[test]
+fn test_base_hex() {
+    let mut it = Interp::new();
+    let result = it.eval_render("base(16); 255").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "ff");
+}
+
+#[test]
+fn test_base_binary() {
+    let mut it = Interp::new();
+    let result = it.eval_render("base(2); 255").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "11111111");
+}
+
+#[test]
+fn test_base_octal() {
+    let mut it = Interp::new();
+    let result = it.eval_render("base(8); 64").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "100");
+}
+
+#[test]
+fn test_base_fractional() {
+    let mut it = Interp::new();
+    let result = it.eval_render("base(16); 1/2").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "0.8");
+}
+
+#[test]
+fn test_base_returns_obase() {
+    let mut it = Interp::new();
+    let result = it.eval_render("base(16)").unwrap();
+    // 16 in hex is 10
+    assert_eq!(result, "10");
+}
+
+#[test]
+fn test_base_two_args() {
+    let mut it = Interp::new();
+    let result = it.eval_render("base(10, 16); 255").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines[lines.len() - 1], "ff");
+}

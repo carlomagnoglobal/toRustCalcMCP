@@ -34,6 +34,8 @@ pub struct Config {
     pub epsilon: Num,
     pub display: usize,
     pub mode: Mode,
+    pub ibase: u32, // input base (2-36, default 10)
+    pub obase: u32, // output base (2-36, default 10)
 }
 
 impl Default for Config {
@@ -42,6 +44,8 @@ impl Default for Config {
             epsilon: Num::from_float(1e-20).unwrap(),
             display: 20,
             mode: Mode::Real,
+            ibase: 10,
+            obase: 10,
         }
     }
 }

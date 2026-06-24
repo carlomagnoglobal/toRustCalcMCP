@@ -50,19 +50,44 @@ impl Value {
     pub fn render(&self, cfg: &Config) -> String {
         match self {
             Value::Number(n) => match cfg.mode {
-                crate::config::Mode::Real => number::to_decimal_string(n, cfg.display),
-                crate::config::Mode::Frac => {
-                    if n.is_integer() {
-                        n.numer().to_string()
+                crate::config::Mode::Real => {
+                    if cfg.obase != 10 {
+                        number::to_string_in_base(n, cfg.obase, cfg.display)
                     } else {
-                        format!("{}/{}", n.numer(), n.denom())
+                        number::to_decimal_string(n, cfg.display)
                     }
                 }
-                crate::config::Mode::Int => number::trunc(n).numer().to_string(),
+                crate::config::Mode::Frac => {
+                    if n.is_integer() {
+                        if cfg.obase != 10 {
+                            number::to_base(n.numer(), cfg.obase)
+                        } else {
+                            n.numer().to_string()
+                        }
+                    } else {
+                        format!("{}/{}", number::to_base(n.numer(), cfg.obase), number::to_base(n.denom(), cfg.obase))
+                    }
+                }
+                crate::config::Mode::Int => {
+                    let int_val = number::trunc(n).numer().clone();
+                    if cfg.obase != 10 {
+                        number::to_base(&int_val, cfg.obase)
+                    } else {
+                        int_val.to_string()
+                    }
+                }
             },
             Value::Complex(r, i) => {
-                let real_str = number::to_decimal_string(r, cfg.display);
-                let imag_str = number::to_decimal_string(i, cfg.display);
+                let real_str = if cfg.obase != 10 {
+                    number::to_string_in_base(r, cfg.obase, cfg.display)
+                } else {
+                    number::to_decimal_string(r, cfg.display)
+                };
+                let imag_str = if cfg.obase != 10 {
+                    number::to_string_in_base(i, cfg.obase, cfg.display)
+                } else {
+                    number::to_decimal_string(i, cfg.display)
+                };
                 // Remove ~ prefix for imaginary part if present
                 let imag_clean = imag_str.trim_start_matches('~');
                 if i.is_zero() {
