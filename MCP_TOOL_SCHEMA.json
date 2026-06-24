@@ -1,0 +1,109 @@
+{
+  "_comment": "Authoritative JSON-RPC 2.0 / MCP tool schema for toRustCalcMCP, emitted by the server. Transport: newline-delimited JSON-RPC over stdio.",
+  "protocolVersion": "2025-06-18",
+  "serverInfo": {
+    "name": "toRustCalcMCP",
+    "title": "calc \u2014 arbitrary-precision calculator",
+    "version": "0.1.0"
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": false
+    }
+  },
+  "toolsListResult": {
+    "tools": [
+      {
+        "description": "Evaluate an arbitrary-precision calc expression (exact rational arithmetic) and return the result. Supports + - * / // % ^, comparisons, variables, and builtin functions such as sqrt, gcd, fact, isprime, sin, pi.",
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "digits": {
+              "description": "Decimal digits shown in real mode (default 20). This call only.",
+              "maximum": 10000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "epsilon": {
+              "description": "Precision target for irrational results, e.g. \"1e-40\". This call only.",
+              "type": "string"
+            },
+            "expression": {
+              "description": "The expression to evaluate, e.g. \"2^100 + 1\" or \"sqrt(2)\" or \"gcd(462,1071)\". Multiple statements may be separated by ';'.",
+              "type": "string"
+            },
+            "mode": {
+              "description": "Output rendering: 'real' decimal (default), 'frac' exact a/b, or 'int' truncated integer. Applies to this call only.",
+              "enum": [
+                "real",
+                "frac",
+                "int"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ],
+          "type": "object"
+        },
+        "name": "calc_eval",
+        "title": "Evaluate calc expression"
+      },
+      {
+        "description": "Read or update the persistent session configuration (precision epsilon, display digits, output mode).",
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "description": "'get' returns current config; 'set' updates one or more fields.",
+              "enum": [
+                "get",
+                "set"
+              ],
+              "type": "string"
+            },
+            "digits": {
+              "maximum": 10000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "epsilon": {
+              "description": "e.g. \"1e-20\"",
+              "type": "string"
+            },
+            "mode": {
+              "enum": [
+                "real",
+                "frac",
+                "int"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "type": "object"
+        },
+        "name": "calc_config",
+        "title": "Get or set session configuration"
+      },
+      {
+        "description": "List the available builtin functions with signatures and descriptions, optionally filtered by a substring.",
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "filter": {
+              "description": "Optional case-insensitive substring to match against function names.",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "name": "calc_functions",
+        "title": "List builtin functions"
+      }
+    ]
+  }
+}

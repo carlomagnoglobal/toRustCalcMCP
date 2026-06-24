@@ -1,0 +1,32 @@
+[package]
+name = "torustcalcmcp"
+version = "0.1.0"
+edition = "2021"
+description = "A Rust port of calc (lcn2/calc): exact-rational calculator usable as the `rcalc` CLI and as an MCP (JSON-RPC 2.0) server."
+license = "LGPL-2.1"
+
+# One codebase, two front-ends. `toRustCalcMCP` auto-detects MCP vs CLI;
+# `rcalc` is a convenience binary that is always the calculator CLI.
+[[bin]]
+name = "toRustCalcMCP"
+path = "src/main.rs"
+
+[[bin]]
+name = "rcalc"
+path = "src/bin_rcalc.rs"
+
+[lib]
+name = "torustcalcmcp"
+path = "src/lib.rs"
+
+[dependencies]
+num-bigint  = "0.4"
+num-rational = "0.4"
+num-integer = "0.1"
+num-traits  = "0.2"
+serde       = { version = "1", features = ["derive"] }
+serde_json  = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
