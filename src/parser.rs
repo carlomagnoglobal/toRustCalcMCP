@@ -11,6 +11,13 @@ pub enum Expr {
     Unary(UnOp, Box<Expr>),
     Binary(BinOp, Box<Expr>, Box<Expr>),
     Call(String, Vec<Expr>),
+    // Control flow
+    Define(String, Vec<String>, Box<Expr>), // name, params, body
+    If(Box<Expr>, Box<Expr>, Option<Box<Expr>>), // cond, then_branch, else_branch
+    While(Box<Expr>, Box<Expr>), // cond, body
+    For(String, Box<Expr>, Box<Expr>, Box<Expr>), // var, start, end, body
+    Block(Vec<Expr>), // sequence of statements
+    Print(Vec<Expr>), // print args
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -70,7 +77,118 @@ impl Parser {
     }
 
     fn parse_expr(&mut self) -> Result<Expr, String> {
-        self.parse_assignment()
+        // Handle statement-level constructs
+        match self.peek() {
+            Some(Tok::Define) => self.parse_define(),
+            Some(Tok::If) => self.parse_if(),
+            Some(Tok::While) => self.parse_while(),
+            Some(Tok::For) => self.parse_for(),
+            Some(Tok::Print) => self.parse_print(),
+            Some(Tok::LBrace) => self.parse_block(),
+            _ => self.parse_assignment(),
+        }
+    }
+
+    fn parse_define(&mut self) -> Result<Expr, String> {
+        self.expect(Tok::Define)?;
+        let name = match self.advance() {
+            Some(Tok::Ident(n)) => n,
+            _ => return Err("expected function name".to_string()),
+        };
+        self.expect(Tok::LParen)?;
+        let mut params = Vec::new();
+        if self.peek() != Some(&Tok::RParen) {
+            loop {
+                match self.advance() {
+                    Some(Tok::Ident(p)) => params.push(p),
+                    _ => return Err("expected parameter name".to_string()),
+                }
+                if self.peek() == Some(&Tok::Comma) {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+        }
+        self.expect(Tok::RParen)?;
+        self.expect(Tok::Equal)?;
+        let body = Box::new(self.parse_assignment()?);
+        Ok(Expr::Define(name, params, body))
+    }
+
+    fn parse_if(&mut self) -> Result<Expr, String> {
+        self.expect(Tok::If)?;
+        let cond = Box::new(self.parse_assignment()?);
+        let then_branch = Box::new(self.parse_assignment()?);
+        let else_branch = if self.peek().map(|t| {
+            matches!(t, Tok::Ident(s) if s == "else")
+        }).unwrap_or(false) {
+            self.advance();
+            Some(Box::new(self.parse_assignment()?))
+        } else {
+            None
+        };
+        Ok(Expr::If(cond, then_branch, else_branch))
+    }
+
+    fn parse_while(&mut self) -> Result<Expr, String> {
+        self.expect(Tok::While)?;
+        let cond = Box::new(self.parse_assignment()?);
+        let body = Box::new(self.parse_assignment()?);
+        Ok(Expr::While(cond, body))
+    }
+
+    fn parse_for(&mut self) -> Result<Expr, String> {
+        self.expect(Tok::For)?;
+        let var = match self.advance() {
+            Some(Tok::Ident(v)) => v,
+            _ => return Err("expected loop variable".to_string()),
+        };
+        self.expect(Tok::Equal)?;
+        let start = Box::new(self.parse_assignment()?);
+        // Expect a comma or 'to' keyword
+        if self.peek() == Some(&Tok::Comma) {
+            self.advance();
+        } else if self.peek().map(|t| matches!(t, Tok::Ident(s) if s == "to")).unwrap_or(false) {
+            self.advance();
+        } else {
+            return Err("expected ',' or 'to' in for loop".to_string());
+        }
+        let end = Box::new(self.parse_assignment()?);
+        let body = Box::new(self.parse_assignment()?);
+        Ok(Expr::For(var, start, end, body))
+    }
+
+    fn parse_print(&mut self) -> Result<Expr, String> {
+        self.expect(Tok::Print)?;
+        let mut args = Vec::new();
+        if self.peek() != Some(&Tok::Semicolon) && self.peek() != Some(&Tok::RParen) && self.peek().is_some() {
+            loop {
+                args.push(self.parse_assignment()?);
+                if self.peek() == Some(&Tok::Comma) {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+        }
+        Ok(Expr::Print(args))
+    }
+
+    fn parse_block(&mut self) -> Result<Expr, String> {
+        self.expect(Tok::LBrace)?;
+        let mut stmts = Vec::new();
+        while self.peek() != Some(&Tok::RBrace) && self.peek().is_some() {
+            stmts.push(self.parse_expr()?);
+            if self.peek() == Some(&Tok::Semicolon) {
+                self.advance();
+            } else if self.peek() != Some(&Tok::RBrace) {
+                // Allow implicit semicolons before closing brace or next statement
+                break;
+            }
+        }
+        self.expect(Tok::RBrace)?;
+        Ok(Expr::Block(stmts))
     }
 
     fn parse_assignment(&mut self) -> Result<Expr, String> {

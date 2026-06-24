@@ -1,14 +1,29 @@
-//! Values: numbers, strings, or null.
+//! Values: numbers, strings, null, or functions.
 
 use crate::config::Config;
 use crate::number::{self, Num};
+use crate::parser::Expr;
 use num_bigint::BigInt;
+use std::rc::Rc;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Number(Num),
     Str(String),
     Null,
+    Function(Vec<String>, Rc<Expr>), // params, body (as Expr)
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Number(a), Value::Number(b)) => a == b,
+            (Value::Str(a), Value::Str(b)) => a == b,
+            (Value::Null, Value::Null) => true,
+            // Functions are not compared for equality
+            _ => false,
+        }
+    }
 }
 
 impl Value {
@@ -42,6 +57,7 @@ impl Value {
             },
             Value::Str(s) => s.clone(),
             Value::Null => String::new(),
+            Value::Function(_, _) => String::new(), // Functions don't render
         }
     }
 }

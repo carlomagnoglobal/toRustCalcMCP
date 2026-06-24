@@ -126,3 +126,51 @@ fn test_cos_zero() {
     // cos(0) = 1 (may show as ~1 due to epsilon rounding)
     assert!(result == "1" || result == "~1", "cos(0) = {}", result);
 }
+
+#[test]
+fn test_define_function() {
+    let mut it = Interp::new();
+    it.eval_render("define sq(x) = x^2").unwrap();
+    let result = it.eval_render("sq(9)").unwrap();
+    assert_eq!(result, "81");
+}
+
+#[test]
+fn test_function_with_multiple_params() {
+    let mut it = Interp::new();
+    it.eval_render("define add(x,y) = x + y").unwrap();
+    let result = it.eval_render("add(3,4)").unwrap();
+    assert_eq!(result, "7");
+}
+
+#[test]
+fn test_if_then() {
+    let mut it = Interp::new();
+    let result = it.eval_render("if 1 5 else 10").unwrap();
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_if_else() {
+    let mut it = Interp::new();
+    let result = it.eval_render("if 0 5 else 10").unwrap();
+    assert_eq!(result, "10");
+}
+
+#[test]
+fn test_while_loop() {
+    let mut it = Interp::new();
+    // Simpler while loop: increment x each iteration
+    let result = it.eval_render("x = 0; while (x < 5) (x = x + 1); x").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    assert_eq!(lines.last().unwrap(), &"5");
+}
+
+#[test]
+fn test_for_loop() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sum = 0; for i = 1, 5 sum = sum + i; sum").unwrap();
+    let lines: Vec<&str> = result.lines().collect();
+    // 1 + 2 + 3 + 4 + 5 = 15
+    assert_eq!(lines.last().unwrap(), &"15");
+}

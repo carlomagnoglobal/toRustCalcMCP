@@ -8,6 +8,12 @@ pub enum Tok {
     Number(String),
     String(String),
     Ident(String),
+    // Keywords
+    Define,
+    If,
+    For,
+    While,
+    Print,
     // Operators
     Plus,
     Minus,
@@ -26,6 +32,8 @@ pub enum Tok {
     // Delimiters
     LParen,
     RParen,
+    LBrace,
+    RBrace,
     Comma,
     Semicolon,
     Equal,
@@ -37,6 +45,11 @@ impl fmt::Display for Tok {
             Tok::Number(s) => write!(f, "Num({})", s),
             Tok::String(s) => write!(f, "Str({})", s),
             Tok::Ident(s) => write!(f, "Id({})", s),
+            Tok::Define => write!(f, "define"),
+            Tok::If => write!(f, "if"),
+            Tok::For => write!(f, "for"),
+            Tok::While => write!(f, "while"),
+            Tok::Print => write!(f, "print"),
             Tok::Plus => write!(f, "+"),
             Tok::Minus => write!(f, "-"),
             Tok::Star => write!(f, "*"),
@@ -52,6 +65,8 @@ impl fmt::Display for Tok {
             Tok::GtEq => write!(f, ">="),
             Tok::LParen => write!(f, "("),
             Tok::RParen => write!(f, ")"),
+            Tok::LBrace => write!(f, "{{"),
+            Tok::RBrace => write!(f, "}}"),
             Tok::Comma => write!(f, ","),
             Tok::Semicolon => write!(f, ";"),
             Tok::Equal => write!(f, "="),
@@ -155,6 +170,14 @@ pub fn lex(src: &str) -> Result<Vec<Tok>, String> {
                 chars.next();
                 toks.push(Tok::RParen);
             }
+            '{' => {
+                chars.next();
+                toks.push(Tok::LBrace);
+            }
+            '}' => {
+                chars.next();
+                toks.push(Tok::RBrace);
+            }
             ',' => {
                 chars.next();
                 toks.push(Tok::Comma);
@@ -182,8 +205,8 @@ pub fn lex(src: &str) -> Result<Vec<Tok>, String> {
                 toks.push(lex_number(&mut chars)?);
             }
             _ if ch.is_ascii_alphabetic() || ch == '_' => {
-                let ident = lex_ident(&mut chars);
-                toks.push(Tok::Ident(ident));
+                let tok = lex_ident(&mut chars);
+                toks.push(tok);
             }
             _ => {
                 return Err(format!("unexpected character: {}", ch));
@@ -242,10 +265,17 @@ fn lex_number(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Tok, S
     Ok(Tok::Number(num))
 }
 
-fn lex_ident(chars: &mut std::iter::Peekable<std::str::Chars>) -> String {
+fn lex_ident(chars: &mut std::iter::Peekable<std::str::Chars>) -> Tok {
     let mut ident = String::new();
     while chars.peek().map_or(false, |c| c.is_ascii_alphanumeric() || *c == '_') {
         ident.push(chars.next().unwrap());
     }
-    ident
+    match ident.as_str() {
+        "define" => Tok::Define,
+        "if" => Tok::If,
+        "for" => Tok::For,
+        "while" => Tok::While,
+        "print" => Tok::Print,
+        _ => Tok::Ident(ident),
+    }
 }
