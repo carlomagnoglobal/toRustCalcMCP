@@ -1129,6 +1129,293 @@ fn f_hnrmod(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(result))
 }
 
+// Phase 5.3: Rational Approximations
+
+fn f_appr(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() || a.len() > 2 {
+        return Err("appr: expects 1 or 2 arguments".to_string());
+    }
+    let x = n(a, 0)?;
+    let epsilon = if a.len() == 2 {
+        n(a, 1)?
+    } else {
+        &_it.epsilon()
+    };
+    let result = number::appr(x, epsilon)?;
+    Ok(Value::Number(result))
+}
+
+fn f_cfappr(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() || a.len() > 2 {
+        return Err("cfappr: expects 1 or 2 arguments".to_string());
+    }
+    let x = n(a, 0)?;
+    let maxd = if a.len() == 2 {
+        int(a, 1)?.to_i64().ok_or("cfappr: maxd out of range")?
+    } else {
+        1000000
+    };
+    let result = number::cfappr(x, maxd)?;
+    Ok(Value::Number(result))
+}
+
+fn f_cfsim(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() || a.len() > 2 {
+        return Err("cfsim: expects 1 or 2 arguments".to_string());
+    }
+    let x = n(a, 0)?;
+    let maxd = if a.len() == 2 {
+        int(a, 1)?.to_i64().ok_or("cfsim: maxd out of range")?
+    } else {
+        1000000
+    };
+    let result = number::cfsim(x, maxd)?;
+    Ok(Value::Number(result))
+}
+
+fn f_scale(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() || a.len() > 2 {
+        return Err("scale: expects 1 or 2 arguments".to_string());
+    }
+    let x = n(a, 0)?;
+    let places = if a.len() == 2 {
+        int(a, 1)?.to_i64().ok_or("scale: places out of range")?
+    } else {
+        0
+    };
+    let result = number::scale(x, places)?;
+    Ok(Value::Number(result))
+}
+
+// Phase 5.4: Matrix Operations
+
+fn f_matdim(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("matdim", a, 1)?;
+    match &a[0] {
+        Value::List(rows) => {
+            if rows.is_empty() {
+                return Ok(Value::List(vec![Value::Number(Num::from_integer(BigInt::from(0))), Value::Number(Num::from_integer(BigInt::from(0)))]));
+            }
+            let m = rows.len() as i64;
+            let n = match &rows[0] {
+                Value::List(row) => row.len() as i64,
+                _ => return Err("matdim: matrix rows must be lists".to_string()),
+            };
+            Ok(Value::List(vec![Value::Number(Num::from_integer(BigInt::from(m))), Value::Number(Num::from_integer(BigInt::from(n)))]))
+        }
+        _ => Err("matdim: argument must be a list (matrix)".to_string()),
+    }
+}
+
+fn f_mattrans(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mattrans", a, 1)?;
+    match &a[0] {
+        Value::List(rows) => {
+            let mut matrix: Vec<Vec<Num>> = vec![];
+            for row in rows {
+                match row {
+                    Value::List(cols) => {
+                        let mut row_nums = vec![];
+                        for col in cols {
+                            match col {
+                                Value::Number(n) => row_nums.push(n.clone()),
+                                _ => return Err("mattrans: matrix elements must be numbers".to_string()),
+                            }
+                        }
+                        matrix.push(row_nums);
+                    }
+                    _ => return Err("mattrans: matrix rows must be lists".to_string()),
+                }
+            }
+            let transposed = number::mattrans(&matrix)?;
+            let result = transposed.into_iter().map(|row| {
+                Value::List(row.into_iter().map(|n| Value::Number(n)).collect())
+            }).collect();
+            Ok(Value::List(result))
+        }
+        _ => Err("mattrans: argument must be a list (matrix)".to_string()),
+    }
+}
+
+fn f_mattrace(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mattrace", a, 1)?;
+    match &a[0] {
+        Value::List(rows) => {
+            let mut matrix: Vec<Vec<Num>> = vec![];
+            for row in rows {
+                match row {
+                    Value::List(cols) => {
+                        let mut row_nums = vec![];
+                        for col in cols {
+                            match col {
+                                Value::Number(n) => row_nums.push(n.clone()),
+                                _ => return Err("mattrace: matrix elements must be numbers".to_string()),
+                            }
+                        }
+                        matrix.push(row_nums);
+                    }
+                    _ => return Err("mattrace: matrix rows must be lists".to_string()),
+                }
+            }
+            let trace = number::mattrace(&matrix)?;
+            Ok(Value::Number(trace))
+        }
+        _ => Err("mattrace: argument must be a list (matrix)".to_string()),
+    }
+}
+
+fn f_det(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("det", a, 1)?;
+    match &a[0] {
+        Value::List(rows) => {
+            let mut matrix: Vec<Vec<Num>> = vec![];
+            for row in rows {
+                match row {
+                    Value::List(cols) => {
+                        let mut row_nums = vec![];
+                        for col in cols {
+                            match col {
+                                Value::Number(n) => row_nums.push(n.clone()),
+                                _ => return Err("det: matrix elements must be numbers".to_string()),
+                            }
+                        }
+                        matrix.push(row_nums);
+                    }
+                    _ => return Err("det: matrix rows must be lists".to_string()),
+                }
+            }
+            let determinant = number::det(&matrix)?;
+            Ok(Value::Number(determinant))
+        }
+        _ => Err("det: argument must be a list (matrix)".to_string()),
+    }
+}
+
+fn f_inverse(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("inverse", a, 1)?;
+    match &a[0] {
+        Value::List(rows) => {
+            let mut matrix: Vec<Vec<Num>> = vec![];
+            for row in rows {
+                match row {
+                    Value::List(cols) => {
+                        let mut row_nums = vec![];
+                        for col in cols {
+                            match col {
+                                Value::Number(n) => row_nums.push(n.clone()),
+                                _ => return Err("inverse: matrix elements must be numbers".to_string()),
+                            }
+                        }
+                        matrix.push(row_nums);
+                    }
+                    _ => return Err("inverse: matrix rows must be lists".to_string()),
+                }
+            }
+            let inv = number::inverse(&matrix)?;
+            let result = inv.into_iter().map(|row| {
+                Value::List(row.into_iter().map(|n| Value::Number(n)).collect())
+            }).collect();
+            Ok(Value::List(result))
+        }
+        _ => Err("inverse: argument must be a list (matrix)".to_string()),
+    }
+}
+
+fn f_matsum(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("matsum", a, 1)?;
+    match &a[0] {
+        Value::List(rows) => {
+            let mut matrix: Vec<Vec<Num>> = vec![];
+            for row in rows {
+                match row {
+                    Value::List(cols) => {
+                        let mut row_nums = vec![];
+                        for col in cols {
+                            match col {
+                                Value::Number(n) => row_nums.push(n.clone()),
+                                _ => return Err("matsum: matrix elements must be numbers".to_string()),
+                            }
+                        }
+                        matrix.push(row_nums);
+                    }
+                    _ => return Err("matsum: matrix rows must be lists".to_string()),
+                }
+            }
+            let sum = number::matsum(&matrix)?;
+            Ok(Value::Number(sum))
+        }
+        _ => Err("matsum: argument must be a list (matrix)".to_string()),
+    }
+}
+
+fn f_matmin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("matmin", a, 1)?;
+    match &a[0] {
+        Value::List(rows) => {
+            let mut matrix: Vec<Vec<Num>> = vec![];
+            for row in rows {
+                match row {
+                    Value::List(cols) => {
+                        let mut row_nums = vec![];
+                        for col in cols {
+                            match col {
+                                Value::Number(n) => row_nums.push(n.clone()),
+                                _ => return Err("matmin: matrix elements must be numbers".to_string()),
+                            }
+                        }
+                        matrix.push(row_nums);
+                    }
+                    _ => return Err("matmin: matrix rows must be lists".to_string()),
+                }
+            }
+            let min = number::matmin(&matrix)?;
+            Ok(Value::Number(min))
+        }
+        _ => Err("matmin: argument must be a list (matrix)".to_string()),
+    }
+}
+
+fn f_matmax(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("matmax", a, 1)?;
+    match &a[0] {
+        Value::List(rows) => {
+            let mut matrix: Vec<Vec<Num>> = vec![];
+            for row in rows {
+                match row {
+                    Value::List(cols) => {
+                        let mut row_nums = vec![];
+                        for col in cols {
+                            match col {
+                                Value::Number(n) => row_nums.push(n.clone()),
+                                _ => return Err("matmax: matrix elements must be numbers".to_string()),
+                            }
+                        }
+                        matrix.push(row_nums);
+                    }
+                    _ => return Err("matmax: matrix rows must be lists".to_string()),
+                }
+            }
+            let max = number::matmax(&matrix)?;
+            Ok(Value::Number(max))
+        }
+        _ => Err("matmax: argument must be a list (matrix)".to_string()),
+    }
+}
+
+fn f_matfill(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.len() != 3 {
+        return Err("matfill: expects 3 arguments (rows, cols, value)".to_string());
+    }
+    let rows = int(a, 0)?.to_i64().ok_or("matfill: rows out of range")?;
+    let cols = int(a, 1)?.to_i64().ok_or("matfill: cols out of range")?;
+    let val = n(a, 2)?;
+    let matrix = number::matfill(rows, cols, val)?;
+    let result = matrix.into_iter().map(|row| {
+        Value::List(row.into_iter().map(|n| Value::Number(n)).collect())
+    }).collect();
+    Ok(Value::List(result))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -1640,6 +1927,21 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("quo".to_string(), f_quo as BuiltinFn);
     builtins.insert("rem".to_string(), f_rem as BuiltinFn);
     builtins.insert("hnrmod".to_string(), f_hnrmod as BuiltinFn);
+    // Rational approximations
+    builtins.insert("appr".to_string(), f_appr as BuiltinFn);
+    builtins.insert("cfappr".to_string(), f_cfappr as BuiltinFn);
+    builtins.insert("cfsim".to_string(), f_cfsim as BuiltinFn);
+    builtins.insert("scale".to_string(), f_scale as BuiltinFn);
+    // Matrix operations
+    builtins.insert("matdim".to_string(), f_matdim as BuiltinFn);
+    builtins.insert("mattrans".to_string(), f_mattrans as BuiltinFn);
+    builtins.insert("mattrace".to_string(), f_mattrace as BuiltinFn);
+    builtins.insert("det".to_string(), f_det as BuiltinFn);
+    builtins.insert("inverse".to_string(), f_inverse as BuiltinFn);
+    builtins.insert("matsum".to_string(), f_matsum as BuiltinFn);
+    builtins.insert("matmin".to_string(), f_matmin as BuiltinFn);
+    builtins.insert("matmax".to_string(), f_matmax as BuiltinFn);
+    builtins.insert("matfill".to_string(), f_matfill as BuiltinFn);
     builtins.insert("catalan".to_string(), f_catalan as BuiltinFn);
     // Bitwise operations
     builtins.insert("and".to_string(), f_and as BuiltinFn);
@@ -1803,6 +2105,19 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("quo", "quo(x,y)", "quotient (floor(x/y))"),
         ("rem", "rem(x,y)", "remainder (x - y*floor(x/y))"),
         ("hnrmod", "hnrmod(x,y)", "Hensel modular"),
+        ("appr", "appr(x[,eps])", "rational approximation within epsilon"),
+        ("cfappr", "cfappr(x[,maxd])", "continued fraction approximation"),
+        ("cfsim", "cfsim(x[,maxd])", "continued fraction simplification"),
+        ("scale", "scale(x[,places])", "scale to decimal places"),
+        ("matdim", "matdim(m)", "matrix dimensions [rows, cols]"),
+        ("mattrans", "mattrans(m)", "matrix transpose"),
+        ("mattrace", "mattrace(m)", "matrix trace (sum of diagonal)"),
+        ("det", "det(m)", "matrix determinant (2x2, 3x3)"),
+        ("inverse", "inverse(m)", "matrix inverse (2x2)"),
+        ("matsum", "matsum(m)", "sum of all matrix elements"),
+        ("matmin", "matmin(m)", "minimum matrix element"),
+        ("matmax", "matmax(m)", "maximum matrix element"),
+        ("matfill", "matfill(r,c,v)", "create matrix filled with value"),
         ("catalan", "catalan(n)", "Catalan number"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),

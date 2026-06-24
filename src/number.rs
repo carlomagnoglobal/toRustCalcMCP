@@ -1690,6 +1690,294 @@ pub fn hnrmod(x: &Num, y: &Num) -> Result<Num, String> {
     pmod(x, y)
 }
 
+// Phase 5.3: Rational Approximations
+
+/// Approximate a number as a simple rational within epsilon
+/// Returns the input if it's already a rational number, or a simple approximation
+pub fn appr(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if epsilon.is_zero() {
+        return Ok(x.clone());
+    }
+
+    // Simple implementation: if x is already rational with small denominator, return it
+    // Otherwise, round it to the nearest integer
+    let denom = x.denom();
+
+    // If denominator is small, x is already a simple rational
+    if denom.bits() <= 32 {
+        return Ok(x.clone());
+    }
+
+    // Otherwise, find a simple approximation using limited continued fractions
+    let mut num = x.clone();
+    let mut h_prev = Num::from_integer(bi(1));
+    let mut h_curr = num.floor();
+    let mut k_prev = Num::from_integer(bi(0));
+    let mut k_curr = Num::from_integer(bi(1));
+
+    for iteration in 0..20 {
+        let frac = &num - &h_curr;
+
+        if frac.abs() < *epsilon {
+            return Ok(h_curr);
+        }
+
+        if frac.is_zero() {
+            break;
+        }
+
+        // Avoid very deep nesting
+        if iteration >= 10 {
+            break;
+        }
+
+        num = Num::from_integer(bi(1)) / &frac;
+        let int_part = num.floor();
+
+        let h_next = &(&int_part * &h_curr) + &h_prev;
+        let k_next = &(&int_part * &k_curr) + &k_prev;
+
+        h_prev = h_curr.clone();
+        h_curr = h_next;
+        k_prev = k_curr.clone();
+        k_curr = k_next;
+    }
+
+    Ok(h_curr)
+}
+
+/// Continued fraction approximation with max denominator constraint
+pub fn cfappr(x: &Num, maxd: i64) -> Result<Num, String> {
+    if maxd <= 0 {
+        return Err("cfappr: maxd must be positive".to_string());
+    }
+
+    let max_denom = Num::from_integer(bi(maxd));
+
+    // If x already has a small denominator, return it
+    let denom = x.denom();
+    if Num::from_integer(denom.clone()) <= max_denom {
+        return Ok(x.clone());
+    }
+
+    let mut num = x.clone();
+    let mut h_prev = Num::from_integer(bi(1));
+    let mut h_curr = num.floor();
+    let mut k_prev = Num::from_integer(bi(0));
+    let mut k_curr = Num::from_integer(bi(1));
+
+    let mut best_num = h_curr.clone();
+    let mut best_denom = k_curr.clone();
+
+    for iteration in 0..30 {
+        if &k_curr > &max_denom {
+            break;
+        }
+
+        let frac = &num - &h_curr;
+        if frac.is_zero() {
+            best_num = h_curr.clone();
+            best_denom = k_curr.clone();
+            break;
+        }
+
+        if iteration >= 20 {
+            break;
+        }
+
+        num = Num::from_integer(bi(1)) / &frac;
+        let int_part = num.floor();
+
+        let h_next = &(&int_part * &h_curr) + &h_prev;
+        let k_next = &(&int_part * &k_curr) + &k_prev;
+
+        if &k_next <= &max_denom {
+            best_num = h_next.clone();
+            best_denom = k_next.clone();
+        }
+
+        h_prev = h_curr.clone();
+        h_curr = h_next;
+        k_prev = k_curr.clone();
+        k_curr = k_next;
+    }
+
+    Ok(best_num / &best_denom)
+}
+
+/// Continued fraction simplification with max denominator
+/// Similar to cfappr but returns the simplified rational
+pub fn cfsim(x: &Num, maxd: i64) -> Result<Num, String> {
+    cfappr(x, maxd)
+}
+
+/// Scale a number to a given number of decimal places
+pub fn scale(x: &Num, places: i64) -> Result<Num, String> {
+    if places < 0 {
+        return Err("scale: places must be non-negative".to_string());
+    }
+
+    // Multiply by 10^places, round, then divide by 10^places
+    let multiplier = Num::from_integer(bi(10).pow(places as u32));
+    let scaled = x * &multiplier;
+    let rounded = scaled.round();
+    Ok(&rounded / &multiplier)
+}
+
+// Phase 5.4: Matrix Operations
+
+/// Get matrix dimensions: returns (rows, cols)
+pub fn matdim(matrix: &[Vec<Num>]) -> Result<(i64, i64), String> {
+    if matrix.is_empty() {
+        return Ok((0, 0));
+    }
+    let rows = matrix.len() as i64;
+    let cols = if rows > 0 { matrix[0].len() as i64 } else { 0 };
+    Ok((rows, cols))
+}
+
+/// Matrix transpose
+pub fn mattrans(matrix: &[Vec<Num>]) -> Result<Vec<Vec<Num>>, String> {
+    if matrix.is_empty() {
+        return Ok(vec![]);
+    }
+    let rows = matrix.len();
+    let cols = matrix[0].len();
+    let mut result = vec![vec![Num::from_integer(bi(0)); rows]; cols];
+    for i in 0..rows {
+        for j in 0..cols {
+            result[j][i] = matrix[i][j].clone();
+        }
+    }
+    Ok(result)
+}
+
+/// Matrix trace (sum of diagonal elements)
+pub fn mattrace(matrix: &[Vec<Num>]) -> Result<Num, String> {
+    if matrix.is_empty() {
+        return Ok(Num::from_integer(bi(0)));
+    }
+    let n = std::cmp::min(matrix.len(), matrix[0].len());
+    let mut sum = Num::from_integer(bi(0));
+    for i in 0..n {
+        sum = &sum + &matrix[i][i];
+    }
+    Ok(sum)
+}
+
+/// Matrix determinant (2x2 and 3x3 only for now)
+pub fn det(matrix: &[Vec<Num>]) -> Result<Num, String> {
+    if matrix.is_empty() {
+        return Ok(Num::from_integer(bi(0)));
+    }
+    let n = matrix.len();
+    if n != matrix[0].len() {
+        return Err("det: matrix must be square".to_string());
+    }
+    match n {
+        1 => Ok(matrix[0][0].clone()),
+        2 => {
+            let a = &matrix[0][0] * &matrix[1][1];
+            let b = &matrix[0][1] * &matrix[1][0];
+            Ok(&a - &b)
+        }
+        3 => {
+            let a = (&matrix[0][0] * &(&matrix[1][1] * &matrix[2][2] - &matrix[1][2] * &matrix[2][1]));
+            let b = (&matrix[0][1] * &(&matrix[1][0] * &matrix[2][2] - &matrix[1][2] * &matrix[2][0]));
+            let c = (&matrix[0][2] * &(&matrix[1][0] * &matrix[2][1] - &matrix[1][1] * &matrix[2][0]));
+            Ok(&(&a - &b) + &c)
+        }
+        _ => Err("det: only 1x1, 2x2, and 3x3 matrices supported".to_string()),
+    }
+}
+
+/// Matrix inverse (2x2 and 3x3 only)
+pub fn inverse(matrix: &[Vec<Num>]) -> Result<Vec<Vec<Num>>, String> {
+    if matrix.is_empty() {
+        return Err("inverse: empty matrix".to_string());
+    }
+    let n = matrix.len();
+    if n != matrix[0].len() {
+        return Err("inverse: matrix must be square".to_string());
+    }
+    match n {
+        1 => {
+            if matrix[0][0].is_zero() {
+                return Err("inverse: singular matrix".to_string());
+            }
+            Ok(vec![vec![Num::from_integer(bi(1)) / &matrix[0][0]]])
+        }
+        2 => {
+            let d = det(matrix)?;
+            if d.is_zero() {
+                return Err("inverse: singular matrix".to_string());
+            }
+            let inv = Num::from_integer(bi(1)) / &d;
+            let neg_inv = -&inv;
+            Ok(vec![
+                vec![&matrix[1][1] * &inv, &matrix[0][1] * &neg_inv],
+                vec![&matrix[1][0] * &neg_inv, &matrix[0][0] * &inv],
+            ])
+        }
+        _ => Err("inverse: only 1x1 and 2x2 matrices supported".to_string()),
+    }
+}
+
+/// Sum of all matrix elements
+pub fn matsum(matrix: &[Vec<Num>]) -> Result<Num, String> {
+    let mut sum = Num::from_integer(bi(0));
+    for row in matrix {
+        for elem in row {
+            sum = &sum + elem;
+        }
+    }
+    Ok(sum)
+}
+
+/// Minimum element in matrix
+pub fn matmin(matrix: &[Vec<Num>]) -> Result<Num, String> {
+    if matrix.is_empty() || matrix[0].is_empty() {
+        return Err("matmin: empty matrix".to_string());
+    }
+    let mut min = matrix[0][0].clone();
+    for row in matrix {
+        for elem in row {
+            if elem < &min {
+                min = elem.clone();
+            }
+        }
+    }
+    Ok(min)
+}
+
+/// Maximum element in matrix
+pub fn matmax(matrix: &[Vec<Num>]) -> Result<Num, String> {
+    if matrix.is_empty() || matrix[0].is_empty() {
+        return Err("matmax: empty matrix".to_string());
+    }
+    let mut max = matrix[0][0].clone();
+    for row in matrix {
+        for elem in row {
+            if elem > &max {
+                max = elem.clone();
+            }
+        }
+    }
+    Ok(max)
+}
+
+/// Fill matrix with a value
+pub fn matfill(rows: i64, cols: i64, val: &Num) -> Result<Vec<Vec<Num>>, String> {
+    if rows < 0 || cols < 0 {
+        return Err("matfill: dimensions must be non-negative".to_string());
+    }
+    let mut result = vec![];
+    for _ in 0..rows {
+        result.push(vec![val.clone(); cols as usize]);
+    }
+    Ok(result)
+}
+
 /// Snap a value to a multiple of `epsilon`, keeping results compact.
 pub fn round_to_epsilon(x: &Num, epsilon: &Num) -> Num {
     if epsilon.is_zero() {

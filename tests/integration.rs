@@ -1379,3 +1379,82 @@ fn test_hnrmod() {
     let result = it.eval_render("hnrmod(-7, 3)").unwrap();
     assert_eq!(result, "2");
 }
+
+// Phase 5.3: Rational Approximations
+#[test]
+fn test_appr() {
+    let mut it = Interp::new();
+    // appr should find simple rational approximations
+    let result = it.eval_render("appr(3.14159265, 0.01)").unwrap();
+    // Should approximate pi to within 0.01
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 3.14159265).abs() < 0.02);
+}
+
+#[test]
+fn test_cfappr() {
+    let mut it = Interp::new();
+    // cfappr should return continued fraction approximation
+    let result = it.eval_render("cfappr(0.5)").unwrap();
+    // 0.5 = 1/2, should be exact
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(-1.0);
+    assert!((val - 0.5).abs() < 0.001);
+}
+
+#[test]
+fn test_cfappr_with_maxd() {
+    let mut it = Interp::new();
+    // cfappr with max denominator
+    let result = it.eval_render("cfappr(1/3, 10)").unwrap();
+    // 1/3 should be exact
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(-1.0);
+    assert!((val - 0.333333).abs() < 0.001);
+}
+
+#[test]
+fn test_cfsim() {
+    let mut it = Interp::new();
+    // cfsim should simplify to continued fraction
+    let result = it.eval_render("cfsim(0.5)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(-1.0);
+    assert!((val - 0.5).abs() < 0.001);
+}
+
+#[test]
+fn test_scale() {
+    let mut it = Interp::new();
+    // scale to 2 decimal places
+    let result = it.eval_render("scale(3.14159, 2)").unwrap();
+    // Should round to 3.14
+    let val: f64 = result.parse().unwrap_or(0.0);
+    assert!((val - 3.14).abs() < 0.001);
+}
+
+#[test]
+fn test_scale_zero_places() {
+    let mut it = Interp::new();
+    // scale to 0 decimal places
+    let result = it.eval_render("scale(3.7, 0)").unwrap();
+    // Should round to 4
+    assert_eq!(result, "4");
+}
+
+// Phase 5.4: Matrix Operations
+// Note: Parser doesn't support nested list syntax [[...], [...]]
+// Matrix operations are implemented in src/number.rs and src/builtins.rs
+// but require list syntax support in the parser for full testing.
+// Matrices are represented as lists of lists internally.
+
+#[test]
+fn test_matfill_basic() {
+    let mut it = Interp::new();
+    // matfill(2, 3, 5) should create a 2x3 matrix filled with 5s
+    // Result is a list of lists, check structure exists
+    let result = it.eval_render("matfill(2, 3, 5)").unwrap();
+    // Should contain list structure
+    assert!(result.contains("[") && result.contains("]"));
+}

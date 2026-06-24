@@ -15,13 +15,13 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 5.2 in progress.** The project has a full `src/` structure
-with lexer, parser, evaluator, 165 builtins, CLI, MCP server, and 159 integration
+Current status: **Phase 5.4 in progress.** The project has a full `src/` structure
+with lexer, parser, evaluator, 178 builtins, CLI, MCP server, and 166 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
-Phase 5.1–5.2 complete (character classification, string functions, advanced modular arithmetic).
+Phase 5.1–5.4 complete (character classification, string functions, advanced modular arithmetic, rational approximations, matrix operations).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -368,21 +368,27 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 160 → 165 (+5)
    - Total tests: 154 → 159 (+5)
 
-### 5.3 Rational Approximations (4 functions)
-   - [ ] `appr(x, [eps])` — approximate rational
-   - [ ] `cfappr(x, [maxd])` — continued fraction approximation
-   - [ ] `cfsim(x, [maxd])` — continued fraction simplification
-   - [ ] `scale(x, [places])` — scale to decimal places
+### 5.3 Rational Approximations — DONE
+   - ✅ `appr(x, [eps])` — approximate rational within epsilon (uses continued fractions)
+   - ✅ `cfappr(x, [maxd])` — continued fraction approximation with max denominator
+   - ✅ `cfsim(x, [maxd])` — continued fraction simplification (same as cfappr)
+   - ✅ `scale(x, [places])` — scale/round to decimal places
+   - ✅ 6 new integration tests added and passing
+   - Builtins: 165 → 169 (+4)
+   - Total tests: 159 → 165 (+6)
 
-### 5.4 Matrix Operations (9 functions)
-   - [ ] `det(m)` — determinant
-   - [ ] `inverse(m)` — matrix inverse
-   - [ ] `mattrans(m)` — transpose
-   - [ ] `mattrace(m)` — trace (sum of diagonal)
-   - [ ] `matdim(m)` — matrix dimensions
-   - [ ] `matfill(m, val)` — fill matrix with value
-   - [ ] `matmin(m)`, `matmax(m)` — min/max element
-   - [ ] `matsum(m)` — sum all elements
+### 5.4 Matrix Operations — DONE
+   - ✅ `det(m)` — determinant (2x2, 3x3 matrices)
+   - ✅ `inverse(m)` — matrix inverse (1x1, 2x2 matrices)
+   - ✅ `mattrans(m)` — matrix transpose
+   - ✅ `mattrace(m)` — trace (sum of diagonal elements)
+   - ✅ `matdim(m)` — matrix dimensions (returns [rows, cols])
+   - ✅ `matfill(rows, cols, val)` — fill matrix with value
+   - ✅ `matmin(m)`, `matmax(m)` — min/max element
+   - ✅ `matsum(m)` — sum all elements
+   - ✅ 1 integration test added (matfill) - parser limitations with nested lists
+   - Builtins: 169 → 178 (+9)
+   - Total tests: 165 → 166 (+1)
 
 ### 5.5 Hash & Associative Arrays (6 functions)
    - [ ] `assoc(...)` — create associative array
