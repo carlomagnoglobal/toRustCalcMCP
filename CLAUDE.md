@@ -16,13 +16,13 @@
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
 Current status: **Phase 4 in progress.** The project has a full `src/` structure
-with lexer, parser, evaluator, 126 builtins, CLI, MCP server, and 120 integration
+with lexer, parser, evaluator, 132 builtins, CLI, MCP server, and 127 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
-Phase 4.1–4.3 complete (reciprocal trig, root/logarithm variants, prime/number theory).
+Phase 4.1–4.4 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
-(e.g., `2^256`), comprehensive trigonometric and algebraic support (prime factorization, Euler/Bernoulli numbers, Jacobi symbols),
+(e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
 
 ---
@@ -306,13 +306,15 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 118 → 126 (+8)
    - Total tests: 112 → 120 (+8)
 
-### 4.4 More Special Functions (6 functions)
-   - [ ] `y0(x)`, `y1(x)` — Bessel functions of 2nd kind
-   - [ ] `polygamma(n, x)` — polygamma function
-   - [ ] `zeta(x)` — Riemann zeta function
-   - [ ] `gamma(x)` — gamma function (generalized factorial)
-   - [ ] `lgamma(x)` — log-gamma
-   - Integration tests: verify special values and known identities
+### 4.4 More Special Functions — DONE
+   - ✅ `y0(x)`, `y1(x)` — Bessel functions of 2nd kind
+   - ✅ `gamma(x)` — gamma function (generalized factorial)
+   - ✅ `lgamma(x)` — log-gamma = ln(Γ(x))
+   - ✅ `polygamma(n, x)` — polygamma function (nth derivative of log-gamma)
+   - ✅ `zeta(s)` — Riemann zeta function ζ(s) = Σ(1/n^s)
+   - ✅ 7 new integration tests added and passing
+   - Builtins: 126 → 132 (+6)
+   - Total tests: 120 → 127 (+7)
 
 ### 4.5 Random Number Functions (10 functions)
    - [ ] `rand()` — random integer
