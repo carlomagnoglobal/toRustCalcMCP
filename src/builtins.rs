@@ -1416,6 +1416,116 @@ fn f_matfill(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::List(result))
 }
 
+// Phase 5.5: Hash & Associative Arrays
+
+// Create an associative array from key-value pairs
+fn f_assoc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() {
+        return Ok(Value::Hash(std::collections::HashMap::new()));
+    }
+    if a.len() % 2 != 0 {
+        return Err("assoc: expects even number of arguments (key-value pairs)".to_string());
+    }
+    let mut map = std::collections::HashMap::new();
+    for i in (0..a.len()).step_by(2) {
+        let key = match &a[i] {
+            Value::Str(s) => s.clone(),
+            _ => return Err("assoc: keys must be strings".to_string()),
+        };
+        let val = a[i + 1].clone();
+        map.insert(key, val);
+    }
+    Ok(Value::Hash(map))
+}
+
+// Get all keys from a hash as a list
+fn f_indices(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("indices", a, 1)?;
+    match &a[0] {
+        Value::Hash(map) => {
+            let mut keys: Vec<String> = map.keys().cloned().collect();
+            keys.sort();
+            let items = keys.into_iter()
+                .map(|k| Value::Str(k))
+                .collect();
+            Ok(Value::List(items))
+        }
+        _ => Err("indices: argument must be a hash".to_string()),
+    }
+}
+
+// Insert or update a key-value pair in a hash
+fn f_insert(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("insert", a, 3)?;
+    match &a[0] {
+        Value::Hash(map) => {
+            let mut new_map = map.clone();
+            let key = match &a[1] {
+                Value::Str(s) => s.clone(),
+                _ => return Err("insert: key must be a string".to_string()),
+            };
+            let val = a[2].clone();
+            new_map.insert(key, val);
+            Ok(Value::Hash(new_map))
+        }
+        _ => Err("insert: first argument must be a hash".to_string()),
+    }
+}
+
+// Delete a key from a hash
+fn f_delete(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("delete", a, 2)?;
+    match &a[0] {
+        Value::Hash(map) => {
+            let mut new_map = map.clone();
+            let key = match &a[1] {
+                Value::Str(s) => s.clone(),
+                _ => return Err("delete: key must be a string".to_string()),
+            };
+            new_map.remove(&key);
+            Ok(Value::Hash(new_map))
+        }
+        _ => Err("delete: first argument must be a hash".to_string()),
+    }
+}
+
+// Count the number of key-value pairs in a hash
+fn f_count(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("count", a, 1)?;
+    match &a[0] {
+        Value::Hash(map) => {
+            Ok(Value::Number(Num::from_integer(BigInt::from(map.len() as i64))))
+        }
+        _ => Err("count: argument must be a hash".to_string()),
+    }
+}
+
+// Join all values in a hash with a separator
+fn f_join(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("join", a, 2)?;
+    let sep = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("join: separator must be a string".to_string()),
+    };
+    match &a[0] {
+        Value::Hash(map) => {
+            let mut values: Vec<String> = vec![];
+            let mut keys: Vec<String> = map.keys().cloned().collect();
+            keys.sort();
+            for key in keys {
+                if let Some(val) = map.get(&key) {
+                    values.push(match val {
+                        Value::Str(s) => s.clone(),
+                        _ => val.render(&crate::config::Config::default()),
+                    });
+                }
+            }
+            Ok(Value::Str(values.join(&sep)))
+        }
+        _ => Err("join: first argument must be a hash".to_string()),
+    }
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -1491,6 +1601,7 @@ fn f_typeof(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(_) => "string",
         Value::List(_) => "list",
         Value::Function(_, _) => "function",
+        Value::Hash(_) => "hash",
         Value::Null => "null",
     };
     Ok(Value::Str(type_str.to_string()))
@@ -1978,6 +2089,13 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("d2g".to_string(), f_d2g as BuiltinFn);
     builtins.insert("g2r".to_string(), f_g2r as BuiltinFn);
     builtins.insert("g2d".to_string(), f_g2d as BuiltinFn);
+    // Hash & associative arrays (Phase 5.5)
+    builtins.insert("assoc".to_string(), f_assoc as BuiltinFn);
+    builtins.insert("indices".to_string(), f_indices as BuiltinFn);
+    builtins.insert("insert".to_string(), f_insert as BuiltinFn);
+    builtins.insert("delete".to_string(), f_delete as BuiltinFn);
+    builtins.insert("count".to_string(), f_count as BuiltinFn);
+    builtins.insert("join".to_string(), f_join as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -2149,5 +2267,12 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("d2g", "d2g(x)", "degrees to gradians"),
         ("g2r", "g2r(x)", "gradians to radians"),
         ("g2d", "g2d(x)", "gradians to degrees"),
+        // Hash & associative arrays (Phase 5.5)
+        ("assoc", "assoc(k1,v1,...)", "create associative array from key-value pairs"),
+        ("indices", "indices(h)", "get all keys from hash as list"),
+        ("insert", "insert(h,key,val)", "insert/update key-value pair in hash"),
+        ("delete", "delete(h,key)", "delete key from hash"),
+        ("count", "count(h)", "count key-value pairs in hash"),
+        ("join", "join(h,sep)", "join hash values with separator"),
     ]
 }

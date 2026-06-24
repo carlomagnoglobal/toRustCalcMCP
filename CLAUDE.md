@@ -15,13 +15,13 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 5.4 in progress.** The project has a full `src/` structure
-with lexer, parser, evaluator, 178 builtins, CLI, MCP server, and 166 integration
+Current status: **Phase 5.5 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 184 builtins, CLI, MCP server, and 174 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
-Phase 5.1–5.4 complete (character classification, string functions, advanced modular arithmetic, rational approximations, matrix operations).
+Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -390,13 +390,17 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 169 → 178 (+9)
    - Total tests: 165 → 166 (+1)
 
-### 5.5 Hash & Associative Arrays (6 functions)
-   - [ ] `assoc(...)` — create associative array
-   - [ ] `indices(h)` — get all keys
-   - [ ] `insert(h, key, val)` — add key-value
-   - [ ] `delete(h, key)` — remove key
-   - [ ] `count(h)` — number of pairs
-   - [ ] `join(h, sep)` — join values
+### 5.5 Hash & Associative Arrays — DONE
+   - ✅ `assoc(...)` — create associative array from key-value pairs
+   - ✅ `indices(h)` — get all keys as a list
+   - ✅ `insert(h, key, val)` — add/update key-value pair
+   - ✅ `delete(h, key)` — delete key from hash
+   - ✅ `count(h)` — count key-value pairs
+   - ✅ `join(h, sep)` — join values with separator
+   - ✅ Value::Hash variant added to value.rs
+   - ✅ 8 new integration tests added and passing
+   - Builtins: 178 → 184 (+6)
+   - Total tests: 166 → 174 (+8)
 
 ## Phase 6: Specialized & Exotic (TBD)
 

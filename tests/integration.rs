@@ -1458,3 +1458,74 @@ fn test_matfill_basic() {
     // Should contain list structure
     assert!(result.contains("[") && result.contains("]"));
 }
+
+// Phase 5.5: Hash & Associative Arrays
+
+#[test]
+fn test_assoc_create() {
+    let mut it = Interp::new();
+    // create a hash with two key-value pairs
+    let result = it.eval_render("assoc(\"a\", 1, \"b\", 2)").unwrap();
+    // Should contain hash braces and pairs
+    assert!(result.contains("{") && result.contains("}"));
+}
+
+#[test]
+fn test_assoc_empty() {
+    let mut it = Interp::new();
+    // create an empty hash
+    let result = it.eval_render("assoc()").unwrap();
+    assert_eq!(result.trim(), "{}");
+}
+
+#[test]
+fn test_indices_basic() {
+    let mut it = Interp::new();
+    // get keys from hash
+    let result = it.eval_render("h = assoc(\"a\", 1, \"b\", 2); indices(h)").unwrap();
+    // Should be a list of strings
+    assert!(result.contains("["));
+    assert!(result.contains("a"));
+    assert!(result.contains("b"));
+}
+
+#[test]
+fn test_insert_new_key() {
+    let mut it = Interp::new();
+    // insert a new key-value pair
+    let result = it.eval_render("count(insert(assoc(\"a\", 1), \"b\", 2))").unwrap();
+    assert_eq!(result.trim(), "2");
+}
+
+#[test]
+fn test_insert_update_existing() {
+    let mut it = Interp::new();
+    // update an existing key
+    let result = it.eval_render("count(insert(assoc(\"a\", 1), \"a\", 10))").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_delete_key() {
+    let mut it = Interp::new();
+    // delete a key from hash
+    let result = it.eval_render("count(delete(assoc(\"a\", 1, \"b\", 2), \"a\"))").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_count_hash() {
+    let mut it = Interp::new();
+    // count key-value pairs
+    let result = it.eval_render("count(assoc(\"a\", 1, \"b\", 2, \"c\", 3))").unwrap();
+    assert_eq!(result.trim(), "3");
+}
+
+#[test]
+fn test_join_values() {
+    let mut it = Interp::new();
+    // join hash values with separator
+    let result = it.eval_render("h = assoc(\"a\", \"x\", \"b\", \"y\"); join(h, \",\")").unwrap();
+    // Values should be joined
+    assert!(result.contains(","));
+}

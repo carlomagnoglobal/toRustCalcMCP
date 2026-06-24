@@ -15,6 +15,7 @@ pub enum Value {
     Null,
     Function(Vec<String>, Rc<Expr>), // params, body (as Expr)
     List(Vec<Value>), // homogeneous list
+    Hash(std::collections::HashMap<String, Value>), // associative array
 }
 
 impl PartialEq for Value {
@@ -25,6 +26,7 @@ impl PartialEq for Value {
             (Value::Str(a), Value::Str(b)) => a == b,
             (Value::Null, Value::Null) => true,
             (Value::List(a), Value::List(b)) => a == b,
+            (Value::Hash(a), Value::Hash(b)) => a == b,
             // Functions are not compared for equality
             _ => false,
         }
@@ -108,6 +110,14 @@ impl Value {
                     .map(|v| v.render(cfg))
                     .collect();
                 format!("[{}]", rendered.join(", "))
+            }
+            Value::Hash(map) => {
+                let mut items = vec![];
+                for (k, v) in map.iter() {
+                    items.push(format!("{}:{}", k, v.render(cfg)));
+                }
+                items.sort();
+                format!("{{{}}}", items.join(", "))
             }
         }
     }
