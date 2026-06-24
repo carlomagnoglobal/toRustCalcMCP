@@ -271,6 +271,167 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
 When you finish an item: update §6 (strike/remove it), update the **Scope** section
 of `README.md`, add tests, and re-run the §3 smoke tests.
 
+## Phase 4: High-Value Functions (TBD)
+
+### 4.1 More Trigonometric Variants (10 functions)
+   - [ ] `cot(x)`, `sec(x)`, `csc(x)` (basic reciprocal trig)
+   - [ ] `acot(x)`, `asec(x)`, `acsc(x)` (inverse reciprocal trig)
+   - [ ] `coth(x)`, `sech(x)`, `csch(x)` (hyperbolic reciprocal)
+   - [ ] `acoth(x)`, `asech(x)`, `acsch(x)` (inverse hyperbolic reciprocal)
+   - Integration tests: verify identities (e.g., `tan(x) * cot(x) = 1`)
+
+### 4.2 Root & Logarithm Variants (9 functions)
+   - [ ] `root(x, n)` — nth root (generalized sqrt)
+   - [ ] `cbrt(x)` — cube root
+   - [ ] `isqrt(x)` — integer square root
+   - [ ] `iroot(x, n)` — integer nth root
+   - [ ] `logn(x, n)` — logarithm base n
+   - [ ] `ilog(x)`, `ilog2(x)`, `ilog10(x)`, `ilogn(x, n)` — integer logarithms
+   - Integration tests: verify `root(x, n)^n ≈ x`, `logn(base^x, base) = x`
+
+### 4.3 Prime & Number Theory Extensions (8 functions)
+   - [ ] `prevprime(n)` — previous prime before n
+   - [ ] `factor(n)` — prime factorization
+   - [ ] `lfactor(n)` — largest prime factor
+   - [ ] `ptest(n, k)` — probabilistic primality test
+   - [ ] `euler(n)` — Euler numbers
+   - [ ] `bernoulli(n)` — Bernoulli numbers
+   - [ ] `jacobi(a, n)` — Jacobi symbol
+   - Integration tests: verify factorization, prime properties
+
+### 4.4 More Special Functions (6 functions)
+   - [ ] `y0(x)`, `y1(x)` — Bessel functions of 2nd kind
+   - [ ] `polygamma(n, x)` — polygamma function
+   - [ ] `zeta(x)` — Riemann zeta function
+   - [ ] `gamma(x)` — gamma function (generalized factorial)
+   - [ ] `lgamma(x)` — log-gamma
+   - Integration tests: verify special values and known identities
+
+### 4.5 Random Number Functions (10 functions)
+   - [ ] `rand()` — random integer
+   - [ ] `random()` — random [0,1)
+   - [ ] `randbit()` — random bit
+   - [ ] `seed(s)` — set random seed
+   - [ ] `srand(s)`, `srandom(s)` — seeding variants
+   - [ ] `randperm(n)` — random permutation of 0..n-1
+   - [ ] `randint(a, b)` — random in range
+   - Integration tests: verify distribution properties
+
+### 4.6 Environment & System Functions (8 functions)
+   - [ ] `getenv(name)` — read environment variable
+   - [ ] `putenv(name, value)` — set environment variable
+   - [ ] `system(cmd)` — execute shell command
+   - [ ] `time()` — current Unix time
+   - [ ] `systime()` — system time
+   - [ ] `ctime(t)` — convert time to string
+   - [ ] `sleep(seconds)` — pause execution
+   - [ ] `usertime()` — user/system time
+   - Integration tests: verify time functions, env access
+
+## Phase 5: Extended Compatibility (TBD)
+
+### 5.1 Character Classification (12 functions)
+   - [ ] `isalnum(s)` — alphanumeric
+   - [ ] `isupper(s)`, `islower(s)` — case checking
+   - [ ] `isprint(s)`, `isgraph(s)` — printable
+   - [ ] `iscntrl(s)` — control character
+   - [ ] `ispunct(s)` — punctuation
+   - [ ] `isxdigit(s)` — hex digit
+   - [ ] `isascii(s)` — ASCII-only
+   - [ ] `toupper(s)`, `tolower(s)` — case conversion
+   - [ ] `strrev(s)` — string reverse
+
+### 5.2 Advanced Modular Arithmetic (5 functions)
+   - [ ] `pmod(x, y)` — positive modulus
+   - [ ] `quomod(x, y)` — quotient and modulus
+   - [ ] `quo(x, y)`, `rem(x, y)` — quotient and remainder (distinct from //)
+   - [ ] `hnrmod(x, y)` — Hensel modular
+
+### 5.3 Rational Approximations (4 functions)
+   - [ ] `appr(x, [eps])` — approximate rational
+   - [ ] `cfappr(x, [maxd])` — continued fraction approximation
+   - [ ] `cfsim(x, [maxd])` — continued fraction simplification
+   - [ ] `scale(x, [places])` — scale to decimal places
+
+### 5.4 Matrix Operations (9 functions)
+   - [ ] `det(m)` — determinant
+   - [ ] `inverse(m)` — matrix inverse
+   - [ ] `mattrans(m)` — transpose
+   - [ ] `mattrace(m)` — trace (sum of diagonal)
+   - [ ] `matdim(m)` — matrix dimensions
+   - [ ] `matfill(m, val)` — fill matrix with value
+   - [ ] `matmin(m)`, `matmax(m)` — min/max element
+   - [ ] `matsum(m)` — sum all elements
+
+### 5.5 Hash & Associative Arrays (6 functions)
+   - [ ] `assoc(...)` — create associative array
+   - [ ] `indices(h)` — get all keys
+   - [ ] `insert(h, key, val)` — add key-value
+   - [ ] `delete(h, key)` — remove key
+   - [ ] `count(h)` — number of pairs
+   - [ ] `join(h, sep)` — join values
+
+## Phase 6: Specialized & Exotic (TBD)
+
+### 6.1 File I/O (24 functions) — High Priority
+   - [ ] `fopen(filename, mode)` — open file
+   - [ ] `fclose(fd)` — close file descriptor
+   - [ ] `fgets(fd)` — read line
+   - [ ] `fgetc(fd)` — read character
+   - [ ] `fprintf(fd, fmt, ...)` — formatted write
+   - [ ] `fscan(fd, fmt)` — read formatted
+   - [ ] `fscanf(fd, fmt, ...)` — formatted input with args
+   - [ ] `fputs(fd, str)` — write string
+   - [ ] `fputc(fd, ch)` — write character
+   - [ ] `seek(fd, offset)` — seek in file
+   - [ ] `tell(fd)` — current position
+   - [ ] `eof(fd)` — end-of-file test
+   - [ ] `remove(filename)` — delete file
+   - [ ] `rename(old, new)` — rename file
+   - [ ] And 10+ more streaming/file operations
+
+### 6.2 Memory & Stack Management (13 functions)
+   - [ ] `blk(n)` — allocate n bytes
+   - [ ] `blkcpy(dest, src, size)` — copy memory block
+   - [ ] `blkfree(ptr)` — free allocated block
+   - [ ] `blocks()` — number of allocated blocks
+   - [ ] `free()` — free unused memory
+   - [ ] `freeglobals()` — free global variables
+   - [ ] `push(val)` — push to stack
+   - [ ] `pop()` — pop from stack
+   - [ ] `depth()` — stack depth
+   - [ ] Memory address functions (advanced)
+
+### 6.3 Error & Exception Handling (7 functions)
+   - [ ] `errcount()` — number of errors so far
+   - [ ] `errmax(n)` — set max errors before stop
+   - [ ] `errno()` — last error code
+   - [ ] `errsym(code)` — error name from code
+   - [ ] `error(msg)` — raise error
+   - [ ] `newerror(msg)` — raise new error type
+   - [ ] `warn(msg)` — issue warning
+
+### 6.4 Command & Script Functions (4 functions)
+   - [ ] `argv(n)` — nth command-line argument
+   - [ ] `cmdbuf()` — current command buffer
+   - [ ] `command(str)` — execute command string
+   - [ ] `eval(str)` — evaluate string expression
+
+### 6.5 Obscure Trigonometric Variants (20+ functions)
+   - [ ] `haversin(x)`, `versin(x)`, `coversin(x)` — specialized trig
+   - [ ] `exsecant(x)`, `chord(x)` — arc functions
+   - [ ] And 15+ other rare variants from historical/specialized domains
+
+### 6.6 Cryptographic & Hashing (3 functions)
+   - [ ] `sha1(data)` — SHA-1 hash
+   - [ ] `md5(data)` — MD5 hash
+   - [ ] `crc32(data)` — CRC32 checksum
+
+### 6.7 Residue Class & Modular (8+ functions)
+   - [ ] `rc(n, m)` — residue class
+   - [ ] `rcadd`, `rcsub`, `rcmul`, `rcdiv` — RC arithmetic
+   - [ ] And specialized modular operations
+
 ---
 
 ## 7. Regenerating the MCP schema doc
