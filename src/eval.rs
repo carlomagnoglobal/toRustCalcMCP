@@ -15,6 +15,7 @@ pub struct Interp {
     pub global_vars: HashMap<String, Value>,
     pub scope_stack: Vec<HashMap<String, Value>>, // Stack of local scopes
     pub builtins: HashMap<String, BuiltinFn>,
+    pub rng_seed: u64, // Seed for RNG (LCG-style)
 }
 
 impl Default for Interp {
@@ -24,6 +25,7 @@ impl Default for Interp {
             global_vars: HashMap::new(),
             scope_stack: Vec::new(),
             builtins: HashMap::new(),
+            rng_seed: 1, // Default seed
         };
         builtins::register(&mut it.builtins);
         it

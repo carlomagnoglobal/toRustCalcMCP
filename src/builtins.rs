@@ -852,6 +852,63 @@ fn f_zeta(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(number::zeta(n(a, 0)?, &eps)?))
 }
 
+// Random integer
+fn f_rand(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rand", a, 0)?;
+    let r = number::rand(&mut it.rng_seed);
+    Ok(Value::Number(Num::from_integer(BigInt::from(r))))
+}
+
+// Random float [0, 1)
+fn f_random(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("random", a, 0)?;
+    let r = number::random(&mut it.rng_seed);
+    Num::from_float(r).ok_or_else(|| "random: non-finite result".to_string()).map(Value::Number)
+}
+
+// Random bit
+fn f_randbit(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("randbit", a, 0)?;
+    let r = number::randbit(&mut it.rng_seed);
+    Ok(Value::Number(Num::from_integer(BigInt::from(r))))
+}
+
+// Set random seed
+fn f_seed(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("seed", a, 1)?;
+    let s = int(a, 0)?.to_u64().ok_or("seed: value out of range")?;
+    it.rng_seed = s;
+    Ok(Value::Number(Num::from_integer(BigInt::from(s as i64))))
+}
+
+// Set random seed (alias)
+fn f_srand(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    f_seed(it, a)
+}
+
+// Set random seed (alias)
+fn f_srandom(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    f_seed(it, a)
+}
+
+// Random integer in range
+fn f_randint(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("randint", a, 2)?;
+    let a_val = int(a, 0)?.to_i64().ok_or("randint: a out of range")?;
+    let b_val = int(a, 1)?.to_i64().ok_or("randint: b out of range")?;
+    let r = number::randint(a_val, b_val, &mut it.rng_seed)?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(r))))
+}
+
+// Random permutation
+fn f_randperm(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("randperm", a, 1)?;
+    let n = int(a, 0)?.to_i64().ok_or("randperm: n out of range")?;
+    let perm = number::randperm(n, &mut it.rng_seed)?;
+    let result_list: Vec<Value> = perm.iter().map(|x| Value::Number(Num::from_integer(x.clone()))).collect();
+    Ok(Value::List(result_list))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -1326,6 +1383,15 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("lgamma".to_string(), f_lgamma as BuiltinFn);
     builtins.insert("polygamma".to_string(), f_polygamma as BuiltinFn);
     builtins.insert("zeta".to_string(), f_zeta as BuiltinFn);
+    // Random number functions
+    builtins.insert("rand".to_string(), f_rand as BuiltinFn);
+    builtins.insert("random".to_string(), f_random as BuiltinFn);
+    builtins.insert("randbit".to_string(), f_randbit as BuiltinFn);
+    builtins.insert("seed".to_string(), f_seed as BuiltinFn);
+    builtins.insert("srand".to_string(), f_srand as BuiltinFn);
+    builtins.insert("srandom".to_string(), f_srandom as BuiltinFn);
+    builtins.insert("randint".to_string(), f_randint as BuiltinFn);
+    builtins.insert("randperm".to_string(), f_randperm as BuiltinFn);
     builtins.insert("catalan".to_string(), f_catalan as BuiltinFn);
     // Bitwise operations
     builtins.insert("and".to_string(), f_and as BuiltinFn);
@@ -1456,6 +1522,14 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("lgamma", "lgamma(x)", "log-gamma function"),
         ("polygamma", "polygamma(n,x)", "polygamma function (nth derivative of log-gamma)"),
         ("zeta", "zeta(s)", "Riemann zeta function"),
+        ("rand", "rand()", "random 32-bit integer"),
+        ("random", "random()", "random float [0,1)"),
+        ("randbit", "randbit()", "random bit (0 or 1)"),
+        ("seed", "seed(s)", "set random seed"),
+        ("srand", "srand(s)", "set random seed (alias)"),
+        ("srandom", "srandom(s)", "set random seed (alias)"),
+        ("randint", "randint(a,b)", "random integer in [a,b]"),
+        ("randperm", "randperm(n)", "random permutation of 0..n-1 (returns list)"),
         ("catalan", "catalan(n)", "Catalan number"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),

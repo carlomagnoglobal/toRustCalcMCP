@@ -1059,3 +1059,85 @@ fn test_zeta_4() {
     let val: f64 = clean.parse().unwrap_or(0.0);
     assert!((val - 1.0823).abs() < 0.01);
 }
+
+// Phase 4.5: Random Number Functions
+#[test]
+fn test_seed() {
+    let mut it = Interp::new();
+    // Setting seed should return the seed value
+    let result = it.eval_render("seed(42)").unwrap();
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn test_srand() {
+    let mut it = Interp::new();
+    // srand is an alias for seed
+    let result = it.eval_render("srand(12345)").unwrap();
+    assert_eq!(result, "12345");
+}
+
+#[test]
+fn test_srandom() {
+    let mut it = Interp::new();
+    // srandom is an alias for seed
+    let result = it.eval_render("srandom(999)").unwrap();
+    assert_eq!(result, "999");
+}
+
+#[test]
+fn test_rand() {
+    let mut it = Interp::new();
+    // Set seed to get deterministic results
+    it.eval_render("seed(1)").unwrap();
+    let result = it.eval_render("rand()").unwrap();
+    // Should produce an integer
+    let val: i64 = result.parse().unwrap_or(-1);
+    assert!(val >= i32::MIN as i64 && val <= i32::MAX as i64);
+}
+
+#[test]
+fn test_random() {
+    let mut it = Interp::new();
+    // Set seed to get deterministic results
+    it.eval_render("seed(1)").unwrap();
+    let result = it.eval_render("random()").unwrap();
+    // Should be approximately in [0, 1)
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(-1.0);
+    assert!(val >= 0.0 && val < 1.0);
+}
+
+#[test]
+fn test_randbit() {
+    let mut it = Interp::new();
+    // Set seed to get deterministic results
+    it.eval_render("seed(1)").unwrap();
+    let result = it.eval_render("randbit()").unwrap();
+    // Should be 0 or 1
+    assert!(result == "0" || result == "1");
+}
+
+#[test]
+fn test_randint() {
+    let mut it = Interp::new();
+    // Set seed to get deterministic results
+    it.eval_render("seed(1)").unwrap();
+    let result = it.eval_render("randint(1, 10)").unwrap();
+    // Should be in [1, 10]
+    let val: i64 = result.parse().unwrap_or(-1);
+    assert!(val >= 1 && val <= 10);
+}
+
+#[test]
+fn test_randperm() {
+    let mut it = Interp::new();
+    // Set seed to get deterministic results
+    it.eval_render("seed(1)").unwrap();
+    let result = it.eval_render("randperm(5)").unwrap();
+    // Should produce a list with 5 elements
+    assert!(result.contains('[') && result.contains(']'));
+    // Count elements (rough check)
+    let comma_count = result.matches(',').count();
+    assert!(comma_count == 4); // 5 elements = 4 commas
+}

@@ -1363,6 +1363,64 @@ fn is_prime_check(n: u64) -> bool {
     true
 }
 
+/// Linear Congruential Generator: next = (a*seed + c) % m
+/// Returns (new_seed, random_value)
+pub fn lcg_next(seed: u64) -> (u64, u64) {
+    const A: u64 = 1664525;
+    const C: u64 = 1013904223;
+    const M: u64 = u64::MAX;
+    let next_seed = A.wrapping_mul(seed).wrapping_add(C);
+    (next_seed, next_seed)
+}
+
+/// Random integer (32-bit)
+pub fn rand(seed: &mut u64) -> i32 {
+    let (new_seed, value) = lcg_next(*seed);
+    *seed = new_seed;
+    (value >> 32) as i32
+}
+
+/// Random float [0, 1)
+pub fn random(seed: &mut u64) -> f64 {
+    let (new_seed, value) = lcg_next(*seed);
+    *seed = new_seed;
+    ((value >> 11) as f64) * (1.0 / 9007199254740992.0)
+}
+
+/// Random bit
+pub fn randbit(seed: &mut u64) -> u32 {
+    let (new_seed, value) = lcg_next(*seed);
+    *seed = new_seed;
+    (value & 1) as u32
+}
+
+/// Random integer in range [a, b]
+pub fn randint(a: i64, b: i64, seed: &mut u64) -> Result<i64, String> {
+    if a > b {
+        return Err("randint: a must be <= b".to_string());
+    }
+    let range = b - a + 1;
+    if range <= 0 {
+        return Err("randint: invalid range".to_string());
+    }
+    let r = (rand(seed) as i64).abs() % range;
+    Ok(a + r)
+}
+
+/// Random permutation of 0..n-1
+pub fn randperm(n: i64, seed: &mut u64) -> Result<Vec<BigInt>, String> {
+    if n < 0 {
+        return Err("randperm: n must be non-negative".to_string());
+    }
+    let mut perm: Vec<i64> = (0..n).collect();
+    // Fisher-Yates shuffle
+    for i in (1..n as usize).rev() {
+        let j = (rand(seed).abs() as usize) % (i + 1);
+        perm.swap(i, j);
+    }
+    Ok(perm.iter().map(|x| bi(*x)).collect())
+}
+
 /// Degrees to radians: d2r(x) = x * π / 180
 pub fn d2r(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let pi_val = pi();

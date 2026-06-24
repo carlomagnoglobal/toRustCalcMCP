@@ -15,12 +15,12 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 4 in progress.** The project has a full `src/` structure
-with lexer, parser, evaluator, 132 builtins, CLI, MCP server, and 127 integration
+Current status: **Phase 4 mostly complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 140 builtins, CLI, MCP server, and 135 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
-Phase 4.1–4.4 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions).
+Phase 4.1–4.5 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -316,15 +316,17 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 126 → 132 (+6)
    - Total tests: 120 → 127 (+7)
 
-### 4.5 Random Number Functions (10 functions)
-   - [ ] `rand()` — random integer
-   - [ ] `random()` — random [0,1)
-   - [ ] `randbit()` — random bit
-   - [ ] `seed(s)` — set random seed
-   - [ ] `srand(s)`, `srandom(s)` — seeding variants
-   - [ ] `randperm(n)` — random permutation of 0..n-1
-   - [ ] `randint(a, b)` — random in range
-   - Integration tests: verify distribution properties
+### 4.5 Random Number Functions — DONE
+   - ✅ `rand()` — random 32-bit integer via LCG
+   - ✅ `random()` — random float [0,1) via LCG
+   - ✅ `randbit()` — random bit (0 or 1)
+   - ✅ `seed(s)` — set random seed
+   - ✅ `srand(s)`, `srandom(s)` — seeding variants (aliases for seed)
+   - ✅ `randperm(n)` — random permutation of 0..n-1 (returns list)
+   - ✅ `randint(a, b)` — random integer in [a,b]
+   - ✅ 8 new integration tests added and passing
+   - Builtins: 132 → 140 (+8)
+   - Total tests: 127 → 135 (+8)
 
 ### 4.6 Environment & System Functions (8 functions)
    - [ ] `getenv(name)` — read environment variable
