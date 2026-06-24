@@ -73,7 +73,7 @@ changes them for the session.
 - Lists: `list(1,2,3); append(x,4); slice(x,1,3)`.
 - Complex numbers: `sqrt(-1)` → `i`; arithmetic with `+`, `-`, `*`, `/`.
 - String literals: `"hello"; strlen(s); index(haystack, needle)`.
-- **140 builtins** (40% of calc's ~350) organized by category — see implementation status below.
+- **148 builtins** (42% of calc's ~350) organized by category — see implementation status below.
 
 ## Precision model
 
@@ -84,9 +84,9 @@ and Newton's method. `sqrt`, `sin`, `cos`, etc. converge until term < epsilon.
 `pi`/`e` are 60-digit constants. A leading `~` in real-mode output marks an
 inexact (rounded/non-terminating) rendering, as in calc.
 
-## Implementation Status — 140 of ~350 builtins (40% coverage)
+## Implementation Status — 148 of ~350 builtins (42% coverage)
 
-calc upstream has ~350 builtins. This port implements **140 core functions** organized by category:
+calc upstream has ~350 builtins. This port implements **148 core functions** organized by category:
 
 ### ✅ Fully Implemented Categories
 
@@ -147,15 +147,13 @@ calc upstream has ~350 builtins. This port implements **140 core functions** org
 
 ### 📋 Roadmap for Remaining Work
 
-**Phase 4: High-Value Functions** (43 added, mostly complete)
+**Phase 4: High-Value Functions** (51 added, complete)
 - ✅ Reciprocal trig variants (cot, sec, csc, acot, asec, acsc, coth, sech, csch, acoth, asech, acsch) — 12
 - ✅ Root & logarithm functions (root, cbrt, isqrt, iroot, logn, ilog, ilog2, ilog10, ilogn) — 9
 - ✅ Prime & number theory (prevprime, factor, lfactor, ptest, euler, bernoulli, jacobi) — 8
 - ✅ Special functions (y0, y1, gamma, lgamma, polygamma, zeta) — 6
 - ✅ Random number functions (rand, random, randbit, seed, srand, srandom, randint, randperm) — 8
-- [ ] File I/O suite (24) — enables automation
-- [ ] Matrix operations (9) — linear algebra
-- [ ] Environment/system functions (8) — scripting integration
+- ✅ Environment/system functions (time, systime, ctime, sleep, getenv, putenv, system, usertime) — 8
 
 **Phase 5: Utility & Compatibility** (estimated 100+ builtins)
 - [ ] Character classification (12)

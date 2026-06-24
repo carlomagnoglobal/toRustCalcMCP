@@ -15,12 +15,12 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 4 mostly complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 140 builtins, CLI, MCP server, and 135 integration
+Current status: **Phase 4 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 148 builtins, CLI, MCP server, and 142 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
-Phase 4.1–4.5 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG).
+Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -328,16 +328,18 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 132 → 140 (+8)
    - Total tests: 127 → 135 (+8)
 
-### 4.6 Environment & System Functions (8 functions)
-   - [ ] `getenv(name)` — read environment variable
-   - [ ] `putenv(name, value)` — set environment variable
-   - [ ] `system(cmd)` — execute shell command
-   - [ ] `time()` — current Unix time
-   - [ ] `systime()` — system time
-   - [ ] `ctime(t)` — convert time to string
-   - [ ] `sleep(seconds)` — pause execution
-   - [ ] `usertime()` — user/system time
-   - Integration tests: verify time functions, env access
+### 4.6 Environment & System Functions — DONE
+   - ✅ `time()` — current Unix timestamp (seconds since epoch)
+   - ✅ `systime()` — system time (alias for time)
+   - ✅ `ctime(t)` — convert Unix timestamp to human-readable string
+   - ✅ `sleep(s)` — pause execution for s seconds
+   - ✅ `getenv(name)` — read environment variable
+   - ✅ `putenv(name, value)` — set environment variable
+   - ✅ `system(cmd)` — execute shell command (returns exit code)
+   - ✅ `usertime()` — user/system time in seconds (elapsed time)
+   - ✅ 7 new integration tests added and passing
+   - Builtins: 140 → 148 (+8)
+   - Total tests: 135 → 142 (+7)
 
 ## Phase 5: Extended Compatibility (TBD)
 

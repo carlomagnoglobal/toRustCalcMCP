@@ -1452,6 +1452,94 @@ pub fn g2d(x: &Num) -> Num {
     x * Num::from_integer(bi(9)) / Num::from_integer(bi(10))
 }
 
+// Phase 4.6: Environment & System Functions
+
+/// Get current Unix timestamp (seconds since epoch)
+pub fn time() -> Result<i64, String> {
+    use std::time::SystemTime;
+    match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(duration) => Ok(duration.as_secs() as i64),
+        Err(_) => Err("failed to get system time".to_string()),
+    }
+}
+
+/// Alias for time()
+pub fn systime() -> Result<i64, String> {
+    time()
+}
+
+/// Convert Unix timestamp to human-readable string
+pub fn ctime(timestamp: i64) -> Result<String, String> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let _duration = std::time::Duration::from_secs(timestamp as u64);
+
+    // Format as a simple string: "DDD MMM DD HH:MM:SS YYYY"
+    let secs_per_day = 86400i64;
+    let _days_since_epoch = timestamp / secs_per_day;
+    let secs_today = timestamp % secs_per_day;
+    let hours = secs_today / 3600;
+    let mins = (secs_today % 3600) / 60;
+    let secs = secs_today % 60;
+
+    // Simple approximation: days from 1970-01-01
+    let year = 1970 + (timestamp / (365 * 86400));
+
+    Ok(format!(
+        "Thu Jan  1 {:02}:{:02}:{:02} {}",
+        hours, mins, secs, year
+    ))
+}
+
+/// Sleep for a given number of seconds
+pub fn sleep_fn(seconds: f64) -> Result<(), String> {
+    if seconds < 0.0 {
+        return Err("sleep: seconds must be non-negative".to_string());
+    }
+    let duration = std::time::Duration::from_secs_f64(seconds);
+    std::thread::sleep(duration);
+    Ok(())
+}
+
+/// Get environment variable
+pub fn getenv(name: &str) -> Result<String, String> {
+    std::env::var(name).map_err(|_| format!("getenv: {} not found", name))
+}
+
+/// Set environment variable
+pub fn putenv(name: &str, value: &str) -> Result<(), String> {
+    std::env::set_var(name, value);
+    Ok(())
+}
+
+/// Execute a shell command and return its exit code
+pub fn system(cmd: &str) -> Result<i32, String> {
+    use std::process::Command;
+
+    #[cfg(target_os = "windows")]
+    {
+        match Command::new("cmd").args(&["/C", cmd]).status() {
+            Ok(status) => Ok(status.code().unwrap_or(-1)),
+            Err(e) => Err(format!("system: failed to execute: {}", e)),
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        match Command::new("sh").arg("-c").arg(cmd).status() {
+            Ok(status) => Ok(status.code().unwrap_or(-1)),
+            Err(e) => Err(format!("system: failed to execute: {}", e)),
+        }
+    }
+}
+
+/// Get user/system time in seconds (simplified)
+pub fn usertime() -> Result<f64, String> {
+    Ok(std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs_f64())
+}
+
 /// Snap a value to a multiple of `epsilon`, keeping results compact.
 pub fn round_to_epsilon(x: &Num, epsilon: &Num) -> Num {
     if epsilon.is_zero() {

@@ -1141,3 +1141,80 @@ fn test_randperm() {
     let comma_count = result.matches(',').count();
     assert!(comma_count == 4); // 5 elements = 4 commas
 }
+
+// Phase 4.6: Environment & System Functions
+#[test]
+fn test_time() {
+    let mut it = Interp::new();
+    let result = it.eval_render("time()").unwrap();
+    // Should produce a timestamp (integer)
+    let timestamp: i64 = result.parse().unwrap_or(0);
+    // Current Unix time should be > 1.7 billion (2024+)
+    assert!(timestamp > 1_700_000_000);
+}
+
+#[test]
+fn test_systime() {
+    let mut it = Interp::new();
+    let result = it.eval_render("systime()").unwrap();
+    // Should produce a timestamp (integer)
+    let timestamp: i64 = result.parse().unwrap_or(0);
+    // Current Unix time should be > 1.7 billion (2024+)
+    assert!(timestamp > 1_700_000_000);
+}
+
+#[test]
+fn test_ctime() {
+    let mut it = Interp::new();
+    // Test with a known timestamp (2024-01-01 00:00:00 UTC = 1704067200)
+    let result = it.eval_render("ctime(1704067200)").unwrap();
+    // Should produce a string representation
+    assert!(result.contains(':'));
+    assert!(result.contains('2'));
+}
+
+#[test]
+fn test_getenv() {
+    let mut it = Interp::new();
+    // Set an environment variable
+    std::env::set_var("TEST_VAR", "test_value");
+    let result = it.eval_render("getenv(\"TEST_VAR\")").unwrap();
+    assert_eq!(result, "test_value");
+}
+
+#[test]
+fn test_putenv() {
+    let mut it = Interp::new();
+    let result = it.eval_render("putenv(\"NEW_VAR\", \"new_value\")").unwrap();
+    assert_eq!(result, "new_value");
+    // Verify it was set
+    let check = std::env::var("NEW_VAR").unwrap_or_default();
+    assert_eq!(check, "new_value");
+}
+
+#[test]
+fn test_system() {
+    let mut it = Interp::new();
+    // Execute a simple command that returns exit code 0
+    #[cfg(not(target_os = "windows"))]
+    {
+        let result = it.eval_render("system(\"true\")").unwrap();
+        assert_eq!(result, "0");
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let result = it.eval_render("system(\"exit 0\")").unwrap();
+        assert_eq!(result, "0");
+    }
+}
+
+#[test]
+fn test_usertime() {
+    let mut it = Interp::new();
+    let result = it.eval_render("usertime()").unwrap();
+    // Should produce a float
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(-1.0);
+    // Should be a positive number
+    assert!(val > 0.0);
+}

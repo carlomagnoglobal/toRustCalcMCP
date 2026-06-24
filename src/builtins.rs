@@ -909,6 +909,74 @@ fn f_randperm(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::List(result_list))
 }
 
+// Phase 4.6: Environment & System Functions
+
+fn f_time(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("time", a, 0)?;
+    let timestamp = number::time()?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(timestamp))))
+}
+
+fn f_systime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("systime", a, 0)?;
+    let timestamp = number::systime()?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(timestamp))))
+}
+
+fn f_ctime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ctime", a, 1)?;
+    let timestamp = int(a, 0)?.to_i64().ok_or("ctime: timestamp out of range")?;
+    let result = number::ctime(timestamp)?;
+    Ok(Value::Str(result))
+}
+
+fn f_sleep(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("sleep", a, 1)?;
+    let seconds = n(a, 0)?.to_f64().ok_or("sleep: seconds must be convertible to float")?;
+    number::sleep_fn(seconds)?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(0))))
+}
+
+fn f_getenv(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("getenv", a, 1)?;
+    let name = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("getenv: argument must be a string".to_string()),
+    };
+    let value = number::getenv(&name)?;
+    Ok(Value::Str(value))
+}
+
+fn f_putenv(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("putenv", a, 2)?;
+    let name = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("putenv: first argument must be a string".to_string()),
+    };
+    let value = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("putenv: second argument must be a string".to_string()),
+    };
+    number::putenv(&name, &value)?;
+    Ok(Value::Str(value))
+}
+
+fn f_system(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("system", a, 1)?;
+    let cmd = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("system: argument must be a string".to_string()),
+    };
+    let exit_code = number::system(&cmd)?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(exit_code))))
+}
+
+fn f_usertime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("usertime", a, 0)?;
+    let elapsed = number::usertime()?;
+    Ok(Value::Number(Num::from_float(elapsed).ok_or("usertime: overflow")?))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -1392,6 +1460,15 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("srandom".to_string(), f_srandom as BuiltinFn);
     builtins.insert("randint".to_string(), f_randint as BuiltinFn);
     builtins.insert("randperm".to_string(), f_randperm as BuiltinFn);
+    // Environment & system functions
+    builtins.insert("time".to_string(), f_time as BuiltinFn);
+    builtins.insert("systime".to_string(), f_systime as BuiltinFn);
+    builtins.insert("ctime".to_string(), f_ctime as BuiltinFn);
+    builtins.insert("sleep".to_string(), f_sleep as BuiltinFn);
+    builtins.insert("getenv".to_string(), f_getenv as BuiltinFn);
+    builtins.insert("putenv".to_string(), f_putenv as BuiltinFn);
+    builtins.insert("system".to_string(), f_system as BuiltinFn);
+    builtins.insert("usertime".to_string(), f_usertime as BuiltinFn);
     builtins.insert("catalan".to_string(), f_catalan as BuiltinFn);
     // Bitwise operations
     builtins.insert("and".to_string(), f_and as BuiltinFn);
@@ -1530,6 +1607,14 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("srandom", "srandom(s)", "set random seed (alias)"),
         ("randint", "randint(a,b)", "random integer in [a,b]"),
         ("randperm", "randperm(n)", "random permutation of 0..n-1 (returns list)"),
+        ("time", "time()", "current Unix timestamp (seconds since epoch)"),
+        ("systime", "systime()", "system time (alias for time)"),
+        ("ctime", "ctime(t)", "convert Unix timestamp to string"),
+        ("sleep", "sleep(s)", "sleep for s seconds"),
+        ("getenv", "getenv(name)", "get environment variable"),
+        ("putenv", "putenv(name,value)", "set environment variable"),
+        ("system", "system(cmd)", "execute shell command (returns exit code)"),
+        ("usertime", "usertime()", "user/system time in seconds"),
         ("catalan", "catalan(n)", "Catalan number"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),
