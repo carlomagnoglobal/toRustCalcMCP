@@ -174,3 +174,67 @@ fn test_for_loop() {
     // 1 + 2 + 3 + 4 + 5 = 15
     assert_eq!(lines.last().unwrap(), &"15");
 }
+
+#[test]
+fn test_bitwise_and() {
+    let mut it = Interp::new();
+    let result = it.eval_render("and(12, 10)").unwrap();
+    assert_eq!(result, "8");
+}
+
+#[test]
+fn test_bitwise_or() {
+    let mut it = Interp::new();
+    let result = it.eval_render("or(12, 10)").unwrap();
+    assert_eq!(result, "14");
+}
+
+#[test]
+fn test_bitwise_xor() {
+    let mut it = Interp::new();
+    let result = it.eval_render("xor(12, 10)").unwrap();
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_bitwise_shifts() {
+    let mut it = Interp::new();
+    let result = it.eval_render("lshift(3, 2)").unwrap();
+    assert_eq!(result, "12");
+    let result = it.eval_render("rshift(12, 2)").unwrap();
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_bit_operations() {
+    let mut it = Interp::new();
+    // bit(12, 2) checks if bit 2 of 12 is set
+    // 12 = 1100, bit 2 is set
+    let result = it.eval_render("bit(12, 2)").unwrap();
+    assert_eq!(result, "1");
+    // highbit(8) = position of highest bit in 8 = 1000 = 3
+    let result = it.eval_render("highbit(8)").unwrap();
+    assert_eq!(result, "3");
+    // lowbit(12) = position of lowest bit in 12 = 1100 = 2
+    let result = it.eval_render("lowbit(12)").unwrap();
+    assert_eq!(result, "2");
+}
+
+#[test]
+fn test_fcnt() {
+    let mut it = Interp::new();
+    // fcnt(15) = count of set bits in 1111 = 4
+    let result = it.eval_render("fcnt(15)").unwrap();
+    assert_eq!(result, "4");
+}
+
+#[test]
+fn test_digits() {
+    let mut it = Interp::new();
+    // digits(1000) = 4 (in base 10)
+    let result = it.eval_render("digits(1000)").unwrap();
+    assert_eq!(result, "4");
+    // digits(255, 2) = 8 (255 in binary is 11111111)
+    let result = it.eval_render("digits(255, 2)").unwrap();
+    assert_eq!(result, "8");
+}

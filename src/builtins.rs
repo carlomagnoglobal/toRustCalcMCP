@@ -379,6 +379,139 @@ fn is_prime(n: u64) -> bool {
     true
 }
 
+// Bitwise AND
+fn f_and(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("and", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    Ok(Value::Number(Num::from_integer(&x & &y)))
+}
+
+// Bitwise OR
+fn f_or(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("or", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    Ok(Value::Number(Num::from_integer(&x | &y)))
+}
+
+// Bitwise XOR
+fn f_xor(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("xor", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    Ok(Value::Number(Num::from_integer(&x ^ &y)))
+}
+
+// Bitwise complement (two's complement for negative numbers)
+fn f_comp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("comp", a, 1)?;
+    let x = int(a, 0)?;
+    Ok(Value::Number(Num::from_integer(!&x)))
+}
+
+// Left shift
+fn f_lshift(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("lshift", a, 2)?;
+    let x = int(a, 0)?;
+    let shift = int(a, 1)?;
+    let shift_u32 = shift.to_u32().ok_or("shift amount too large")?;
+    Ok(Value::Number(Num::from_integer(&x << shift_u32)))
+}
+
+// Right shift
+fn f_rshift(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rshift", a, 2)?;
+    let x = int(a, 0)?;
+    let shift = int(a, 1)?;
+    let shift_u32 = shift.to_u32().ok_or("shift amount too large")?;
+    Ok(Value::Number(Num::from_integer(&x >> shift_u32)))
+}
+
+// Test if bit n is set
+fn f_bit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("bit", a, 2)?;
+    let x = int(a, 0)?;
+    let n = int(a, 1)?;
+    let n_u32 = n.to_u32().ok_or("bit position too large")?;
+    let is_set = (&x >> n_u32) & BigInt::from(1) != BigInt::from(0);
+    Ok(Value::Number(Num::from_integer(BigInt::from(if is_set { 1 } else { 0 }))))
+}
+
+// Position of highest set bit (most significant bit)
+fn f_highbit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("highbit", a, 1)?;
+    let mut x = int(a, 0)?;
+    if x.is_zero() {
+        return Ok(Value::Number(Num::from_integer(BigInt::from(-1))));
+    }
+    if x.is_negative() {
+        x = -x - BigInt::from(1);
+    }
+    let bits = x.bits();
+    Ok(Value::Number(Num::from_integer(BigInt::from(bits as i64 - 1))))
+}
+
+// Position of lowest set bit (least significant bit)
+fn f_lowbit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("lowbit", a, 1)?;
+    let x = int(a, 0)?;
+    if x.is_zero() {
+        return Ok(Value::Number(Num::from_integer(BigInt::from(-1))));
+    }
+    // Find position of lowest set bit
+    let mut pos = 0i64;
+    let mut val = if x.is_negative() { -&x } else { x };
+    while (&val & BigInt::from(1)).is_zero() {
+        val = val >> 1;
+        pos += 1;
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(pos))))
+}
+
+// Count of set bits (population count / Hamming weight)
+fn f_fcnt(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fcnt", a, 1)?;
+    let x = int(a, 0)?;
+    if x.is_negative() {
+        return Err("fcnt: undefined for negative numbers".to_string());
+    }
+    let mut count = 0u32;
+    let mut val = x;
+    while val.is_positive() {
+        if (&val & BigInt::from(1)).is_positive() {
+            count += 1;
+        }
+        val = val >> 1;
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(count))))
+}
+
+// Number of digits in given base
+fn f_digits(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("digits", a, 1, 2)?;
+    let x = int(a, 0)?;
+    let base = if a.len() == 2 {
+        int(a, 1)?.to_u32().ok_or("base too large")?
+    } else {
+        10
+    };
+    if base < 2 || base > 36 {
+        return Err("base must be between 2 and 36".to_string());
+    }
+    if x.is_zero() {
+        return Ok(Value::Number(Num::from_integer(BigInt::from(1))));
+    }
+    let mut count = 0u32;
+    let mut val = x.abs();
+    let base_bi = BigInt::from(base);
+    while val.is_positive() {
+        val = val / &base_bi;
+        count += 1;
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(count))))
+}
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -411,6 +544,18 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("sin".to_string(), f_sin as BuiltinFn);
     builtins.insert("cos".to_string(), f_cos as BuiltinFn);
     builtins.insert("tan".to_string(), f_tan as BuiltinFn);
+    // Bitwise operations
+    builtins.insert("and".to_string(), f_and as BuiltinFn);
+    builtins.insert("or".to_string(), f_or as BuiltinFn);
+    builtins.insert("xor".to_string(), f_xor as BuiltinFn);
+    builtins.insert("comp".to_string(), f_comp as BuiltinFn);
+    builtins.insert("lshift".to_string(), f_lshift as BuiltinFn);
+    builtins.insert("rshift".to_string(), f_rshift as BuiltinFn);
+    builtins.insert("bit".to_string(), f_bit as BuiltinFn);
+    builtins.insert("highbit".to_string(), f_highbit as BuiltinFn);
+    builtins.insert("lowbit".to_string(), f_lowbit as BuiltinFn);
+    builtins.insert("fcnt".to_string(), f_fcnt as BuiltinFn);
+    builtins.insert("digits".to_string(), f_digits as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -446,5 +591,16 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("sin", "sin(x)", "sine (radians)"),
         ("cos", "cos(x)", "cosine (radians)"),
         ("tan", "tan(x)", "tangent (radians)"),
+        ("and", "and(x,y)", "bitwise AND"),
+        ("or", "or(x,y)", "bitwise OR"),
+        ("xor", "xor(x,y)", "bitwise XOR"),
+        ("comp", "comp(x)", "bitwise complement"),
+        ("lshift", "lshift(x,n)", "left shift by n bits"),
+        ("rshift", "rshift(x,n)", "right shift by n bits"),
+        ("bit", "bit(x,n)", "is bit n set? (1 or 0)"),
+        ("highbit", "highbit(x)", "position of highest set bit"),
+        ("lowbit", "lowbit(x)", "position of lowest set bit"),
+        ("fcnt", "fcnt(x)", "count of set bits"),
+        ("digits", "digits(x[,base])", "number of digits (base 10 or specified)"),
     ]
 }
