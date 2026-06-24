@@ -116,12 +116,12 @@ live in `src/` and compile cleanly.
 | `parser.rs` | **DONE.** Pratt parser: `Expr` including Define, If, While, For, Block, Print. `^` right-assoc. Assignments, calls, control flow. |
 | `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
 | `builtins.rs` | **DONE.** 41 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits. All registered + catalog. |
-| `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, and expression modes. |
+| `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-f` file, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, file, and expression modes. |
 | `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (3 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
-| `tests/integration.rs` | **DONE.** 29 tests: exactness, transcendentals, control flow, and bitwise operations. All passing. |
+| `tests/integration.rs` | **DONE.** 30 tests: exactness, transcendentals, control flow, bitwise operations, and file loading. All passing. |
 | `docs/MCP_TOOL_SCHEMA.json` | **DONE.** Server-emitted schema. Regenerate after tool changes via §7 script. |
 
 ---
@@ -182,7 +182,12 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - ✅ Examples: and(12,10)→8, or(12,10)→14, xor(12,10)→6, lshift(3,2)→12
    - ✅ Verified: all operations work on integers; 7 new tests pass
 
-4. **`-f file.cal` resource loading** for the CLI.
+~~4. **`-f file.cal` resource loading** — DONE.~~
+   - ✅ CLI: added `-f filename` flag to parse_args()
+   - ✅ File reading: std::fs::read_to_string() with error handling
+   - ✅ Execution: file content executed via eval_all()
+   - ✅ Quiet mode: `-q -f script.cal` suppresses output
+   - ✅ Verified: works with functions, loops, conditionals; 1 new test pass
    - Where: `cli.rs` (read file → `Interp::eval_all`); honor `-s`/`-q` interplay.
    - Done when: a small `.cal` script with `define` + loop runs and prints expected output.
 
