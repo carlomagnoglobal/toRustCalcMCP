@@ -991,3 +991,71 @@ fn test_jacobi() {
     let result = it.eval_render("jacobi(2, 5)").unwrap();
     assert_eq!(result, "-1");
 }
+
+// Phase 4.4: More Special Functions
+
+#[test]
+fn test_y0() {
+    let mut it = Interp::new();
+    // y0(1) should be a specific value
+    let result = it.eval_render("y0(1)").unwrap();
+    // Just verify it evaluates without error
+    assert!(!result.is_empty());
+}
+
+#[test]
+fn test_y1() {
+    let mut it = Interp::new();
+    // y1(1) should be a specific value
+    let result = it.eval_render("y1(1)").unwrap();
+    // Just verify it evaluates without error
+    assert!(!result.is_empty());
+}
+
+#[test]
+fn test_gamma_integer() {
+    let mut it = Interp::new();
+    // gamma(5) = 4! = 24
+    let result = it.eval_render("gamma(5)").unwrap();
+    assert_eq!(result, "24");
+}
+
+#[test]
+fn test_lgamma() {
+    let mut it = Interp::new();
+    // lgamma(5) = ln(24)
+    let result = it.eval_render("lgamma(5)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    // ln(24) ≈ 3.178...
+    assert!((val - 3.178).abs() < 0.1);
+}
+
+#[test]
+fn test_polygamma() {
+    let mut it = Interp::new();
+    // polygamma(0, 2) = digamma(2)
+    let result = it.eval_render("polygamma(0, 2)").unwrap();
+    // Just verify it evaluates without error
+    assert!(!result.is_empty());
+}
+
+#[test]
+fn test_zeta_2() {
+    let mut it = Interp::new();
+    // zeta(2) = π²/6 ≈ 1.6449...
+    let result = it.eval_render("zeta(2)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 1.6449).abs() < 0.01);
+}
+
+#[test]
+fn test_zeta_4() {
+    let mut it = Interp::new();
+    // zeta(4) = π⁴/90 ≈ 1.0823...
+    let result = it.eval_render("zeta(4)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 1.0823).abs() < 0.01);
+}

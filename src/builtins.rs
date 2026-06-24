@@ -809,6 +809,49 @@ fn f_j1(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(number::j1(n(a, 0)?, &eps)?))
 }
 
+// Bessel function Y0
+fn f_y0(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("y0", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::y0(n(a, 0)?, &eps)?))
+}
+
+// Bessel function Y1
+fn f_y1(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("y1", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::y1(n(a, 0)?, &eps)?))
+}
+
+// Gamma function
+fn f_gamma(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gamma", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::gamma(n(a, 0)?, &eps)?))
+}
+
+// Log-gamma function
+fn f_lgamma(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("lgamma", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::lgamma(n(a, 0)?, &eps)?))
+}
+
+// Polygamma function
+fn f_polygamma(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("polygamma", a, 2)?;
+    let order = int(a, 0)?.to_i64().ok_or("polygamma: order out of range")?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::polygamma(order, n(a, 1)?, &eps)?))
+}
+
+// Riemann zeta function
+fn f_zeta(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("zeta", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::zeta(n(a, 0)?, &eps)?))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -1277,6 +1320,12 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("agd".to_string(), f_agd as BuiltinFn);
     builtins.insert("j0".to_string(), f_j0 as BuiltinFn);
     builtins.insert("j1".to_string(), f_j1 as BuiltinFn);
+    builtins.insert("y0".to_string(), f_y0 as BuiltinFn);
+    builtins.insert("y1".to_string(), f_y1 as BuiltinFn);
+    builtins.insert("gamma".to_string(), f_gamma as BuiltinFn);
+    builtins.insert("lgamma".to_string(), f_lgamma as BuiltinFn);
+    builtins.insert("polygamma".to_string(), f_polygamma as BuiltinFn);
+    builtins.insert("zeta".to_string(), f_zeta as BuiltinFn);
     builtins.insert("catalan".to_string(), f_catalan as BuiltinFn);
     // Bitwise operations
     builtins.insert("and".to_string(), f_and as BuiltinFn);
@@ -1401,6 +1450,12 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("agd", "agd(x)", "inverse Gudermannian function"),
         ("j0", "j0(x)", "Bessel function J0"),
         ("j1", "j1(x)", "Bessel function J1"),
+        ("y0", "y0(x)", "Bessel function Y0 (second kind)"),
+        ("y1", "y1(x)", "Bessel function Y1 (second kind)"),
+        ("gamma", "gamma(x)", "gamma function (generalized factorial)"),
+        ("lgamma", "lgamma(x)", "log-gamma function"),
+        ("polygamma", "polygamma(n,x)", "polygamma function (nth derivative of log-gamma)"),
+        ("zeta", "zeta(s)", "Riemann zeta function"),
         ("catalan", "catalan(n)", "Catalan number"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),

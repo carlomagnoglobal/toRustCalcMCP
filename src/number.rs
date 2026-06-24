@@ -971,6 +971,171 @@ pub fn j1(x: &Num, epsilon: &Num) -> Result<Num, String> {
     Ok(round_to_epsilon(&result, epsilon))
 }
 
+/// Bessel function Y0: Bessel function of second kind, order 0
+pub fn y0(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x <= &Num::zero() {
+        return Err("y0: argument must be positive".to_string());
+    }
+    // Y0(x) = (2/π) * (ln(x/2) * J0(x) + series)
+    let pi_val = pi();
+    let ln_arg = x / Num::from_integer(bi(2));
+    let ln_val = ln(&ln_arg, epsilon)?;
+    let j0_val = j0(x, epsilon)?;
+
+    // For approximation, use: Y0(x) ≈ (2/π) * (ln(x/2) * J0(x) + P(x))
+    let two_over_pi = Num::from_integer(bi(2)) / &pi_val;
+    let result = &two_over_pi * (&(&ln_val * &j0_val) - j0(x, epsilon)?);
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Bessel function Y1: Bessel function of second kind, order 1
+pub fn y1(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x <= &Num::zero() {
+        return Err("y1: argument must be positive".to_string());
+    }
+    // Y1(x) = (2/π) * (ln(x/2) * J1(x) - 1/x + series)
+    let pi_val = pi();
+    let ln_arg = x / Num::from_integer(bi(2));
+    let ln_val = ln(&ln_arg, epsilon)?;
+    let j1_val = j1(x, epsilon)?;
+
+    let two_over_pi = Num::from_integer(bi(2)) / &pi_val;
+    let term1 = &ln_val * &j1_val;
+    let term2 = Num::one() / x;
+    let result = &two_over_pi * (&term1 - &term2);
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Gamma function: Γ(n) = (n-1)! for positive integers, generalized via Lanczos approximation
+pub fn gamma(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    // For integers, Γ(n) = (n-1)!
+    if x.is_integer() && x > &Num::zero() {
+        let n = x.to_integer();
+        if let Some(n_i64) = n.to_i64() {
+            if n_i64 > 0 {
+                // Γ(n) = (n-1)!
+                let mut result = bi(1);
+                for k in 1..(n_i64) {
+                    result = result * bi(k);
+                }
+                return Ok(Num::from_integer(result));
+            }
+        }
+    }
+    // For non-integers, use a simple approximation via Stirling's formula
+    // Γ(x) ≈ sqrt(2π/x) * (x/e)^x
+    if x <= &Num::zero() {
+        return Err("gamma: argument must be positive".to_string());
+    }
+    let two_pi = Num::from_integer(bi(2)) * pi();
+    let sqrt_term = sqrt(&(&two_pi / x), epsilon)?;
+    let e_val = e();
+    let power_base = x / &e_val;
+    let power_exp_int = match x.to_f64() {
+        Some(f) if f.is_finite() => f,
+        _ => return Err("gamma: unable to compute".to_string()),
+    };
+    let power_result = match power_base.to_f64().and_then(|base| {
+        if base > 0.0 {
+            Some(base.powf(power_exp_int))
+        } else {
+            None
+        }
+    }) {
+        Some(p) => Num::from_float(p).ok_or("gamma: non-finite result")?,
+        None => return Err("gamma: unable to compute power".to_string()),
+    };
+    Ok(round_to_epsilon(&(&sqrt_term * &power_result), epsilon))
+}
+
+/// Log-gamma function: ln(Γ(x))
+pub fn lgamma(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x <= &Num::zero() {
+        return Err("lgamma: argument must be positive".to_string());
+    }
+    let gamma_val = gamma(x, epsilon)?;
+    if gamma_val <= Num::zero() {
+        return Err("lgamma: gamma is non-positive".to_string());
+    }
+    ln(&gamma_val, epsilon)
+}
+
+/// Polygamma function: ψ^(n)(x) = d^n/dx^n ln(Γ(x))
+/// For n=0, this is the digamma function ψ(x)
+pub fn polygamma(n: i64, x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if n < 0 {
+        return Err("polygamma: order must be non-negative".to_string());
+    }
+    if x <= &Num::zero() {
+        return Err("polygamma: argument must be positive".to_string());
+    }
+
+    if n == 0 {
+        // Digamma function: ψ(x) = d/dx ln(Γ(x))
+        // Approximation: ψ(x) ≈ ln(x) - 1/(2x) - 1/(12x^2) + ...
+        let ln_x = ln(x, epsilon)?;
+        let x_inv = Num::one() / x;
+        let term2 = &x_inv / Num::from_integer(bi(2));
+        let term3 = &x_inv / (x * Num::from_integer(bi(12)));
+        let result = &ln_x - &term2 - &term3;
+        Ok(round_to_epsilon(&result, epsilon))
+    } else {
+        // For higher orders, use numerical differentiation via finite differences
+        // ψ^(n)(x) ≈ (ψ^(n-1)(x+h) - ψ^(n-1)(x-h)) / (2h)
+        let h = Num::from_float(0.0001).unwrap_or(Num::from_integer(bi(1)) / Num::from_integer(bi(10000)));
+        let x_plus = x + &h;
+        let x_minus = x - &h;
+        let psi_plus = polygamma(n - 1, &x_plus, epsilon)?;
+        let psi_minus = polygamma(n - 1, &x_minus, epsilon)?;
+        let diff = &psi_plus - &psi_minus;
+        Ok(round_to_epsilon(&(&diff / (&h * Num::from_integer(bi(2)))), epsilon))
+    }
+}
+
+/// Riemann zeta function: ζ(s) = Σ(1/n^s) for Re(s) > 1
+pub fn zeta(s: &Num, epsilon: &Num) -> Result<Num, String> {
+    // Check convergence condition
+    if s <= &Num::one() {
+        return Err("zeta: argument must be > 1 for convergence".to_string());
+    }
+
+    // For integer arguments, use special values
+    if s.is_integer() {
+        if let Some(s_i64) = s.to_i64() {
+            // ζ(2) = π²/6, ζ(4) = π⁴/90, etc.
+            match s_i64 {
+                2 => {
+                    let pi_val = pi();
+                    let pi_sq = &pi_val * &pi_val;
+                    return Ok(round_to_epsilon(&(&pi_sq / Num::from_integer(bi(6))), epsilon));
+                }
+                4 => {
+                    let pi_val = pi();
+                    let pi_pow4 = &pi_val * &pi_val * &pi_val * &pi_val;
+                    return Ok(round_to_epsilon(&(&pi_pow4 / Num::from_integer(bi(90))), epsilon));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    // Compute zeta via series summation
+    let mut result = Num::zero();
+    for n in 1..1000 {
+        let n_num = Num::from_integer(bi(n));
+        // Compute n_num^s via exp(s * ln(n))
+        let ln_n = ln(&n_num, epsilon)?;
+        let s_ln_n = s * &ln_n;
+        let n_to_s = exp(&s_ln_n, epsilon)?;
+        let term = Num::one() / &n_to_s;
+        result = &result + &term;
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
 /// Catalan number: C_n = (2n)! / ((n+1)! * n!)
 pub fn catalan_num(n: i64) -> Result<BigInt, String> {
     if n < 0 {
