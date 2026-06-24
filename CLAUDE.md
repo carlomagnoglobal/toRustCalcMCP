@@ -110,18 +110,18 @@ live in `src/` and compile cleanly.
 |------|----------------|
 | `number.rs` | numeric core. `Num = BigRational`. parsing, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `round_to_epsilon`, decimal rendering (`~` marks inexact). **Start here for precision work.** |
 | `number.rs` | **DONE.** Exact rationals, `parse_number`, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `pi()`/`e()` (60-digit constants), `exp`/`ln`/`sin`/`cos`/`tan` (Taylor series, epsilon-aware). |
-| `value.rs` | **DONE.** `Value` enum (`Number`/`Str`/`Null`) + `render(&Config)` for real/frac/int modes. |
+| `value.rs` | **DONE.** `Value` enum (`Number`/`Str`/`Null`/`Function`) + `render(&Config)` for all modes. Functions stored as params + body. |
 | `config.rs` | **DONE.** `Config { epsilon, display, mode }` + `Mode {Real,Frac,Int}` with `parse()`. |
-| `lexer.rs` | **DONE.** Tokenizer: `**`→`^`, `//` (intdiv), `#` comments, strings, `0x`/`0b` literals, sci-notation, `!=/<=/>=`. |
-| `parser.rs` | **DONE.** Pratt parser: `Expr`, `BinOp`, `UnOp` AST. `^` is right-associative. Assignments and function calls parse correctly. |
-| `eval.rs` | **DONE.** Tree-walk `Interp` with config, vars, builtin dispatch. `eval`, `eval_all`, `eval_render`. Control flow (TODO #2) goes here. |
+| `lexer.rs` | **DONE.** Tokenizer: keywords (define/if/for/while/print), `**`→`^`, `//`, blocks `{}`, strings, `0x`/`0b`, sci-notation. |
+| `parser.rs` | **DONE.** Pratt parser: `Expr` including Define, If, While, For, Block, Print. `^` right-assoc. Assignments, calls, control flow. |
+| `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
 | `builtins.rs` | **DONE.** ~30 builtins: arithmetic (abs, sgn, min, max, gcd, lcm, mod), rounding (floor, ceil, round, int, frac), number theory (fact, comb, perm, fib, isprime, nextprime), transcendentals (sin, cos, tan, exp, ln, log, sqrt, pi, e) + `register()` + `catalog()`. TODO #1 (arbitrary precision) replaces f64 shims. |
 | `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, and expression modes. |
 | `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (3 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
-| `tests/integration.rs` | **DONE.** 11 tests: exactness (`1/3*3`), big powers (`2^100`), gcd, fact, isprime, modes (real/frac/int), sqrt, pi(), multiple statements. All passing. |
+| `tests/integration.rs` | **DONE.** 22 tests: exactness, big powers, gcd, fact, isprime, modes, transcendentals, and control flow (define, if, while, for). All passing. |
 | `docs/MCP_TOOL_SCHEMA.json` | **DONE.** Server-emitted schema. Regenerate after tool changes via §7 script. |
 
 ---
@@ -166,12 +166,13 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - ✅ Verified: exp(1) ≈ e(), ln(e()) ≈ 1, sin(π/6) = 0.5, cos(0) = 1
    - ✅ 6 new integration tests added and passing
 
-2. **User-defined functions + control flow** (`define f(x)=…`, `if/for/while`,
-   blocks `{…}`, `print`).
-   - Where: extend `Tok`/`Expr` (`lexer.rs`,`parser.rs`); add a `Func` value and a
-     call frame / scoped env in `eval.rs`; statements return values per calc.
-   - Done when: `define sq(x)=x^2; sq(9)` → 81; a `for`-loop sum test passes; the
-     REPL supports multi-line `define`.
+~~2. **User-defined functions + control flow** — DONE.~~
+   - ✅ Lexer: added keywords `define`, `if`, `for`, `while`, `print` + block delimiters
+   - ✅ Parser: new Expr variants (Define, If, While, For, Block, Print)
+   - ✅ Evaluator: scoped environments (scope_stack) for function calls
+   - ✅ Functions: stored as Value::Function(params, body), callable with args
+   - ✅ Control flow: if/else branching, while loops, for loops (1..n inclusive)
+   - ✅ Verified: `define sq(x) = x^2; sq(9)` → 81; for-loop sum works; 6 new tests pass
 
 3. **Integer / bitwise builtins** (`and,or,xor,comp,shift,bit,highbit,lowbit,
    digits,places,fcnt,...`).
