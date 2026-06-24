@@ -115,13 +115,13 @@ live in `src/` and compile cleanly.
 | `lexer.rs` | **DONE.** Tokenizer: keywords (define/if/for/while/print), `**`→`^`, `//`, blocks `{}`, strings, `0x`/`0b`, sci-notation. |
 | `parser.rs` | **DONE.** Pratt parser: `Expr` including Define, If, While, For, Block, Print. `^` right-assoc. Assignments, calls, control flow. |
 | `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
-| `builtins.rs` | **DONE.** ~30 builtins: arithmetic (abs, sgn, min, max, gcd, lcm, mod), rounding (floor, ceil, round, int, frac), number theory (fact, comb, perm, fib, isprime, nextprime), transcendentals (sin, cos, tan, exp, ln, log, sqrt, pi, e) + `register()` + `catalog()`. TODO #1 (arbitrary precision) replaces f64 shims. |
+| `builtins.rs` | **DONE.** 41 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits. All registered + catalog. |
 | `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, and expression modes. |
 | `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (3 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
-| `tests/integration.rs` | **DONE.** 22 tests: exactness, big powers, gcd, fact, isprime, modes, transcendentals, and control flow (define, if, while, for). All passing. |
+| `tests/integration.rs` | **DONE.** 29 tests: exactness, transcendentals, control flow, and bitwise operations. All passing. |
 | `docs/MCP_TOOL_SCHEMA.json` | **DONE.** Server-emitted schema. Regenerate after tool changes via §7 script. |
 
 ---
@@ -174,11 +174,13 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - ✅ Control flow: if/else branching, while loops, for loops (1..n inclusive)
    - ✅ Verified: `define sq(x) = x^2; sq(9)` → 81; for-loop sum works; 6 new tests pass
 
-3. **Integer / bitwise builtins** (`and,or,xor,comp,shift,bit,highbit,lowbit,
-   digits,places,fcnt,...`).
-   - Where: `builtins.rs` (+ `catalog`). Note: in calc `^` is **power**; bit-xor is
-     a function, not the operator — keep that.
-   - Done when: parity-checked against upstream `calc` for a sampled table; tests added.
+~~3. **Integer / bitwise builtins** — DONE.~~
+   - ✅ Bitwise: `and`, `or`, `xor`, `comp` (complement)
+   - ✅ Shifts: `lshift`, `rshift` (left/right shift by n bits)
+   - ✅ Bit inspection: `bit` (test bit n), `highbit`, `lowbit` (MSB/LSB position)
+   - ✅ Utilities: `fcnt` (count set bits), `digits(x[, base])` (digit count)
+   - ✅ Examples: and(12,10)→8, or(12,10)→14, xor(12,10)→6, lshift(3,2)→12
+   - ✅ Verified: all operations work on integers; 7 new tests pass
 
 4. **`-f file.cal` resource loading** for the CLI.
    - Where: `cli.rs` (read file → `Interp::eval_all`); honor `-s`/`-q` interplay.
