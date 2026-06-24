@@ -456,6 +456,27 @@ fn f_tan(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(number::tan(n(a, 0)?, &eps)?))
 }
 
+// Cotangent
+fn f_cot(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cot", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::cot(n(a, 0)?, &eps)?))
+}
+
+// Secant
+fn f_sec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("sec", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::sec(n(a, 0)?, &eps)?))
+}
+
+// Cosecant
+fn f_csc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("csc", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::csc(n(a, 0)?, &eps)?))
+}
+
 // Inverse sine
 fn f_asin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("asin", a, 1)?;
@@ -484,6 +505,27 @@ fn f_atan2(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(number::atan2(n(a, 0)?, n(a, 1)?, &eps)?))
 }
 
+// Inverse cotangent
+fn f_acot(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acot", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::acot(n(a, 0)?, &eps)?))
+}
+
+// Inverse secant
+fn f_asec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("asec", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::asec(n(a, 0)?, &eps)?))
+}
+
+// Inverse cosecant
+fn f_acsc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acsc", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::acsc(n(a, 0)?, &eps)?))
+}
+
 // Hyperbolic sine
 fn f_sinh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("sinh", a, 1)?;
@@ -505,6 +547,27 @@ fn f_tanh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(number::tanh(n(a, 0)?, &eps)?))
 }
 
+// Hyperbolic cotangent
+fn f_coth(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("coth", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::coth(n(a, 0)?, &eps)?))
+}
+
+// Hyperbolic secant
+fn f_sech(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("sech", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::sech(n(a, 0)?, &eps)?))
+}
+
+// Hyperbolic cosecant
+fn f_csch(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("csch", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::csch(n(a, 0)?, &eps)?))
+}
+
 // Inverse hyperbolic sine
 fn f_asinh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("asinh", a, 1)?;
@@ -524,6 +587,27 @@ fn f_atanh(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("atanh", a, 1)?;
     let eps = it.epsilon();
     Ok(Value::Number(number::atanh(n(a, 0)?, &eps)?))
+}
+
+// Inverse hyperbolic cotangent
+fn f_acoth(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acoth", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::acoth(n(a, 0)?, &eps)?))
+}
+
+// Inverse hyperbolic secant
+fn f_asech(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("asech", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::asech(n(a, 0)?, &eps)?))
+}
+
+// Inverse hyperbolic cosecant
+fn f_acsch(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acsch", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::acsch(n(a, 0)?, &eps)?))
 }
 
 // Cosine + sine
@@ -1022,16 +1106,28 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("sin".to_string(), f_sin as BuiltinFn);
     builtins.insert("cos".to_string(), f_cos as BuiltinFn);
     builtins.insert("tan".to_string(), f_tan as BuiltinFn);
+    builtins.insert("cot".to_string(), f_cot as BuiltinFn);
+    builtins.insert("sec".to_string(), f_sec as BuiltinFn);
+    builtins.insert("csc".to_string(), f_csc as BuiltinFn);
     builtins.insert("asin".to_string(), f_asin as BuiltinFn);
     builtins.insert("acos".to_string(), f_acos as BuiltinFn);
     builtins.insert("atan".to_string(), f_atan as BuiltinFn);
     builtins.insert("atan2".to_string(), f_atan2 as BuiltinFn);
+    builtins.insert("acot".to_string(), f_acot as BuiltinFn);
+    builtins.insert("asec".to_string(), f_asec as BuiltinFn);
+    builtins.insert("acsc".to_string(), f_acsc as BuiltinFn);
     builtins.insert("sinh".to_string(), f_sinh as BuiltinFn);
     builtins.insert("cosh".to_string(), f_cosh as BuiltinFn);
     builtins.insert("tanh".to_string(), f_tanh as BuiltinFn);
+    builtins.insert("coth".to_string(), f_coth as BuiltinFn);
+    builtins.insert("sech".to_string(), f_sech as BuiltinFn);
+    builtins.insert("csch".to_string(), f_csch as BuiltinFn);
     builtins.insert("asinh".to_string(), f_asinh as BuiltinFn);
     builtins.insert("acosh".to_string(), f_acosh as BuiltinFn);
     builtins.insert("atanh".to_string(), f_atanh as BuiltinFn);
+    builtins.insert("acoth".to_string(), f_acoth as BuiltinFn);
+    builtins.insert("asech".to_string(), f_asech as BuiltinFn);
+    builtins.insert("acsch".to_string(), f_acsch as BuiltinFn);
     builtins.insert("cas".to_string(), f_cas as BuiltinFn);
     builtins.insert("cis".to_string(), f_cis as BuiltinFn);
     builtins.insert("conj".to_string(), f_conj as BuiltinFn);
@@ -1118,16 +1214,28 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("sin", "sin(x)", "sine (radians)"),
         ("cos", "cos(x)", "cosine (radians)"),
         ("tan", "tan(x)", "tangent (radians)"),
+        ("cot", "cot(x)", "cotangent (radians)"),
+        ("sec", "sec(x)", "secant (radians)"),
+        ("csc", "csc(x)", "cosecant (radians)"),
         ("asin", "asin(x)", "inverse sine"),
         ("acos", "acos(x)", "inverse cosine"),
         ("atan", "atan(x)", "inverse tangent"),
         ("atan2", "atan2(y,x)", "two-argument inverse tangent"),
+        ("acot", "acot(x)", "inverse cotangent"),
+        ("asec", "asec(x)", "inverse secant"),
+        ("acsc", "acsc(x)", "inverse cosecant"),
         ("sinh", "sinh(x)", "hyperbolic sine"),
         ("cosh", "cosh(x)", "hyperbolic cosine"),
         ("tanh", "tanh(x)", "hyperbolic tangent"),
+        ("coth", "coth(x)", "hyperbolic cotangent"),
+        ("sech", "sech(x)", "hyperbolic secant"),
+        ("csch", "csch(x)", "hyperbolic cosecant"),
         ("asinh", "asinh(x)", "inverse hyperbolic sine"),
         ("acosh", "acosh(x)", "inverse hyperbolic cosine"),
         ("atanh", "atanh(x)", "inverse hyperbolic tangent"),
+        ("acoth", "acoth(x)", "inverse hyperbolic cotangent"),
+        ("asech", "asech(x)", "inverse hyperbolic secant"),
+        ("acsch", "acsch(x)", "inverse hyperbolic cosecant"),
         ("cas", "cas(x)", "cosine + sine"),
         ("cis", "cis(x)", "cos(x) + i*sin(x) (returns complex)"),
         ("conj", "conj(x)", "complex conjugate"),

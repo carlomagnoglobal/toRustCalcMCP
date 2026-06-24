@@ -355,6 +355,34 @@ pub fn tan(x: &Num, epsilon: &Num) -> Result<Num, String> {
     Ok(round_to_epsilon(&(&s / &c), epsilon))
 }
 
+/// Cotangent: cot(x) = cos(x) / sin(x), to within `epsilon`.
+pub fn cot(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let s = sin(x, epsilon)?;
+    let c = cos(x, epsilon)?;
+    if s.is_zero() {
+        return Err("cot: undefined (sin = 0)".to_string());
+    }
+    Ok(round_to_epsilon(&(&c / &s), epsilon))
+}
+
+/// Secant: sec(x) = 1 / cos(x), to within `epsilon`.
+pub fn sec(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let c = cos(x, epsilon)?;
+    if c.is_zero() {
+        return Err("sec: undefined (cos = 0)".to_string());
+    }
+    Ok(round_to_epsilon(&(Num::one() / &c), epsilon))
+}
+
+/// Cosecant: csc(x) = 1 / sin(x), to within `epsilon`.
+pub fn csc(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let s = sin(x, epsilon)?;
+    if s.is_zero() {
+        return Err("csc: undefined (sin = 0)".to_string());
+    }
+    Ok(round_to_epsilon(&(Num::one() / &s), epsilon))
+}
+
 /// Inverse sine: asin(x) via Newton's method or series, to within `epsilon`.
 pub fn asin(x: &Num, epsilon: &Num) -> Result<Num, String> {
     if &x.abs() > &Num::one() {
@@ -450,6 +478,36 @@ pub fn atan2(y: &Num, x: &Num, epsilon: &Num) -> Result<Num, String> {
     Ok(round_to_epsilon(&result, epsilon))
 }
 
+/// Inverse cotangent: acot(x) = atan(1/x) for x > 0, or pi + atan(1/x) for x < 0.
+pub fn acot(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x.is_zero() {
+        return Ok(&pi() / Num::from_integer(bi(2)));
+    }
+    let atan_val = atan(&(Num::one() / x), epsilon)?;
+    let result = if x.is_positive() {
+        atan_val
+    } else {
+        atan_val + pi()
+    };
+    Ok(round_to_epsilon(&result, epsilon))
+}
+
+/// Inverse secant: asec(x) = acos(1/x) for |x| >= 1.
+pub fn asec(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if &x.abs() < &Num::one() {
+        return Err("asec: domain error (|x| < 1)".to_string());
+    }
+    acos(&(Num::one() / x), epsilon)
+}
+
+/// Inverse cosecant: acsc(x) = asin(1/x) for |x| >= 1.
+pub fn acsc(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if &x.abs() < &Num::one() {
+        return Err("acsc: domain error (|x| < 1)".to_string());
+    }
+    asin(&(Num::one() / x), epsilon)
+}
+
 /// Hyperbolic sine: sinh(x) = (e^x - e^-x) / 2, to within `epsilon`.
 pub fn sinh(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let exp_x = exp(x, epsilon)?;
@@ -472,6 +530,34 @@ pub fn tanh(x: &Num, epsilon: &Num) -> Result<Num, String> {
         return Err("tanh: cosh is zero".to_string());
     }
     Ok(round_to_epsilon(&(&sinh_val / &cosh_val), epsilon))
+}
+
+/// Hyperbolic cotangent: coth(x) = cosh(x) / sinh(x).
+pub fn coth(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let sinh_val = sinh(x, epsilon)?;
+    let cosh_val = cosh(x, epsilon)?;
+    if sinh_val.is_zero() {
+        return Err("coth: undefined (sinh = 0)".to_string());
+    }
+    Ok(round_to_epsilon(&(&cosh_val / &sinh_val), epsilon))
+}
+
+/// Hyperbolic secant: sech(x) = 1 / cosh(x).
+pub fn sech(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let cosh_val = cosh(x, epsilon)?;
+    if cosh_val.is_zero() {
+        return Err("sech: undefined (cosh = 0)".to_string());
+    }
+    Ok(round_to_epsilon(&(Num::one() / &cosh_val), epsilon))
+}
+
+/// Hyperbolic cosecant: csch(x) = 1 / sinh(x).
+pub fn csch(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let sinh_val = sinh(x, epsilon)?;
+    if sinh_val.is_zero() {
+        return Err("csch: undefined (sinh = 0)".to_string());
+    }
+    Ok(round_to_epsilon(&(Num::one() / &sinh_val), epsilon))
 }
 
 /// Inverse hyperbolic sine: asinh(x) = ln(x + sqrt(x^2 + 1)), to within `epsilon`.
@@ -504,6 +590,49 @@ pub fn atanh(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let ratio = &numerator / &denominator;
     let ln_val = ln(&ratio, epsilon)?;
     Ok(round_to_epsilon(&(&ln_val / Num::from_integer(bi(2))), epsilon))
+}
+
+/// Inverse hyperbolic cotangent: acoth(x) = 0.5 * ln((x+1)/(x-1)) for |x| > 1.
+pub fn acoth(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if &x.abs() <= &Num::one() {
+        return Err("acoth: domain error (|x| <= 1)".to_string());
+    }
+    let one = Num::one();
+    let numerator = x + &one;
+    let denominator = x - &one;
+    let ratio = &numerator / &denominator;
+    let ln_val = ln(&ratio, epsilon)?;
+    Ok(round_to_epsilon(&(&ln_val / Num::from_integer(bi(2))), epsilon))
+}
+
+/// Inverse hyperbolic secant: asech(x) = ln(1/x + sqrt(1/x^2 - 1)) for 0 < x <= 1.
+pub fn asech(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x <= &Num::zero() || x > &Num::one() {
+        return Err("asech: domain error (x not in (0, 1])".to_string());
+    }
+    let one = Num::one();
+    let x_inv = &one / x;
+    let x_inv_sq = &x_inv * &x_inv;
+    let sqrt_val = sqrt(&(&x_inv_sq - &one), epsilon)?;
+    let arg = &x_inv + &sqrt_val;
+    ln(&arg, epsilon)
+}
+
+/// Inverse hyperbolic cosecant: acsch(x) = ln(1/x + sqrt(1/x^2 + 1)) for x != 0.
+pub fn acsch(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x.is_zero() {
+        return Err("acsch: undefined (x = 0)".to_string());
+    }
+    let one = Num::one();
+    let x_inv = &one / x;
+    let x_inv_sq = &x_inv * &x_inv;
+    let sqrt_val = sqrt(&(&x_inv_sq + &one), epsilon)?;
+    let arg = if x.is_positive() {
+        &x_inv + &sqrt_val
+    } else {
+        &x_inv - &sqrt_val
+    };
+    ln(&arg, epsilon)
 }
 
 /// Cosine + Sine: cas(x) = cos(x) + sin(x), to within `epsilon`.

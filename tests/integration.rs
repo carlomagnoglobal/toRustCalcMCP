@@ -723,3 +723,128 @@ fn test_g2r() {
     let val: f64 = clean.parse().unwrap_or(0.0);
     assert!((val - std::f64::consts::PI).abs() < 0.001);
 }
+
+// Phase 4.1: Trigonometric Variants
+
+#[test]
+fn test_cot() {
+    let mut it = Interp::new();
+    // cot(π/4) = 1
+    let result = it.eval_render("cot(pi()/4)").unwrap();
+    assert!(result == "1" || result == "~1");
+}
+
+#[test]
+fn test_sec() {
+    let mut it = Interp::new();
+    // sec(0) = 1
+    let result = it.eval_render("sec(0)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 1.0).abs() < 0.0001);
+}
+
+#[test]
+fn test_csc() {
+    let mut it = Interp::new();
+    // csc(π/2) = 1
+    let result = it.eval_render("csc(pi()/2)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 1.0).abs() < 0.0001);
+}
+
+#[test]
+fn test_acot() {
+    let mut it = Interp::new();
+    // acot(1) should be π/4
+    let result = it.eval_render("acot(1)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    let expected = std::f64::consts::PI / 4.0;
+    assert!((val - expected).abs() < 0.01);
+}
+
+#[test]
+fn test_asec() {
+    let mut it = Interp::new();
+    // asec(2) should be π/3
+    let result = it.eval_render("asec(2)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    let expected = std::f64::consts::PI / 3.0;
+    assert!((val - expected).abs() < 0.01);
+}
+
+#[test]
+fn test_acsc() {
+    let mut it = Interp::new();
+    // acsc(2) should be π/6
+    let result = it.eval_render("acsc(2)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    let expected = std::f64::consts::PI / 6.0;
+    assert!((val - expected).abs() < 0.01);
+}
+
+#[test]
+fn test_coth() {
+    let mut it = Interp::new();
+    // coth(x) should be defined for nonzero x
+    let result = it.eval_render("coth(1)").unwrap();
+    let _val: f64 = result.trim_start_matches('~').parse().unwrap_or(0.0);
+    // Just verify it evaluates without error
+    assert!(!result.is_empty());
+}
+
+#[test]
+fn test_sech() {
+    let mut it = Interp::new();
+    // sech(0) = 1
+    let result = it.eval_render("sech(0)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 1.0).abs() < 0.0001);
+}
+
+#[test]
+fn test_csch() {
+    let mut it = Interp::new();
+    // csch(x) should be defined for nonzero x
+    let result = it.eval_render("csch(1)").unwrap();
+    let _val: f64 = result.trim_start_matches('~').parse().unwrap_or(0.0);
+    // Just verify it evaluates without error
+    assert!(!result.is_empty());
+}
+
+#[test]
+fn test_acoth() {
+    let mut it = Interp::new();
+    // acoth(2) should be a specific value
+    let result = it.eval_render("acoth(2)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    // acoth(2) = 0.5 * ln(3) ≈ 0.549...
+    assert!((val - 0.549).abs() < 0.01);
+}
+
+#[test]
+fn test_asech() {
+    let mut it = Interp::new();
+    // asech(0.5) should be a specific value
+    let result = it.eval_render("asech(0.5)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    // asech(0.5) = ln(1 + sqrt(3)) ≈ 1.317...
+    assert!((val - 1.317).abs() < 0.01);
+}
+
+#[test]
+fn test_acsch() {
+    let mut it = Interp::new();
+    // acsch(1) = ln(1 + sqrt(2)) ≈ 0.881...
+    let result = it.eval_render("acsch(1)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 0.881).abs() < 0.01);
+}
