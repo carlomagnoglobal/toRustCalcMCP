@@ -16,6 +16,10 @@ pub struct Interp {
     pub scope_stack: Vec<HashMap<String, Value>>, // Stack of local scopes
     pub builtins: HashMap<String, BuiltinFn>,
     pub rng_seed: u64, // Seed for RNG (LCG-style)
+    pub error_count: i64, // Number of errors occurred
+    pub error_max: i64, // Max errors before stopping (0 = unlimited)
+    pub last_errno: i64, // Last error code
+    pub error_messages: HashMap<i64, String>, // Error code to message mapping
 }
 
 impl Default for Interp {
@@ -26,6 +30,10 @@ impl Default for Interp {
             scope_stack: Vec::new(),
             builtins: HashMap::new(),
             rng_seed: 1, // Default seed
+            error_count: 0,
+            error_max: 0, // 0 = unlimited
+            last_errno: 0,
+            error_messages: HashMap::new(),
         };
         builtins::register(&mut it.builtins);
         it

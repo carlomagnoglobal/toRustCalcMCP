@@ -15,13 +15,14 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 5.5 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 184 builtins, CLI, MCP server, and 174 integration
+Current status: **Phase 6.3 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 191 builtins, CLI, MCP server, and 181 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
-Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays).
+Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
+Phase 6.3 complete (error & exception handling with error state tracking).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -433,14 +434,18 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - [ ] `depth()` — stack depth
    - [ ] Memory address functions (advanced)
 
-### 6.3 Error & Exception Handling (7 functions)
-   - [ ] `errcount()` — number of errors so far
-   - [ ] `errmax(n)` — set max errors before stop
-   - [ ] `errno()` — last error code
-   - [ ] `errsym(code)` — error name from code
-   - [ ] `error(msg)` — raise error
-   - [ ] `newerror(msg)` — raise new error type
-   - [ ] `warn(msg)` — issue warning
+### 6.3 Error & Exception Handling — DONE
+   - ✅ `errcount()` — number of errors so far
+   - ✅ `errmax(n)` — set max errors before stop
+   - ✅ `errno()` — last error code
+   - ✅ `errsym(code)` — error name from code
+   - ✅ `error(msg)` — raise error
+   - ✅ `newerror(code,msg)` — register new error type
+   - ✅ `warn(msg)` — issue warning
+   - ✅ Added error state fields to Interp (error_count, error_max, last_errno, error_messages)
+   - ✅ 7 new integration tests added and passing
+   - Builtins: 184 → 191 (+7)
+   - Total tests: 174 → 181 (+7)
 
 ### 6.4 Command & Script Functions (4 functions)
    - [ ] `argv(n)` — nth command-line argument

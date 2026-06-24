@@ -1529,3 +1529,62 @@ fn test_join_values() {
     // Values should be joined
     assert!(result.contains(","));
 }
+
+// Phase 6.3: Error & Exception Handling
+
+#[test]
+fn test_errcount_initial() {
+    let mut it = Interp::new();
+    // Initial error count should be 0
+    let result = it.eval_render("errcount()").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_errno_initial() {
+    let mut it = Interp::new();
+    // Initial errno should be 0
+    let result = it.eval_render("errno()").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_errmax_set_and_get() {
+    let mut it = Interp::new();
+    // set max errors to 5, returns old value (0)
+    let result = it.eval_render("errmax(5)").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_errsym_known_error() {
+    let mut it = Interp::new();
+    // get error message for known error code
+    let result = it.eval_render("errsym(1)").unwrap();
+    assert_eq!(result.trim(), "syntax error");
+}
+
+#[test]
+fn test_errsym_unknown_error() {
+    let mut it = Interp::new();
+    // get error message for unknown error code
+    let result = it.eval_render("errsym(999)").unwrap();
+    assert_eq!(result.trim(), "unknown error");
+}
+
+#[test]
+fn test_newerror_register() {
+    let mut it = Interp::new();
+    // register a new error type
+    let result = it.eval_render("newerror(100, \"custom error\")").unwrap();
+    assert_eq!(result.trim(), "100");
+}
+
+#[test]
+fn test_newerror_and_lookup() {
+    let mut it = Interp::new();
+    // register and then lookup a custom error
+    it.eval_render("newerror(200, \"my custom error\")").unwrap();
+    let result = it.eval_render("errsym(200)").unwrap();
+    assert_eq!(result.trim(), "my custom error");
+}

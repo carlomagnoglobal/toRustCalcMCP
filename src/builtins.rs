@@ -1526,6 +1526,90 @@ fn f_join(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// Phase 6.3: Error & Exception Handling
+
+// Get error count
+fn f_errcount(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("errcount", a, 0)?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(it.error_count))))
+}
+
+// Set maximum number of errors before stopping
+fn f_errmax(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("errmax", a, 1)?;
+    let max = int(a, 0)?.to_i64().ok_or("errmax: value out of range")?;
+    let old_max = it.error_max;
+    it.error_max = max;
+    Ok(Value::Number(Num::from_integer(BigInt::from(old_max))))
+}
+
+// Get last error code
+fn f_errno(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("errno", a, 0)?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(it.last_errno))))
+}
+
+// Get error message for error code
+fn f_errsym(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("errsym", a, 1)?;
+    let code = int(a, 0)?.to_i64().ok_or("errsym: code out of range")?;
+    match it.error_messages.get(&code) {
+        Some(msg) => Ok(Value::Str(msg.clone())),
+        None => {
+            // Return a default error message
+            let default_msg = match code {
+                1 => "syntax error",
+                2 => "undefined variable",
+                3 => "division by zero",
+                4 => "type error",
+                5 => "range error",
+                _ => "unknown error",
+            };
+            Ok(Value::Str(default_msg.to_string()))
+        }
+    }
+}
+
+// Raise an error
+fn f_error(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("error", a, 1)?;
+    let msg = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("error: argument must be a string".to_string()),
+    };
+    it.error_count += 1;
+    it.last_errno = 1; // Generic error code
+    if it.error_max > 0 && it.error_count >= it.error_max {
+        Err(format!("error limit exceeded: {}", msg))
+    } else {
+        Err(msg)
+    }
+}
+
+// Register a new error type
+fn f_newerror(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("newerror", a, 2)?;
+    let code = int(a, 0)?.to_i64().ok_or("newerror: code out of range")?;
+    let msg = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("newerror: message must be a string".to_string()),
+    };
+    it.error_messages.insert(code, msg);
+    Ok(Value::Number(Num::from_integer(BigInt::from(code))))
+}
+
+// Issue a warning (doesn't count as error)
+fn f_warn(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("warn", a, 1)?;
+    let msg = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("warn: argument must be a string".to_string()),
+    };
+    // Print warning to stderr
+    eprintln!("warning: {}", msg);
+    Ok(Value::Null)
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -2096,6 +2180,14 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("delete".to_string(), f_delete as BuiltinFn);
     builtins.insert("count".to_string(), f_count as BuiltinFn);
     builtins.insert("join".to_string(), f_join as BuiltinFn);
+    // Error & exception handling (Phase 6.3)
+    builtins.insert("errcount".to_string(), f_errcount as BuiltinFn);
+    builtins.insert("errmax".to_string(), f_errmax as BuiltinFn);
+    builtins.insert("errno".to_string(), f_errno as BuiltinFn);
+    builtins.insert("errsym".to_string(), f_errsym as BuiltinFn);
+    builtins.insert("error".to_string(), f_error as BuiltinFn);
+    builtins.insert("newerror".to_string(), f_newerror as BuiltinFn);
+    builtins.insert("warn".to_string(), f_warn as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -2274,5 +2366,13 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("delete", "delete(h,key)", "delete key from hash"),
         ("count", "count(h)", "count key-value pairs in hash"),
         ("join", "join(h,sep)", "join hash values with separator"),
+        // Error & exception handling (Phase 6.3)
+        ("errcount", "errcount()", "number of errors occurred"),
+        ("errmax", "errmax(n)", "set max errors before stopping (0=unlimited)"),
+        ("errno", "errno()", "last error code"),
+        ("errsym", "errsym(code)", "error message for error code"),
+        ("error", "error(msg)", "raise an error with message"),
+        ("newerror", "newerror(code,msg)", "register a new error type"),
+        ("warn", "warn(msg)", "issue a warning (not counted as error)"),
     ]
 }

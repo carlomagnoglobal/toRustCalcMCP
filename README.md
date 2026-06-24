@@ -73,7 +73,7 @@ changes them for the session.
 - Lists: `list(1,2,3); append(x,4); slice(x,1,3)`.
 - Complex numbers: `sqrt(-1)` → `i`; arithmetic with `+`, `-`, `*`, `/`.
 - String literals: `"hello"; strlen(s); index(haystack, needle)`.
-- **184 builtins** (53% of calc's ~350) organized by category — see implementation status below.
+- **191 builtins** (55% of calc's ~350) organized by category — see implementation status below.
 
 ## Precision model
 
@@ -84,9 +84,9 @@ and Newton's method. `sqrt`, `sin`, `cos`, etc. converge until term < epsilon.
 `pi`/`e` are 60-digit constants. A leading `~` in real-mode output marks an
 inexact (rounded/non-terminating) rendering, as in calc.
 
-## Implementation Status — 184 of ~350 builtins (53% coverage)
+## Implementation Status — 191 of ~350 builtins (55% coverage)
 
-calc upstream has ~350 builtins. This port implements **184 core functions** organized by category:
+calc upstream has ~350 builtins. This port implements **191 core functions** organized by category:
 
 ### ✅ Fully Implemented Categories
 
