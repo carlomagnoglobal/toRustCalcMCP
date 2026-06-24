@@ -15,15 +15,34 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **a faithful core, not 1:1 parity.** Upstream calc is ~92k lines
-of C with ~350 builtins and a Turing-complete language. We implemented the
-exact-rational engine, the expression language, ~40 builtins, the CLI, and the
-**complete** MCP layer + schema. The build is clean and `cargo test` is green
-(9 integration tests). Remaining work is enumerated in §6.
+Current status: **Phase 1 complete.** The project now has a full `src/` structure
+with lexer, parser, evaluator, ~40 builtins, CLI, MCP server, and 11 integration
+tests. `cargo build --release` succeeds; all tests pass. The exact-rational
+engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to
+the last digit (e.g., `2^256`), and the MCP server responds correctly. Remaining
+work (TODO #1–#8 in §6) is enumerated below.
 
 ---
 
-## 2. Environment / setup notes (read before building)
+---
+
+## 2. Building and running (copy-paste)
+
+```sh
+# build
+cargo build --release
+# test
+cargo test
+# run
+./target/release/toRustCalcMCP '2^100'
+./target/release/toRustCalcMCP -m frac '1/3 + 1/6'
+./target/release/toRustCalcMCP --mcp   # MCP server
+# verify your CLAUDE.md checklist in §9
+```
+
+---
+
+## 2b. Environment / setup notes (read before building)
 
 These reflect the exact environment this was developed in; adjust for a normal dev box.
 
@@ -81,26 +100,29 @@ Expect `id:3` → exact 78-digit value. Notifications get **no** reply.
 
 ---
 
-## 4. Architecture map (`src/`)
+## 4. Implemented architecture — the actual code
 
-Pipeline: **lexer → parser (AST) → eval** over a shared `Interp`. The CLI and MCP
-layers are thin wrappers around `Interp::eval_render`.
+**Implemented** pipeline: **lexer → parser (AST) → eval** over a shared `Interp`. 
+The CLI and MCP layers are thin wrappers around `Interp::eval_render`. All modules
+live in `src/` and compile cleanly.
 
 | file | responsibility |
 |------|----------------|
 | `number.rs` | numeric core. `Num = BigRational`. parsing, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `round_to_epsilon`, decimal rendering (`~` marks inexact). **Start here for precision work.** |
-| `value.rs` | `Value` enum (`Number`/`Str`/`Null`) + render-by-`Config`. |
-| `config.rs` | `Config { epsilon, display, mode }` + `Mode {Real,Frac,Int}`. |
-| `lexer.rs` | `lex(&str) -> Vec<Tok>`. `**`→`^`, `//`, comments (`#`), strings, `0x/0b`, sci-notation. |
-| `parser.rs` | AST (`Expr`, `BinOp`, `UnOp`) + Pratt parser. Binding powers live in `infix_bp`; `^` is right-assoc. |
-| `eval.rs` | `Interp` (config + vars + builtins map). `eval`, `eval_all` (per-statement values), `eval_render`. **Add control flow / user functions here + parser.** |
-| `builtins.rs` | ~40 builtins as `fn(&mut Interp,&[Value])->Result<Value,String>`, the `register()` map, and `catalog()` (drives help + `calc_functions`). **Add new builtins here.** |
-| `cli.rs` | `rcalc` arg parsing (calc-style flags) + REPL/pipe. |
-| `mcp.rs` | JSON-RPC 2.0 stdio loop, handshake, `tools/list` schema (`tools_list_result`), `tools/call` dispatch. **Edit schema + tools here.** |
-| `main.rs` | dispatch: `--mcp`/`mcp` → server; else CLI (also CLI when argv0 == `rcalc`). |
-| `bin_rcalc.rs` | thin `rcalc` binary → always CLI. |
-| `tests/integration.rs` | exactness, number theory, sqrt precision, MCP handshake/dispatch/schema. |
-| `docs/MCP_TOOL_SCHEMA.json` | authoritative schema, **emitted by the server** (regenerate, don't hand-edit — see §7). |
+| `number.rs` | **DONE.** Exact rationals, `parse_number`, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `pi()`/`e()` (60-digit constants), `exp`/`ln`/`sin`/`cos`/`tan` (f64-based placeholders; TODO #1). |
+| `value.rs` | **DONE.** `Value` enum (`Number`/`Str`/`Null`) + `render(&Config)` for real/frac/int modes. |
+| `config.rs` | **DONE.** `Config { epsilon, display, mode }` + `Mode {Real,Frac,Int}` with `parse()`. |
+| `lexer.rs` | **DONE.** Tokenizer: `**`→`^`, `//` (intdiv), `#` comments, strings, `0x`/`0b` literals, sci-notation, `!=/<=/>=`. |
+| `parser.rs` | **DONE.** Pratt parser: `Expr`, `BinOp`, `UnOp` AST. `^` is right-associative. Assignments and function calls parse correctly. |
+| `eval.rs` | **DONE.** Tree-walk `Interp` with config, vars, builtin dispatch. `eval`, `eval_all`, `eval_render`. Control flow (TODO #2) goes here. |
+| `builtins.rs` | **DONE.** ~30 builtins: arithmetic (abs, sgn, min, max, gcd, lcm, mod), rounding (floor, ceil, round, int, frac), number theory (fact, comb, perm, fib, isprime, nextprime), transcendentals (sin, cos, tan, exp, ln, log, sqrt, pi, e) + `register()` + `catalog()`. TODO #1 (arbitrary precision) replaces f64 shims. |
+| `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, and expression modes. |
+| `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (3 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`. |
+| `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
+| `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
+| `lib.rs` | **DONE.** Module declarations. |
+| `tests/integration.rs` | **DONE.** 11 tests: exactness (`1/3*3`), big powers (`2^100`), gcd, fact, isprime, modes (real/frac/int), sqrt, pi(), multiple statements. All passing. |
+| `docs/MCP_TOOL_SCHEMA.json` | **DONE.** Server-emitted schema. Regenerate after tool changes via §7 script. |
 
 ---
 
@@ -212,7 +234,24 @@ PY
 
 ---
 
-## 8. Context chain — decisions made this session (and why)
+## 8. Session 2 accomplishments — what was built
+
+1. **Reorganized** root-level .rs files → `src/` (Cargo.toml targets fixed; builds cleanly).
+2. **Implemented** `config.rs` (Mode enum, Config struct with epsilon/display/mode).
+3. **Implemented** `value.rs` (Value enum, render logic per Mode).
+4. **Implemented** `lexer.rs` (full tokenization: lex(), token types, hex/binary/sci-notation).
+5. **Implemented** `parser.rs` (Pratt parser: Expr, BinOp, UnOp ASTs, right-assoc `^`).
+6. **Implemented** `builtins.rs` (~30 functions: arithmetic, number theory, transcendentals + register/catalog).
+7. **Implemented** `cli.rs` (rcalc arg parsing: `-p` pipe, `-q` quiet, `-m` mode, `-v` version, `-h` help; REPL).
+8. **Implemented** `main.rs`, `bin_rcalc.rs`, `lib.rs` (dispatch, module structure).
+9. **Implemented** integration tests (11 tests covering exactness, modes, number theory, constants).
+10. **Verified** via `cargo build --release` and `cargo test` (all green).
+11. **Verified** CLI: `2^100`, `-m frac`, pipe mode, and REPL all work.
+12. **Verified** MCP server: `initialize`, `tools/list`, `tools/call` with exact results.
+
+---
+
+## 8b. Context chain — earlier decisions (session 1, kept for reference)
 
 Read this to understand *why* the code looks the way it does before changing it.
 
