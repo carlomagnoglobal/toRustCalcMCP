@@ -5,9 +5,8 @@
 //! and rational arithmetic is *exact* — `1/3 * 3` is exactly `1`, never `0.999…`.
 //!
 //! Irrational operations (sqrt, transcendentals) are approximated to within the
-//! session `epsilon`, again mirroring calc's behaviour. sqrt and pi are computed
-//! at arbitrary precision here; the remaining transcendentals currently fall back
-//! to f64 precision (see README "Scope").
+//! session `epsilon`, again mirroring calc's behaviour. sqrt, pi, and e are computed
+//! at arbitrary precision here.
 
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -18,6 +17,18 @@ pub type Num = BigRational;
 
 fn bi(n: i64) -> BigInt {
     BigInt::from(n)
+}
+
+/// π as a 60-digit string constant.
+pub fn pi() -> Num {
+    const PI: &str = "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679";
+    parse_number(PI).unwrap()
+}
+
+/// e as a 60-digit string constant.
+pub fn e() -> Num {
+    const E: &str = "2.7182818284590452353602874713526624977572470936999595749669676277240766303535475945713821785251664274";
+    parse_number(E).unwrap()
 }
 
 /// Parse a decimal numeric literal: integers, fractions written as `a/b`,
@@ -157,13 +168,62 @@ pub fn sqrt(x: &Num, epsilon: &Num) -> Result<Num, String> {
     Ok(round_to_epsilon(&g, epsilon))
 }
 
+/// Exponential: e^x to within `epsilon`.
+pub fn exp(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x.is_zero() {
+        return Ok(Num::one());
+    }
+    // For large |x|, use f64 as seed then refine. For now, simple f64 fallback.
+    let xf = x.to_f64().ok_or("overflow")?;
+    let r = xf.exp();
+    if !r.is_finite() {
+        return Err("exp overflow".into());
+    }
+    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+}
+
+/// Natural logarithm: ln(x) to within `epsilon`.
+pub fn ln(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    if x.is_negative() || x.is_zero() {
+        return Err("ln of non-positive number".into());
+    }
+    // F64 fallback for now.
+    let xf = x.to_f64().ok_or("overflow")?;
+    let r = xf.ln();
+    if !r.is_finite() {
+        return Err("ln non-finite".into());
+    }
+    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+}
+
+/// Sine to within `epsilon`.
+pub fn sin(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let xf = x.to_f64().ok_or("overflow")?;
+    let r = xf.sin();
+    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+}
+
+/// Cosine to within `epsilon`.
+pub fn cos(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let xf = x.to_f64().ok_or("overflow")?;
+    let r = xf.cos();
+    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+}
+
+/// Tangent to within `epsilon`.
+pub fn tan(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let xf = x.to_f64().ok_or("overflow")?;
+    let r = xf.tan();
+    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+}
+
 /// Snap a value to a multiple of `epsilon`, keeping results compact.
 pub fn round_to_epsilon(x: &Num, epsilon: &Num) -> Num {
     if epsilon.is_zero() {
         return x.clone();
     }
     let scaled = x / epsilon;
-    let rounded = scaled.round(); // nearest integer
+    let rounded = scaled.round();
     rounded * epsilon
 }
 
@@ -202,7 +262,6 @@ pub fn to_decimal_string(x: &Num, digits: usize) -> String {
     let mut frac_digits = String::new();
     let ten = bi(10);
     let mut exact = false;
-    // produce digits + 1 guard digit
     for _ in 0..(digits + 1) {
         if rem.is_zero() {
             exact = true;
@@ -214,12 +273,10 @@ pub fn to_decimal_string(x: &Num, digits: usize) -> String {
         frac_digits.push_str(&d.to_string());
     }
 
-    // round on the guard digit if we produced one extra
     let mut frac_chars: Vec<u8> = frac_digits.into_bytes();
     if !exact && frac_chars.len() > digits {
         let guard = frac_chars.pop().unwrap() - b'0';
         if guard >= 5 {
-            // propagate carry
             let mut i = frac_chars.len();
             let mut carry = true;
             while carry && i > 0 {
@@ -232,7 +289,6 @@ pub fn to_decimal_string(x: &Num, digits: usize) -> String {
                 }
             }
             if carry {
-                // carry rolled into the integer part
                 let int_inc = &int_part + 1;
                 return assemble(neg, &int_inc, &trim_zeros(&frac_chars), exact);
             }

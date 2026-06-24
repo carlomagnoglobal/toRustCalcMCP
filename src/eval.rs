@@ -33,13 +33,10 @@ impl Interp {
         Self::default()
     }
 
-    /// Evaluate a full source string; returns the value of the last statement.
     pub fn eval_str(&mut self, src: &str) -> Result<Value, String> {
         Ok(self.eval_all(src)?.pop().unwrap_or(Value::Null))
     }
 
-    /// Evaluate every `;`-separated statement, returning each value (calc prints
-    /// the value of each expression statement, including assignments).
     pub fn eval_all(&mut self, src: &str) -> Result<Vec<Value>, String> {
         let stmts = crate::parser::parse(src)?;
         let mut out = Vec::with_capacity(stmts.len());
@@ -49,7 +46,6 @@ impl Interp {
         Ok(out)
     }
 
-    /// Evaluate and render in one shot, one rendered value per line.
     pub fn eval_render(&mut self, src: &str) -> Result<String, String> {
         let vals = self.eval_all(src)?;
         let lines: Vec<String> = vals
@@ -121,7 +117,6 @@ impl Interp {
                 if b.is_zero() {
                     return Err("modulus by zero".into());
                 }
-                // calc's % : a - b*int(a/b)
                 let q = number::trunc(&(&a / &b));
                 Value::Number(&a - &b * q)
             }

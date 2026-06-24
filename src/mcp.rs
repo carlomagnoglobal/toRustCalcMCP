@@ -1,14 +1,4 @@
-//! MCP server: JSON-RPC 2.0 over stdio (newline-delimited messages).
-//!
-//! Implements the handshake (`initialize` / `notifications/initialized`), tool
-//! discovery (`tools/list`), invocation (`tools/call`), and `ping`. Tools:
-//!
-//!   * calc_eval      — evaluate a calc expression
-//!   * calc_config    — get/set session precision & display
-//!   * calc_functions — list available builtin functions
-//!
-//! The full tool schema is produced by `tools_list_result()` and is identical to
-//! the standalone schema document shipped with this project.
+//! MCP server: JSON-RPC 2.0 over stdio.
 
 use crate::builtins;
 use crate::config::Mode;
@@ -18,35 +8,34 @@ use std::io::{BufRead, Write};
 
 pub const PROTOCOL_VERSION: &str = "2025-06-18";
 
-/// JSON Schema for every tool, as the `tools/list` result payload.
 pub fn tools_list_result() -> J {
     json!({
         "tools": [
             {
                 "name": "calc_eval",
                 "title": "Evaluate calc expression",
-                "description": "Evaluate an arbitrary-precision calc expression (exact rational arithmetic) and return the result. Supports + - * / // % ^, comparisons, variables, and builtin functions such as sqrt, gcd, fact, isprime, sin, pi.",
+                "description": "Evaluate an arbitrary-precision calc expression (exact rational arithmetic) and return the result.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "expression": {
                             "type": "string",
-                            "description": "The expression to evaluate, e.g. \"2^100 + 1\" or \"sqrt(2)\" or \"gcd(462,1071)\". Multiple statements may be separated by ';'."
+                            "description": "The expression to evaluate"
                         },
                         "mode": {
                             "type": "string",
                             "enum": ["real", "frac", "int"],
-                            "description": "Output rendering: 'real' decimal (default), 'frac' exact a/b, or 'int' truncated integer. Applies to this call only."
+                            "description": "Output rendering (default: real)"
                         },
                         "digits": {
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 10000,
-                            "description": "Decimal digits shown in real mode (default 20). This call only."
+                            "description": "Decimal digits in real mode (default 20)"
                         },
                         "epsilon": {
                             "type": "string",
-                            "description": "Precision target for irrational results, e.g. \"1e-40\". This call only."
+                            "description": "Precision target for irrational results"
                         }
                     },
                     "required": ["expression"],
@@ -56,18 +45,18 @@ pub fn tools_list_result() -> J {
             {
                 "name": "calc_config",
                 "title": "Get or set session configuration",
-                "description": "Read or update the persistent session configuration (precision epsilon, display digits, output mode).",
+                "description": "Read or update persistent session configuration",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "action": {
                             "type": "string",
                             "enum": ["get", "set"],
-                            "description": "'get' returns current config; 'set' updates one or more fields."
+                            "description": "'get' returns current config; 'set' updates fields"
                         },
                         "mode":    { "type": "string", "enum": ["real", "frac", "int"] },
                         "digits":  { "type": "integer", "minimum": 1, "maximum": 10000 },
-                        "epsilon": { "type": "string", "description": "e.g. \"1e-20\"" }
+                        "epsilon": { "type": "string" }
                     },
                     "required": ["action"],
                     "additionalProperties": false
@@ -76,13 +65,13 @@ pub fn tools_list_result() -> J {
             {
                 "name": "calc_functions",
                 "title": "List builtin functions",
-                "description": "List the available builtin functions with signatures and descriptions, optionally filtered by a substring.",
+                "description": "List available builtin functions, optionally filtered",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "filter": {
                             "type": "string",
-                            "description": "Optional case-insensitive substring to match against function names."
+                            "description": "Optional case-insensitive substring filter"
                         }
                     },
                     "additionalProperties": false
@@ -101,7 +90,7 @@ fn server_info() -> J {
             "version": crate::RCALC_VERSION,
             "title": "calc — arbitrary-precision calculator"
         },
-        "instructions": "Use calc_eval for arithmetic. Numbers are exact rationals; irrational results honour the session epsilon. Use calc_config to change precision/display, and calc_functions to discover builtins."
+        "instructions": "Use calc_eval for arithmetic. Numbers are exact rationals; irrational results honour epsilon."
     })
 }
 
@@ -115,9 +104,11 @@ fn ok_text(id: J, text: String, is_error: bool) -> J {
         }
     })
 }
+
 fn ok_result(id: J, result: J) -> J {
     json!({ "jsonrpc": "2.0", "id": id, "result": result })
 }
+
 fn err(id: J, code: i64, message: &str) -> J {
     json!({ "jsonrpc": "2.0", "id": id, "error": { "code": code, "message": message } })
 }
@@ -130,7 +121,6 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
             let Some(expr) = args.get("expression").and_then(|v| v.as_str()) else {
                 return json!({ "content": [{ "type": "text", "text": "calc_eval: missing 'expression'" }], "isError": true });
             };
-            // per-call overrides
             let saved = it.cfg.clone();
             if let Some(m) = args.get("mode").and_then(|v| v.as_str()) {
                 if let Some(mode) = Mode::parse(m) {
@@ -144,7 +134,7 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 let _ = it.cfg.set_epsilon_from_str(e);
             }
             let res = it.eval_render(expr);
-            it.cfg = saved; // overrides are per-call
+            it.cfg = saved;
             match res {
                 Ok(text) => json!({ "content": [{ "type": "text", "text": text }], "isError": false }),
                 Err(e) => json!({ "content": [{ "type": "text", "text": format!("error: {e}") }], "isError": true }),
@@ -202,14 +192,11 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
     }
 }
 
-/// Dispatch a single JSON-RPC request object. Returns `Some(response)` for
-/// requests, or `None` for notifications (which get no reply).
 pub fn handle_message(it: &mut Interp, msg: &J) -> Option<J> {
     let id = msg.get("id").cloned();
     let method = msg.get("method").and_then(|v| v.as_str()).unwrap_or("");
     let params = msg.get("params").cloned().unwrap_or(json!({}));
 
-    // Notifications have no id and expect no response.
     let is_notification = id.is_none();
 
     match method {
@@ -234,7 +221,6 @@ pub fn handle_message(it: &mut Interp, msg: &J) -> Option<J> {
     }
 }
 
-/// Run the stdio server loop until EOF.
 pub fn serve_stdio() -> std::io::Result<()> {
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
