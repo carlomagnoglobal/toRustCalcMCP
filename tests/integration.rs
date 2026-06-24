@@ -2234,3 +2234,81 @@ fn test_fscanf_basic() {
     assert!(result.contains("123"));
     assert!(result.contains("456"));
 }
+
+// Phase 6.1 Final: File System Operations
+
+#[test]
+fn test_fsize() {
+    // Create a test file with known size
+    let _ = std::fs::write("/tmp/test_fsize.txt", "hello");
+
+    let mut it = Interp::new();
+    let result = it.eval_render("fsize(\"/tmp/test_fsize.txt\")").unwrap();
+    // "hello" is 5 bytes
+    assert_eq!(result.trim(), "5");
+}
+
+#[test]
+fn test_exists_true() {
+    // Create a test file
+    let _ = std::fs::write("/tmp/test_exists.txt", "test");
+
+    let mut it = Interp::new();
+    let result = it.eval_render("exists(\"/tmp/test_exists.txt\")").unwrap();
+    // File exists, should return 1
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_exists_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render("exists(\"/tmp/nonexistent_file_xyz.txt\")").unwrap();
+    // File doesn't exist, should return 0
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_isdir_true() {
+    let mut it = Interp::new();
+    // /tmp directory should exist
+    let result = it.eval_render("isdir(\"/tmp\")").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_isdir_false() {
+    // Create a regular file
+    let _ = std::fs::write("/tmp/test_isdir_file.txt", "test");
+
+    let mut it = Interp::new();
+    let result = it.eval_render("isdir(\"/tmp/test_isdir_file.txt\")").unwrap();
+    // Regular file, not a directory
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_mkdir_creates_directory() {
+    let test_dir = "/tmp/test_mkdir_dir";
+    // Clean up if it exists
+    let _ = std::fs::remove_dir(test_dir);
+
+    let mut it = Interp::new();
+    let result = it.eval_render(&format!("mkdir(\"{}\")", test_dir)).unwrap();
+    // mkdir should return 0 on success
+    assert_eq!(result.trim(), "0");
+
+    // Verify directory was created
+    assert!(std::path::Path::new(test_dir).is_dir());
+}
+
+#[test]
+fn test_mkdir_already_exists() {
+    let test_dir = "/tmp/test_mkdir_existing";
+    // Create directory
+    let _ = std::fs::create_dir(test_dir);
+
+    let mut it = Interp::new();
+    // mkdir on existing directory should succeed (return 0)
+    let result = it.eval_render(&format!("mkdir(\"{}\")", test_dir)).unwrap();
+    assert_eq!(result.trim(), "0");
+}

@@ -2231,6 +2231,74 @@ fn f_fscanf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(fscan_result)
 }
 
+// Additional File I/O functions (Phase 6.1 final - file system operations)
+
+// Get file size in bytes
+fn f_fsize(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fsize", a, 1)?;
+    let filename = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("fsize: filename must be a string".to_string()),
+    };
+
+    match std::fs::metadata(&filename) {
+        Ok(metadata) => {
+            Ok(Value::Number(Num::from_integer(BigInt::from(metadata.len() as i64))))
+        }
+        Err(e) => Err(format!("fsize: cannot stat {}: {}", filename, e)),
+    }
+}
+
+// Check if file exists
+fn f_exists(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("exists", a, 1)?;
+    let filename = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("exists: filename must be a string".to_string()),
+    };
+
+    let exists = std::path::Path::new(&filename).exists();
+    Ok(Value::Number(Num::from_integer(BigInt::from(if exists { 1 } else { 0 }))))
+}
+
+// Check if path is a directory
+fn f_isdir(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isdir", a, 1)?;
+    let path = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("isdir: path must be a string".to_string()),
+    };
+
+    match std::fs::metadata(&path) {
+        Ok(metadata) => {
+            Ok(Value::Number(Num::from_integer(BigInt::from(if metadata.is_dir() { 1 } else { 0 }))))
+        }
+        Err(_) => Ok(Value::Number(Num::zero())), // Path doesn't exist or can't be read
+    }
+}
+
+// Create directory
+fn f_mkdir(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mkdir", a, 1)?;
+    let path = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("mkdir: path must be a string".to_string()),
+    };
+
+    match std::fs::create_dir(&path) {
+        Ok(_) => Ok(Value::Number(Num::zero())),
+        Err(e) => {
+            // Return 0 on success, negative on error (for compatibility)
+            if e.kind() == std::io::ErrorKind::AlreadyExists {
+                // Directory already exists, return success
+                Ok(Value::Number(Num::zero()))
+            } else {
+                Err(format!("mkdir: cannot create directory {}: {}", path, e))
+            }
+        }
+    }
+}
+
 // Phase 6.2: Memory & Stack Management
 
 // Allocate memory block
@@ -3367,6 +3435,11 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("fprintf".to_string(), f_fprintf as BuiltinFn);
     builtins.insert("fscan".to_string(), f_fscan as BuiltinFn);
     builtins.insert("fscanf".to_string(), f_fscanf as BuiltinFn);
+    // File system operations (Phase 6.1 final)
+    builtins.insert("fsize".to_string(), f_fsize as BuiltinFn);
+    builtins.insert("exists".to_string(), f_exists as BuiltinFn);
+    builtins.insert("isdir".to_string(), f_isdir as BuiltinFn);
+    builtins.insert("mkdir".to_string(), f_mkdir as BuiltinFn);
     // Memory & stack management (Phase 6.2)
     builtins.insert("blk".to_string(), f_blk as BuiltinFn);
     builtins.insert("blkcpy".to_string(), f_blkcpy as BuiltinFn);
@@ -3617,6 +3690,10 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("fprintf", "fprintf(fd,...)", "formatted write to file"),
         ("fscan", "fscan(fd,fmt)", "read formatted data from file (returns list)"),
         ("fscanf", "fscanf(fd,fmt,...)", "read formatted data with arguments (returns list)"),
+        ("fsize", "fsize(filename)", "get file size in bytes"),
+        ("exists", "exists(filename)", "check if file exists (returns 1 or 0)"),
+        ("isdir", "isdir(path)", "check if path is directory (returns 1 or 0)"),
+        ("mkdir", "mkdir(path)", "create directory (returns 0 on success)"),
         // Memory & stack management (Phase 6.2)
         ("blk", "blk(size)", "allocate memory block"),
         ("blkcpy", "blkcpy(dest,src,size)", "copy memory block"),
