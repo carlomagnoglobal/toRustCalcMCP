@@ -1783,3 +1783,62 @@ fn test_freeglobals() {
     let result2 = it.eval_render("x");
     assert!(result2.is_err());
 }
+
+// Phase 6.4: Command & Script Functions
+
+#[test]
+fn test_cmdbuf_initial() {
+    let mut it = Interp::new();
+    // Initial command buffer should be empty
+    let result = it.eval_render("cmdbuf()").unwrap();
+    assert_eq!(result.trim(), "");
+}
+
+#[test]
+fn test_eval_arithmetic() {
+    let mut it = Interp::new();
+    // Evaluate arithmetic expression from string
+    let result = it.eval_render("eval(\"2 + 3 * 4\")").unwrap();
+    assert_eq!(result.trim(), "14");
+}
+
+#[test]
+fn test_eval_simple() {
+    let mut it = Interp::new();
+    // Evaluate simple expression
+    let result = it.eval_render("eval(\"42\")").unwrap();
+    assert_eq!(result.trim(), "42");
+}
+
+#[test]
+fn test_eval_with_variables() {
+    let mut it = Interp::new();
+    // Set a variable and use it in eval
+    it.eval_render("x = 10").ok();
+    let result = it.eval_render("eval(\"x * 2\")").unwrap();
+    assert_eq!(result.trim(), "20");
+}
+
+#[test]
+fn test_command_echo() {
+    let mut it = Interp::new();
+    // Execute shell command (echo returns 0)
+    let result = it.eval_render("command(\"echo hello\")").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_command_failing() {
+    let mut it = Interp::new();
+    // Execute failing command (should return non-zero)
+    let result = it.eval_render("command(\"false\")").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_argv_empty() {
+    let mut it = Interp::new();
+    // No arguments provided by default
+    let result = it.eval_render("argv(0)").unwrap();
+    assert_eq!(result.trim(), "");
+}

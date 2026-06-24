@@ -27,6 +27,8 @@ pub struct Interp {
     pub memory_blocks: HashMap<i64, Vec<u8>>, // Allocated memory blocks (id -> data)
     pub next_block_id: i64, // Next block ID to allocate
     pub eval_stack: Vec<Value>, // Evaluation stack for push/pop
+    pub argv_vec: Vec<String>, // Command-line arguments
+    pub current_cmd: String, // Current command buffer
 }
 
 impl Default for Interp {
@@ -46,6 +48,8 @@ impl Default for Interp {
             memory_blocks: HashMap::new(),
             next_block_id: 1, // Block IDs start at 1
             eval_stack: Vec::new(),
+            argv_vec: Vec::new(),
+            current_cmd: String::new(),
         };
         builtins::register(&mut it.builtins);
         it

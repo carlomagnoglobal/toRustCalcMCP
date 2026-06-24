@@ -15,15 +15,15 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 6.2 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 211 builtins, CLI, MCP server, and 194 integration
+Current status: **Phase 6.4 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 215 builtins, CLI, MCP server, and 201 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
 Phase 6.1 complete (file I/O with file descriptor management); Phase 6.2 complete (memory & stack management);
-Phase 6.3 complete (error & exception handling).
+Phase 6.3 complete (error & exception handling); Phase 6.4 complete (command & script functions).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -457,11 +457,16 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 184 → 191 (+7)
    - Total tests: 174 → 181 (+7)
 
-### 6.4 Command & Script Functions (4 functions)
-   - [ ] `argv(n)` — nth command-line argument
-   - [ ] `cmdbuf()` — current command buffer
-   - [ ] `command(str)` — execute command string
-   - [ ] `eval(str)` — evaluate string expression
+### 6.4 Command & Script Functions — DONE (4 of 4 functions)
+   - ✅ `argv(n)` — nth command-line argument
+   - ✅ `cmdbuf()` — current command buffer
+   - ✅ `command(str)` — execute shell command
+   - ✅ `eval(str)` — evaluate string expression
+   - ✅ Command-line argument storage added to Interp
+   - ✅ Current command buffer tracking added to Interp
+   - ✅ 7 new integration tests added and passing
+   - Builtins: 211 → 215 (+4)
+   - Total tests: 194 → 201 (+7)
 
 ### 6.5 Obscure Trigonometric Variants (20+ functions)
    - [ ] `haversin(x)`, `versin(x)`, `coversin(x)` — specialized trig

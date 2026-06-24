@@ -1972,6 +1972,64 @@ fn f_depth(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_integer(BigInt::from(it.eval_stack.len() as i64))))
 }
 
+// Phase 6.4: Command & Script Functions
+
+// Get command-line argument
+fn f_argv(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("argv", a, 1)?;
+    let n = int(a, 0)?.to_usize().ok_or("argv: index out of range")?;
+
+    if n < it.argv_vec.len() {
+        Ok(Value::Str(it.argv_vec[n].clone()))
+    } else {
+        Ok(Value::Null)
+    }
+}
+
+// Get current command buffer
+fn f_cmdbuf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cmdbuf", a, 0)?;
+    Ok(Value::Str(it.current_cmd.clone()))
+}
+
+// Execute shell command
+fn f_command(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("command", a, 1)?;
+    let cmd = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("command: argument must be a string".to_string()),
+    };
+
+    let output = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(&cmd)
+        .output()
+        .map_err(|e| format!("command: cannot execute: {}", e))?;
+
+    let exit_code = output.status.code().unwrap_or(-1) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(exit_code))))
+}
+
+// Evaluate string expression
+fn f_eval(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("eval", a, 1)?;
+    let expr_str = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("eval: argument must be a string".to_string()),
+    };
+
+    // Parse the string as an expression
+    let exprs = crate::parser::parse(&expr_str)
+        .map_err(|e| format!("eval: parse error: {}", e))?;
+
+    // Evaluate all expressions and return the last result
+    let mut result = Value::Null;
+    for expr in exprs {
+        result = it.eval(&expr)?;
+    }
+    Ok(result)
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -2572,6 +2630,11 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("push".to_string(), f_push as BuiltinFn);
     builtins.insert("pop".to_string(), f_pop as BuiltinFn);
     builtins.insert("depth".to_string(), f_depth as BuiltinFn);
+    // Command & script functions (Phase 6.4)
+    builtins.insert("argv".to_string(), f_argv as BuiltinFn);
+    builtins.insert("cmdbuf".to_string(), f_cmdbuf as BuiltinFn);
+    builtins.insert("command".to_string(), f_command as BuiltinFn);
+    builtins.insert("eval".to_string(), f_eval as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -2780,5 +2843,10 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("push", "push(val)", "push value onto evaluation stack"),
         ("pop", "pop()", "pop value from evaluation stack"),
         ("depth", "depth()", "get evaluation stack depth"),
+        // Command & script functions (Phase 6.4)
+        ("argv", "argv(n)", "get nth command-line argument"),
+        ("cmdbuf", "cmdbuf()", "get current command buffer"),
+        ("command", "command(str)", "execute shell command"),
+        ("eval", "eval(str)", "evaluate string expression"),
     ]
 }
