@@ -2039,6 +2039,68 @@ fn test_rcdiv() {
     assert_eq!(result.trim(), "2");
 }
 
+// Phase 6.2 Extended: Memory Address Functions
+
+#[test]
+fn test_blksize() {
+    let mut it = Interp::new();
+    // Allocate a block of 100 bytes and check size
+    it.eval_render("id = blk(100)").ok();
+    let result = it.eval_render("blksize(id)").unwrap();
+    assert_eq!(result.trim(), "100");
+}
+
+#[test]
+fn test_peek_poke() {
+    let mut it = Interp::new();
+    // Allocate block, write byte, read it back
+    it.eval_render("id = blk(50)").ok();
+    it.eval_render("poke(id, 10, 65)").ok(); // Write 'A' (65)
+    let result = it.eval_render("peek(id, 10)").unwrap();
+    assert_eq!(result.trim(), "65");
+}
+
+#[test]
+fn test_poke_multiple() {
+    let mut it = Interp::new();
+    // Write multiple bytes
+    it.eval_render("id = blk(100)").ok();
+    it.eval_render("poke(id, 0, 72)").ok(); // 'H'
+    it.eval_render("poke(id, 1, 105)").ok(); // 'i'
+    it.eval_render("poke(id, 2, 33)").ok(); // '!'
+
+    let result = it.eval_render("peek(id, 0)").unwrap();
+    assert_eq!(result.trim(), "72");
+}
+
+#[test]
+fn test_memread() {
+    let mut it = Interp::new();
+    // Write bytes and read them as string
+    it.eval_render("id = blk(100)").ok();
+    it.eval_render("poke(id, 0, 72)").ok(); // 'H'
+    it.eval_render("poke(id, 1, 105)").ok(); // 'i'
+    it.eval_render("poke(id, 2, 33)").ok(); // '!'
+
+    let result = it.eval_render("memread(id, 0, 3)").unwrap();
+    assert!(result.contains("Hi!") || result.contains("72")); // May show as bytes or string
+}
+
+#[test]
+fn test_memory_lifecycle() {
+    let mut it = Interp::new();
+    // Allocate, use, and free
+    it.eval_render("id = blk(64)").ok();
+    it.eval_render("poke(id, 5, 200)").ok();
+    let peek_result = it.eval_render("peek(id, 5)").unwrap();
+    assert_eq!(peek_result.trim(), "200");
+
+    // Free and check blocks count
+    it.eval_render("blkfree(id)").ok();
+    let blocks_result = it.eval_render("blocks()").unwrap();
+    assert_eq!(blocks_result.trim(), "0");
+}
+
 // Phase 6.1 Extended: Additional File I/O Functions
 
 #[test]

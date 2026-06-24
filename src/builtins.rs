@@ -2327,6 +2327,76 @@ fn f_depth(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_integer(BigInt::from(it.eval_stack.len() as i64))))
 }
 
+// Additional Memory Management Functions (Phase 6.2 extended - memory address functions)
+
+// Get size of allocated memory block
+fn f_blksize(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("blksize", a, 1)?;
+    let block_id = int(a, 0)?.to_i64().ok_or("blksize: block id out of range")?;
+
+    if let Some(block) = it.memory_blocks.get(&block_id) {
+        Ok(Value::Number(Num::from_integer(BigInt::from(block.len() as i64))))
+    } else {
+        Err(format!("blksize: block {} not allocated", block_id))
+    }
+}
+
+// Read byte from memory block at offset
+fn f_peek(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("peek", a, 2)?;
+    let block_id = int(a, 0)?.to_i64().ok_or("peek: block id out of range")?;
+    let offset = int(a, 1)?.to_usize().ok_or("peek: offset out of range")?;
+
+    if let Some(block) = it.memory_blocks.get(&block_id) {
+        if offset < block.len() {
+            Ok(Value::Number(Num::from_integer(BigInt::from(block[offset] as i64))))
+        } else {
+            Err(format!("peek: offset {} out of bounds for block {}", offset, block_id))
+        }
+    } else {
+        Err(format!("peek: block {} not allocated", block_id))
+    }
+}
+
+// Write byte to memory block at offset
+fn f_poke(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("poke", a, 3)?;
+    let block_id = int(a, 0)?.to_i64().ok_or("poke: block id out of range")?;
+    let offset = int(a, 1)?.to_usize().ok_or("poke: offset out of range")?;
+    let value = int(a, 2)?.to_u8().ok_or("poke: value must be 0-255")?;
+
+    if let Some(block) = it.memory_blocks.get_mut(&block_id) {
+        if offset < block.len() {
+            block[offset] = value;
+            Ok(Value::Number(Num::zero()))
+        } else {
+            Err(format!("poke: offset {} out of bounds for block {}", offset, block_id))
+        }
+    } else {
+        Err(format!("poke: block {} not allocated", block_id))
+    }
+}
+
+// Read multiple bytes from memory block (returns as string)
+fn f_memread(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("memread", a, 3)?;
+    let block_id = int(a, 0)?.to_i64().ok_or("memread: block id out of range")?;
+    let offset = int(a, 1)?.to_usize().ok_or("memread: offset out of range")?;
+    let size = int(a, 2)?.to_usize().ok_or("memread: size out of range")?;
+
+    if let Some(block) = it.memory_blocks.get(&block_id) {
+        if offset + size <= block.len() {
+            let data = &block[offset..offset + size];
+            let result = String::from_utf8_lossy(data).to_string();
+            Ok(Value::Str(result))
+        } else {
+            Err(format!("memread: read extends beyond block {} bounds", block_id))
+        }
+    } else {
+        Err(format!("memread: block {} not allocated", block_id))
+    }
+}
+
 // Phase 6.4: Command & Script Functions
 
 // Get command-line argument
@@ -3307,6 +3377,11 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("push".to_string(), f_push as BuiltinFn);
     builtins.insert("pop".to_string(), f_pop as BuiltinFn);
     builtins.insert("depth".to_string(), f_depth as BuiltinFn);
+    // Memory address functions (Phase 6.2 extended)
+    builtins.insert("blksize".to_string(), f_blksize as BuiltinFn);
+    builtins.insert("peek".to_string(), f_peek as BuiltinFn);
+    builtins.insert("poke".to_string(), f_poke as BuiltinFn);
+    builtins.insert("memread".to_string(), f_memread as BuiltinFn);
     // Command & script functions (Phase 6.4)
     builtins.insert("argv".to_string(), f_argv as BuiltinFn);
     builtins.insert("cmdbuf".to_string(), f_cmdbuf as BuiltinFn);
@@ -3552,6 +3627,10 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("push", "push(val)", "push value onto evaluation stack"),
         ("pop", "pop()", "pop value from evaluation stack"),
         ("depth", "depth()", "get evaluation stack depth"),
+        ("blksize", "blksize(id)", "get size of memory block"),
+        ("peek", "peek(id,offset)", "read byte from memory block at offset"),
+        ("poke", "poke(id,offset,val)", "write byte to memory block at offset"),
+        ("memread", "memread(id,offset,size)", "read bytes from block as string"),
         // Command & script functions (Phase 6.4)
         ("argv", "argv(n)", "get nth command-line argument"),
         ("cmdbuf", "cmdbuf()", "get current command buffer"),

@@ -15,14 +15,14 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 6.1 extended+ complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 244 builtins, CLI, MCP server, and 234 integration
+Current status: **Phase 6.2 extended complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 248 builtins, CLI, MCP server, and 239 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
-Phase 6.1-6.7 complete (file I/O with extended functions including formatted scanning, memory & stack, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic).
+Phase 6.1-6.7 complete (file I/O with extended functions including formatted scanning, memory & stack with address operations, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -433,7 +433,7 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 235 → 244 (+9: 7 extended + 2 scanning)
    - Total tests: 223 → 234 (+11: 6 extended + 5 scanning)
 
-### 6.2 Memory & Stack Management — DONE (9 of 13 functions)
+### 6.2 Memory & Stack Management — DONE (13 of 13 functions)
    - ✅ `blk(n)` — allocate n bytes
    - ✅ `blkcpy(dest, src, size)` — copy memory block
    - ✅ `blkfree(id)` — free allocated block
@@ -443,12 +443,16 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - ✅ `push(val)` — push to evaluation stack
    - ✅ `pop()` — pop from evaluation stack
    - ✅ `depth()` — evaluation stack depth
-   - [ ] Memory address functions (advanced) — 4 remaining
+   - ✅ `blksize(id)` — get size of memory block
+   - ✅ `peek(id, offset)` — read byte from block at offset
+   - ✅ `poke(id, offset, val)` — write byte to block at offset
+   - ✅ `memread(id, offset, size)` — read bytes from block as string
    - ✅ Memory block management infrastructure added to Interp
    - ✅ Evaluation stack infrastructure added to Interp
-   - ✅ 7 new integration tests added and passing
-   - Builtins: 202 → 211 (+9)
-   - Total tests: 187 → 194 (+7)
+   - ✅ Low-level memory address operations for block access
+   - ✅ 12 new integration tests added and passing (7 core + 5 extended)
+   - Builtins: 244 → 248 (+4 extended address functions)
+   - Total tests: 234 → 239 (+5 extended address tests)
 
 ### 6.3 Error & Exception Handling — DONE
    - ✅ `errcount()` — number of errors so far
