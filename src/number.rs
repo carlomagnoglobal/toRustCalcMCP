@@ -168,53 +168,163 @@ pub fn sqrt(x: &Num, epsilon: &Num) -> Result<Num, String> {
     Ok(round_to_epsilon(&g, epsilon))
 }
 
-/// Exponential: e^x to within `epsilon`.
+/// Exponential: e^x to within `epsilon`, computed via Taylor series.
+/// exp(x) = sum(x^n / n!) for n=0..∞
 pub fn exp(x: &Num, epsilon: &Num) -> Result<Num, String> {
     if x.is_zero() {
         return Ok(Num::one());
     }
-    // For large |x|, use f64 as seed then refine. For now, simple f64 fallback.
-    let xf = x.to_f64().ok_or("overflow")?;
-    let r = xf.exp();
-    if !r.is_finite() {
-        return Err("exp overflow".into());
+    // For large |x|, reduce: exp(x) = exp(q + r) = exp(q) * exp(r)
+    // where q is an integer and |r| < 1.
+    let two = Num::from_integer(bi(2));
+
+    // If |x| >= 2, use exp(x) = exp(x/2)^2 repeatedly to reduce magnitude
+    let mut reduction_count = 0;
+    let mut y = x.clone();
+    while &y.abs() >= &two {
+        y = &y / &two;
+        reduction_count += 1;
     }
-    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+
+    // Compute exp(y) where |y| < 2 via Taylor series
+    let mut result = Num::one();
+    let mut term = Num::one();
+    for n in 1..500 {
+        term = &term * &y / Num::from_integer(bi(n as i64));
+        result += &term;
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+
+    // Square result `reduction_count` times to recover exp(x)
+    for _ in 0..reduction_count {
+        result = &result * &result;
+    }
+
+    Ok(round_to_epsilon(&result, epsilon))
 }
 
-/// Natural logarithm: ln(x) to within `epsilon`.
+/// Natural logarithm: ln(x) to within `epsilon`, computed via series.
+/// For x near 1, use: ln(x) = 2 * sum((x-1)/(x+1))^(2n+1) / (2n+1) for n=0..∞
+/// For |x| far from 1, shift via repeated multiplication/division by e.
 pub fn ln(x: &Num, epsilon: &Num) -> Result<Num, String> {
     if x.is_negative() || x.is_zero() {
         return Err("ln of non-positive number".into());
     }
-    // F64 fallback for now.
-    let xf = x.to_f64().ok_or("overflow")?;
-    let r = xf.ln();
-    if !r.is_finite() {
-        return Err("ln non-finite".into());
+    if x == &Num::one() {
+        return Ok(Num::zero());
     }
-    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+
+    let one = Num::one();
+    let e_const = e();
+    let two = Num::from_integer(bi(2));
+
+    // Reduce to |x - 1| < 0.5 by multiplying/dividing by e repeatedly
+    let mut reduction = 0i64;
+    let mut y = x.clone();
+    while &y > &(&e_const * &two) {
+        y = &y / &e_const;
+        reduction += 1;
+    }
+    while &y < &(&one / &two) {
+        y = &y * &e_const;
+        reduction -= 1;
+    }
+
+    // Series: ln(y) = 2 * sum((y-1)/(y+1))^(2n+1) / (2n+1)
+    let num = &y - &one;
+    let denom = &y + &one;
+    let z = &num / &denom;
+    let z_sq = &z * &z;
+
+    let mut result = z.clone();
+    let mut z_pow = z.clone();
+    for n in 1..500 {
+        z_pow = &z_pow * &z_sq;
+        let term = &z_pow / Num::from_integer(bi(2 * n as i64 + 1));
+        result += &term;
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+    result = &(&two * &result) + Num::from_integer(bi(reduction));
+
+    Ok(round_to_epsilon(&result, epsilon))
 }
 
-/// Sine to within `epsilon`.
+/// Sine to within `epsilon`, computed via Taylor series with range reduction.
+/// Uses: sin(x) = sum((-1)^n * x^(2n+1) / (2n+1)!) for n=0..∞
 pub fn sin(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    let xf = x.to_f64().ok_or("overflow")?;
-    let r = xf.sin();
-    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+    let pi_const = pi();
+    let two_pi = &pi_const * &Num::from_integer(bi(2));
+
+    // Reduce x to [-pi, pi]
+    let mut y = x.clone();
+    while &y > &pi_const {
+        y = &y - &two_pi;
+    }
+    while &y < &-&pi_const {
+        y = &y + &two_pi;
+    }
+
+    // Taylor series: sin(y) = sum((-1)^n * y^(2n+1) / (2n+1)!)
+    let mut result = y.clone();
+    let mut term = y.clone();
+    let y_sq = &y * &y;
+    let neg_y_sq = -&y_sq;
+
+    for n in 1..500 {
+        term = &term * &neg_y_sq / (Num::from_integer(bi(2 * n as i64)) * Num::from_integer(bi(2 * n as i64 + 1)));
+        result += &term;
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+
+    Ok(round_to_epsilon(&result, epsilon))
 }
 
-/// Cosine to within `epsilon`.
+/// Cosine to within `epsilon`, computed via Taylor series with range reduction.
+/// Uses: cos(x) = sum((-1)^n * x^(2n) / (2n)!) for n=0..∞
 pub fn cos(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    let xf = x.to_f64().ok_or("overflow")?;
-    let r = xf.cos();
-    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+    let pi_const = pi();
+    let two_pi = &pi_const * &Num::from_integer(bi(2));
+
+    // Reduce x to [-pi, pi]
+    let mut y = x.clone();
+    while &y > &pi_const {
+        y = &y - &two_pi;
+    }
+    while &y < &-&pi_const {
+        y = &y + &two_pi;
+    }
+
+    // Taylor series: cos(y) = sum((-1)^n * y^(2n) / (2n)!)
+    let mut result = Num::one();
+    let mut term = Num::one();
+    let y_sq = &y * &y;
+    let neg_y_sq = -&y_sq;
+
+    for n in 1..500 {
+        term = &term * &neg_y_sq / (Num::from_integer(bi(2 * n as i64 - 1)) * Num::from_integer(bi(2 * n as i64)));
+        result += &term;
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+
+    Ok(round_to_epsilon(&result, epsilon))
 }
 
-/// Tangent to within `epsilon`.
+/// Tangent: tan(x) = sin(x) / cos(x) to within `epsilon`.
 pub fn tan(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    let xf = x.to_f64().ok_or("overflow")?;
-    let r = xf.tan();
-    Num::from_float(r).ok_or_else(|| "non-finite".to_string())
+    let s = sin(x, epsilon)?;
+    let c = cos(x, epsilon)?;
+    if c.is_zero() {
+        return Err("tan: undefined (cos = 0)".to_string());
+    }
+    Ok(round_to_epsilon(&(&s / &c), epsilon))
 }
 
 /// Snap a value to a multiple of `epsilon`, keeping results compact.

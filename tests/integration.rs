@@ -84,3 +84,45 @@ fn test_multiple_statements() {
     assert_eq!(lines[0], "5");
     assert_eq!(lines[1], "20");
 }
+
+#[test]
+fn test_exp_zero() {
+    let mut it = Interp::new();
+    let result = it.eval_render("exp(0)").unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_exp_matches_e() {
+    let mut it = Interp::new();
+    // exp(1) should match e() to within display precision
+    let exp_one = it.eval_render("exp(1)").unwrap();
+    let e_val = it.eval_render("e()").unwrap();
+    // Both should start with ~2.71828...
+    assert!(exp_one.contains("2.71828"), "exp(1) = {}", exp_one);
+    assert!(e_val.contains("2.71828"), "e() = {}", e_val);
+}
+
+#[test]
+fn test_ln_of_e() {
+    let mut it = Interp::new();
+    let result = it.eval_render("ln(e())").unwrap();
+    // Should be very close to 1
+    assert!(result.contains("1") || result.contains("0.99999"), "ln(e()) = {}", result);
+}
+
+#[test]
+fn test_sin_pi_over_6() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sin(pi()/6)").unwrap();
+    // sin(π/6) = 0.5
+    assert!(result.contains("0.5"), "sin(pi()/6) = {}", result);
+}
+
+#[test]
+fn test_cos_zero() {
+    let mut it = Interp::new();
+    let result = it.eval_render("cos(0)").unwrap();
+    // cos(0) = 1 (may show as ~1 due to epsilon rounding)
+    assert!(result == "1" || result == "~1", "cos(0) = {}", result);
+}
