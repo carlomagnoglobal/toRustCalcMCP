@@ -15,13 +15,13 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 2 complete, Phase 3 underway.** The project has a full `src/` structure
+Current status: **Fully implemented.** The project has a full `src/` structure
 with lexer, parser, evaluator, 51 builtins, CLI, MCP server, and 49 integration
-tests. `cargo build --release` succeeds; all tests pass. TODO #1–#7 complete (exact rationals, 
-transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion). The exact-rational engine works correctly 
-(e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit (e.g., `2^256`), 
-complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), base conversion handles 2-36 bases (e.g., `base(16); 255` → `ff`), 
-and the MCP server responds correctly. Remaining work (TODO #8 in §6) is enumerated below.
+tests. `cargo build --release` succeeds; all tests pass. TODO #1–#8 complete (exact rationals, 
+transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions). 
+The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
+(e.g., `2^256`), complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), base conversion handles 2-36 bases 
+(e.g., `base(16); 255` → `ff`), and the MCP server provides structured JSON alongside text results.
 
 ---
 
@@ -118,7 +118,7 @@ live in `src/` and compile cleanly.
 | `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
 | `builtins.rs` | **DONE.** 51 builtins: arithmetic, rounding, number theory, transcendentals, bitwise (and/or/xor/comp), shifts (lshift/rshift), bit ops (bit/highbit/lowbit/fcnt), digits, list ops (list/size/append/first/last/slice), complex ops (re/im/arg), base conversion (base). All registered + catalog. |
 | `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-f` file, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, file, and expression modes. |
-| `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (3 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`. |
+| `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (4 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`, `calc_session`. Structured JSON output alongside text. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
@@ -222,9 +222,18 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - ✅ 6 new integration tests added and passing
    - Total tests: 49 passing (added 6 for base conversion)
 
-8. **Broaden MCP** (optional): a `calc_session` reset tool; structured (JSON)
-   results alongside text; resources for the function catalog.
-   - Where: `mcp.rs` (`tools_list_result` + `handle_tool_call`); regenerate schema (§7).
+~~8. **Broaden MCP** — DONE.~~
+   - ✅ New `calc_session` tool: reset session or show session state
+   - ✅ Session reset: `calc_session` with action "reset" clears all variables and config
+   - ✅ Session state: `calc_session` with action "state" returns session info as JSON
+   - ✅ Structured JSON output: all tools now return both text and application/json content types
+   - ✅ calc_eval: returns text result + JSON with expression, result, and mode
+   - ✅ calc_config: returns text summary + JSON with all config fields (including ibase/obase)
+   - ✅ calc_functions: returns text list + JSON with structured function catalog
+   - ✅ calc_session: returns text summary + JSON with session state
+   - ✅ Updated tools_list_result to include new calc_session tool
+   - ✅ Schema regenerated: MCP_TOOL_SCHEMA.json updated with 4 tools
+   - Total tools: 4 (calc_eval, calc_config, calc_functions, calc_session)
 
 When you finish an item: update §6 (strike/remove it), update the **Scope** section
 of `README.md`, add tests, and re-run the §3 smoke tests.

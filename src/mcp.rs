@@ -76,6 +76,23 @@ pub fn tools_list_result() -> J {
                     },
                     "additionalProperties": false
                 }
+            },
+            {
+                "name": "calc_session",
+                "title": "Session control",
+                "description": "Reset session or get session state",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": ["reset", "state"],
+                            "description": "'reset' clears all variables and restores defaults; 'state' shows current session info"
+                        }
+                    },
+                    "required": ["action"],
+                    "additionalProperties": false
+                }
             }
         ]
     })
@@ -136,8 +153,33 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
             let res = it.eval_render(expr);
             it.cfg = saved;
             match res {
-                Ok(text) => json!({ "content": [{ "type": "text", "text": text }], "isError": false }),
-                Err(e) => json!({ "content": [{ "type": "text", "text": format!("error: {e}") }], "isError": true }),
+                Ok(text) => {
+                    let result_json = json!({
+                        "expression": expr,
+                        "result": text,
+                        "mode": it.cfg.mode.as_str()
+                    });
+                    json!({
+                        "content": [
+                            { "type": "text", "text": text },
+                            { "type": "application/json", "json": result_json }
+                        ],
+                        "isError": false
+                    })
+                }
+                Err(e) => {
+                    let error_json = json!({
+                        "expression": expr,
+                        "error": e
+                    });
+                    json!({
+                        "content": [
+                            { "type": "text", "text": format!("error: {e}") },
+                            { "type": "application/json", "json": error_json }
+                        ],
+                        "isError": true
+                    })
+                }
             }
         }
         "calc_config" => {
@@ -156,14 +198,42 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                         return json!({ "content": [{ "type": "text", "text": msg }], "isError": true });
                     }
                 }
+                if let Some(i) = args.get("ibase").and_then(|v| v.as_u64()) {
+                    let ib = i as u32;
+                    if ib >= 2 && ib <= 36 {
+                        it.cfg.ibase = ib;
+                    }
+                }
+                if let Some(o) = args.get("obase").and_then(|v| v.as_u64()) {
+                    let ob = o as u32;
+                    if ob >= 2 && ob <= 36 {
+                        it.cfg.obase = ob;
+                    }
+                }
             }
+            // Return both text and structured JSON
+            let config_json = json!({
+                "mode": it.cfg.mode.as_str(),
+                "digits": it.cfg.display,
+                "epsilon": crate::number::to_decimal_string(&it.cfg.epsilon, 60),
+                "ibase": it.cfg.ibase,
+                "obase": it.cfg.obase
+            });
             let text = format!(
-                "mode={} digits={} epsilon={}",
+                "mode={} digits={} epsilon={} ibase={} obase={}",
                 it.cfg.mode.as_str(),
                 it.cfg.display,
-                crate::number::to_decimal_string(&it.cfg.epsilon, 60)
+                crate::number::to_decimal_string(&it.cfg.epsilon, 60),
+                it.cfg.ibase,
+                it.cfg.obase
             );
-            json!({ "content": [{ "type": "text", "text": text }], "isError": false })
+            json!({
+                "content": [
+                    { "type": "text", "text": text },
+                    { "type": "application/json", "json": config_json }
+                ],
+                "isError": false
+            })
         }
         "calc_functions" => {
             let filter = args
@@ -171,6 +241,7 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_ascii_lowercase());
             let mut lines = Vec::new();
+            let mut functions = Vec::new();
             for (nm, sig, desc) in builtins::catalog() {
                 if let Some(f) = &filter {
                     if !nm.to_ascii_lowercase().contains(f.as_str()) {
@@ -178,13 +249,60 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                     }
                 }
                 lines.push(format!("{sig:<16} {desc}"));
+                functions.push(json!({
+                    "name": nm,
+                    "signature": sig,
+                    "description": desc
+                }));
             }
             let text = if lines.is_empty() {
                 "no matching functions".to_string()
             } else {
                 lines.join("\n")
             };
-            json!({ "content": [{ "type": "text", "text": text }], "isError": false })
+            let functions_json = json!({
+                "count": functions.len(),
+                "functions": functions
+            });
+            json!({
+                "content": [
+                    { "type": "text", "text": text },
+                    { "type": "application/json", "json": functions_json }
+                ],
+                "isError": false
+            })
+        }
+        "calc_session" => {
+            let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("state");
+            if action == "reset" {
+                *it = Interp::new();
+                json!({ "content": [{ "type": "text", "text": "session reset" }], "isError": false })
+            } else {
+                let state_json = json!({
+                    "variables": it.global_vars.len(),
+                    "scopes": it.scope_stack.len(),
+                    "mode": it.cfg.mode.as_str(),
+                    "ibase": it.cfg.ibase,
+                    "obase": it.cfg.obase,
+                    "epsilon": crate::number::to_decimal_string(&it.cfg.epsilon, 60)
+                });
+                let text = format!(
+                    "variables={} scopes={} mode={} ibase={} obase={} epsilon={}",
+                    it.global_vars.len(),
+                    it.scope_stack.len(),
+                    it.cfg.mode.as_str(),
+                    it.cfg.ibase,
+                    it.cfg.obase,
+                    crate::number::to_decimal_string(&it.cfg.epsilon, 60)
+                );
+                json!({
+                    "content": [
+                        { "type": "text", "text": text },
+                        { "type": "application/json", "json": state_json }
+                    ],
+                    "isError": false
+                })
+            }
         }
         other => {
             json!({ "content": [{ "type": "text", "text": format!("unknown tool: {other}") }], "isError": true })
@@ -206,15 +324,7 @@ pub fn handle_message(it: &mut Interp, msg: &J) -> Option<J> {
         "tools/list" => Some(ok_result(id.unwrap_or(J::Null), tools_list_result())),
         "tools/call" => {
             let result = handle_tool_call(it, &params);
-            let is_err = result.get("isError").and_then(|v| v.as_bool()).unwrap_or(false);
-            let text = result
-                .get("content")
-                .and_then(|c| c.get(0))
-                .and_then(|c| c.get("text"))
-                .and_then(|t| t.as_str())
-                .unwrap_or("")
-                .to_string();
-            Some(ok_text(id.unwrap_or(J::Null), text, is_err))
+            Some(ok_result(id.unwrap_or(J::Null), result))
         }
         _ if is_notification => None,
         _ => Some(err(id.unwrap_or(J::Null), -32601, "method not found")),
