@@ -1540,6 +1540,105 @@ pub fn usertime() -> Result<f64, String> {
         .as_secs_f64())
 }
 
+// Phase 5.1: Character Classification Functions
+
+/// Check if character is alphanumeric (letter or digit)
+pub fn isalnum(s: &str) -> i32 {
+    if s.is_empty() {
+        return 0;
+    }
+    let first_char = s.chars().next().unwrap();
+    if first_char.is_alphanumeric() { 1 } else { 0 }
+}
+
+/// Check if character is uppercase letter
+pub fn isupper(s: &str) -> i32 {
+    if s.is_empty() {
+        return 0;
+    }
+    let first_char = s.chars().next().unwrap();
+    if first_char.is_uppercase() { 1 } else { 0 }
+}
+
+/// Check if character is lowercase letter
+pub fn islower(s: &str) -> i32 {
+    if s.is_empty() {
+        return 0;
+    }
+    let first_char = s.chars().next().unwrap();
+    if first_char.is_lowercase() { 1 } else { 0 }
+}
+
+/// Check if character is printable
+pub fn isprint(s: &str) -> i32 {
+    if s.is_empty() {
+        return 0;
+    }
+    let first_char = s.chars().next().unwrap();
+    if !first_char.is_control() { 1 } else { 0 }
+}
+
+/// Check if character is visible (printable and not space)
+pub fn isgraph(s: &str) -> i32 {
+    if s.is_empty() {
+        return 0;
+    }
+    let first_char = s.chars().next().unwrap();
+    if !first_char.is_whitespace() && !first_char.is_control() { 1 } else { 0 }
+}
+
+/// Check if character is control character
+pub fn iscntrl(s: &str) -> i32 {
+    if s.is_empty() {
+        return 0;
+    }
+    let first_char = s.chars().next().unwrap();
+    if first_char.is_control() { 1 } else { 0 }
+}
+
+/// Check if character is punctuation
+pub fn ispunct(s: &str) -> i32 {
+    if s.is_empty() {
+        return 0;
+    }
+    let first_char = s.chars().next().unwrap();
+    // Punctuation is printable but not alphanumeric and not space
+    if !first_char.is_alphanumeric() && !first_char.is_whitespace() && !first_char.is_control() {
+        1
+    } else {
+        0
+    }
+}
+
+/// Check if character is hexadecimal digit (0-9, a-f, A-F)
+pub fn isxdigit(s: &str) -> i32 {
+    if s.is_empty() {
+        return 0;
+    }
+    let first_char = s.chars().next().unwrap();
+    if first_char.is_ascii_hexdigit() { 1 } else { 0 }
+}
+
+/// Check if string contains only ASCII characters
+pub fn isascii(s: &str) -> i32 {
+    if s.chars().all(|c| c.is_ascii()) { 1 } else { 0 }
+}
+
+/// Convert string to uppercase
+pub fn toupper(s: &str) -> String {
+    s.to_uppercase()
+}
+
+/// Convert string to lowercase
+pub fn tolower(s: &str) -> String {
+    s.to_lowercase()
+}
+
+/// Reverse a string
+pub fn strrev(s: &str) -> String {
+    s.chars().rev().collect()
+}
+
 /// Snap a value to a multiple of `epsilon`, keeping results compact.
 pub fn round_to_epsilon(x: &Num, epsilon: &Num) -> Num {
     if epsilon.is_zero() {

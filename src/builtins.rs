@@ -977,6 +977,116 @@ fn f_usertime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_float(elapsed).ok_or("usertime: overflow")?))
 }
 
+// Phase 5.1: Character Classification Functions
+
+fn f_isalnum(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isalnum", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("isalnum: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::isalnum(&s)))))
+}
+
+fn f_isupper(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isupper", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("isupper: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::isupper(&s)))))
+}
+
+fn f_islower(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("islower", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("islower: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::islower(&s)))))
+}
+
+fn f_isprint(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isprint", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("isprint: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::isprint(&s)))))
+}
+
+fn f_isgraph(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isgraph", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("isgraph: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::isgraph(&s)))))
+}
+
+fn f_iscntrl(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("iscntrl", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("iscntrl: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::iscntrl(&s)))))
+}
+
+fn f_ispunct(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ispunct", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("ispunct: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::ispunct(&s)))))
+}
+
+fn f_isxdigit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isxdigit", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("isxdigit: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::isxdigit(&s)))))
+}
+
+fn f_isascii(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isascii", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("isascii: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(number::isascii(&s)))))
+}
+
+fn f_toupper(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("toupper", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("toupper: argument must be a string".to_string()),
+    };
+    Ok(Value::Str(number::toupper(&s)))
+}
+
+fn f_tolower(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("tolower", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("tolower: argument must be a string".to_string()),
+    };
+    Ok(Value::Str(number::tolower(&s)))
+}
+
+fn f_strrev(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strrev", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("strrev: argument must be a string".to_string()),
+    };
+    Ok(Value::Str(number::strrev(&s)))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -1469,6 +1579,19 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("putenv".to_string(), f_putenv as BuiltinFn);
     builtins.insert("system".to_string(), f_system as BuiltinFn);
     builtins.insert("usertime".to_string(), f_usertime as BuiltinFn);
+    // Character classification functions
+    builtins.insert("isalnum".to_string(), f_isalnum as BuiltinFn);
+    builtins.insert("isupper".to_string(), f_isupper as BuiltinFn);
+    builtins.insert("islower".to_string(), f_islower as BuiltinFn);
+    builtins.insert("isprint".to_string(), f_isprint as BuiltinFn);
+    builtins.insert("isgraph".to_string(), f_isgraph as BuiltinFn);
+    builtins.insert("iscntrl".to_string(), f_iscntrl as BuiltinFn);
+    builtins.insert("ispunct".to_string(), f_ispunct as BuiltinFn);
+    builtins.insert("isxdigit".to_string(), f_isxdigit as BuiltinFn);
+    builtins.insert("isascii".to_string(), f_isascii as BuiltinFn);
+    builtins.insert("toupper".to_string(), f_toupper as BuiltinFn);
+    builtins.insert("tolower".to_string(), f_tolower as BuiltinFn);
+    builtins.insert("strrev".to_string(), f_strrev as BuiltinFn);
     builtins.insert("catalan".to_string(), f_catalan as BuiltinFn);
     // Bitwise operations
     builtins.insert("and".to_string(), f_and as BuiltinFn);
@@ -1615,6 +1738,18 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("putenv", "putenv(name,value)", "set environment variable"),
         ("system", "system(cmd)", "execute shell command (returns exit code)"),
         ("usertime", "usertime()", "user/system time in seconds"),
+        ("isalnum", "isalnum(s)", "is alphanumeric (1 or 0)"),
+        ("isupper", "isupper(s)", "is uppercase letter (1 or 0)"),
+        ("islower", "islower(s)", "is lowercase letter (1 or 0)"),
+        ("isprint", "isprint(s)", "is printable (1 or 0)"),
+        ("isgraph", "isgraph(s)", "is visible character (1 or 0)"),
+        ("iscntrl", "iscntrl(s)", "is control character (1 or 0)"),
+        ("ispunct", "ispunct(s)", "is punctuation (1 or 0)"),
+        ("isxdigit", "isxdigit(s)", "is hex digit (1 or 0)"),
+        ("isascii", "isascii(s)", "is ASCII-only (1 or 0)"),
+        ("toupper", "toupper(s)", "convert to uppercase"),
+        ("tolower", "tolower(s)", "convert to lowercase"),
+        ("strrev", "strrev(s)", "reverse string"),
         ("catalan", "catalan(n)", "Catalan number"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),

@@ -15,12 +15,13 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 4 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 148 builtins, CLI, MCP server, and 142 integration
+Current status: **Phase 5.1 in progress.** The project has a full `src/` structure
+with lexer, parser, evaluator, 160 builtins, CLI, MCP server, and 154 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
-Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system).
+Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
+Phase 5.1 complete (character classification and string functions).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -343,16 +344,19 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
 
 ## Phase 5: Extended Compatibility (TBD)
 
-### 5.1 Character Classification (12 functions)
-   - [ ] `isalnum(s)` — alphanumeric
-   - [ ] `isupper(s)`, `islower(s)` — case checking
-   - [ ] `isprint(s)`, `isgraph(s)` — printable
-   - [ ] `iscntrl(s)` — control character
-   - [ ] `ispunct(s)` — punctuation
-   - [ ] `isxdigit(s)` — hex digit
-   - [ ] `isascii(s)` — ASCII-only
-   - [ ] `toupper(s)`, `tolower(s)` — case conversion
-   - [ ] `strrev(s)` — string reverse
+### 5.1 Character Classification — DONE
+   - ✅ `isalnum(s)` — check if alphanumeric (1 or 0)
+   - ✅ `isupper(s)`, `islower(s)` — case checking
+   - ✅ `isprint(s)`, `isgraph(s)` — printable/visible checking
+   - ✅ `iscntrl(s)` — control character detection
+   - ✅ `ispunct(s)` — punctuation detection
+   - ✅ `isxdigit(s)` — hexadecimal digit checking
+   - ✅ `isascii(s)` — ASCII-only string checking
+   - ✅ `toupper(s)`, `tolower(s)` — case conversion
+   - ✅ `strrev(s)` — string reversal
+   - ✅ 12 new integration tests added and passing
+   - Builtins: 148 → 160 (+12)
+   - Total tests: 142 → 154 (+12)
 
 ### 5.2 Advanced Modular Arithmetic (5 functions)
    - [ ] `pmod(x, y)` — positive modulus

@@ -1218,3 +1218,106 @@ fn test_usertime() {
     // Should be a positive number
     assert!(val > 0.0);
 }
+
+// Phase 5.1: Character Classification
+#[test]
+fn test_isalnum() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isalnum(\"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("isalnum(\"5\")").unwrap(), "1");
+    assert_eq!(it.eval_render("isalnum(\"!\")").unwrap(), "0");
+}
+
+#[test]
+fn test_isupper() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isupper(\"A\")").unwrap(), "1");
+    assert_eq!(it.eval_render("isupper(\"a\")").unwrap(), "0");
+    assert_eq!(it.eval_render("isupper(\"5\")").unwrap(), "0");
+}
+
+#[test]
+fn test_islower() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("islower(\"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("islower(\"A\")").unwrap(), "0");
+    assert_eq!(it.eval_render("islower(\"5\")").unwrap(), "0");
+}
+
+#[test]
+fn test_isprint() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isprint(\"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("isprint(\" \")").unwrap(), "1");
+    // Control characters are not printable (would need escape sequences to test)
+    assert_eq!(it.eval_render("isprint(\"!\")").unwrap(), "1");
+}
+
+#[test]
+fn test_isgraph() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isgraph(\"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("isgraph(\"!\")").unwrap(), "1");
+    // Space should be 0 (printable but not visible)
+    let result = it.eval_render("isgraph(\" \")").unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_isxdigit() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isxdigit(\"5\")").unwrap(), "1");
+    assert_eq!(it.eval_render("isxdigit(\"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("isxdigit(\"F\")").unwrap(), "1");
+    assert_eq!(it.eval_render("isxdigit(\"g\")").unwrap(), "0");
+}
+
+#[test]
+fn test_isascii() {
+    let mut it = Interp::new();
+    let result = it.eval_render("isascii(\"hello\")").unwrap();
+    assert_eq!(result, "1");
+    // ASCII should return 1 for all ASCII characters
+    let result = it.eval_render("isascii(\"123\")").unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_toupper() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("toupper(\"hello\")").unwrap(), "HELLO");
+    assert_eq!(it.eval_render("toupper(\"HELLO\")").unwrap(), "HELLO");
+    assert_eq!(it.eval_render("toupper(\"HeLLo\")").unwrap(), "HELLO");
+}
+
+#[test]
+fn test_tolower() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("tolower(\"HELLO\")").unwrap(), "hello");
+    assert_eq!(it.eval_render("tolower(\"hello\")").unwrap(), "hello");
+    assert_eq!(it.eval_render("tolower(\"HeLLo\")").unwrap(), "hello");
+}
+
+#[test]
+fn test_strrev() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("strrev(\"hello\")").unwrap(), "olleh");
+    assert_eq!(it.eval_render("strrev(\"abc\")").unwrap(), "cba");
+    assert_eq!(it.eval_render("strrev(\"a\")").unwrap(), "a");
+}
+
+#[test]
+fn test_ispunct() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("ispunct(\"!\")").unwrap(), "1");
+    assert_eq!(it.eval_render("ispunct(\".\")").unwrap(), "1");
+    assert_eq!(it.eval_render("ispunct(\"a\")").unwrap(), "0");
+}
+
+#[test]
+fn test_iscntrl() {
+    let mut it = Interp::new();
+    // Regular characters are not control characters
+    assert_eq!(it.eval_render("iscntrl(\"a\")").unwrap(), "0");
+    assert_eq!(it.eval_render("iscntrl(\" \")").unwrap(), "0");
+}
