@@ -683,6 +683,37 @@ pub fn fibonacci(n: i64) -> Result<BigInt, String> {
     Ok(b)
 }
 
+/// Degrees to radians: d2r(x) = x * π / 180
+pub fn d2r(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let pi_val = pi();
+    let scale = pi_val / Num::from_integer(bi(180));
+    Ok(round_to_epsilon(&(x * &scale), epsilon))
+}
+
+/// Radians to degrees: r2d(x) = x * 180 / π
+pub fn r2d(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let pi_val = pi();
+    let scale = Num::from_integer(bi(180)) / &pi_val;
+    Ok(round_to_epsilon(&(x * &scale), epsilon))
+}
+
+/// Degrees to gradians: d2g(x) = x * 200 / 180 = x * 10 / 9
+pub fn d2g(x: &Num) -> Num {
+    x * Num::from_integer(bi(10)) / Num::from_integer(bi(9))
+}
+
+/// Gradians to radians: g2r(x) = x * π / 200
+pub fn g2r(x: &Num, epsilon: &Num) -> Result<Num, String> {
+    let pi_val = pi();
+    let scale = pi_val / Num::from_integer(bi(200));
+    Ok(round_to_epsilon(&(x * &scale), epsilon))
+}
+
+/// Gradians to degrees: g2d(x) = x * 180 / 200 = x * 9 / 10
+pub fn g2d(x: &Num) -> Num {
+    x * Num::from_integer(bi(9)) / Num::from_integer(bi(10))
+}
+
 /// Snap a value to a multiple of `epsilon`, keeping results compact.
 pub fn round_to_epsilon(x: &Num, epsilon: &Num) -> Num {
     if epsilon.is_zero() {

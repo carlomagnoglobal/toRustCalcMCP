@@ -15,13 +15,14 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Fully implemented.** The project has a full `src/` structure
-with lexer, parser, evaluator, 51 builtins, CLI, MCP server, and 49 integration
-tests. `cargo build --release` succeeds; all tests pass. TODO #1–#8 complete (exact rationals, 
-transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions). 
+Current status: **Phase 3 mostly complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 99 builtins, CLI, MCP server, and 91 integration
+tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
+transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
+Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
-(e.g., `2^256`), complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), base conversion handles 2-36 bases 
-(e.g., `base(16); 255` → `ff`), and the MCP server provides structured JSON alongside text results.
+(e.g., `2^256`), complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), string/type introspection is built-in,
+angle conversions between degrees/radians/gradians work, and the MCP server provides structured JSON alongside text results.
 
 ---
 
@@ -257,8 +258,15 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - Builtins: 67 → 79 (+12)
    - Total tests: 63 → 71 (+8)
 
-### 3.3 String & Type Functions — NEXT
-   - To implement: `strlen`, `index`, `isalpha`, `isdigit`, `typeof`, conversions
+### 3.3 String & Type Functions — DONE
+   - ✅ String functions: `strlen(s)`, `index(haystack, needle)` (returns position or -1)
+   - ✅ Type checking: `isalpha(s)`, `isdigit(s)`, `isspace(s)` (all return 1 or 0)
+   - ✅ Type inspection: `typeof(x)` returns string type name (number, complex, string, list, function, null)
+   - ✅ Value predicates: `isnan(x)`, `isinf(x)` (always 0 for rationals; included for compatibility)
+   - ✅ Angle conversions: `d2r(x)`, `r2d(x)`, `d2g(x)`, `g2r(x)`, `g2d(x)` (degrees, radians, gradians)
+   - ✅ All functions tested; 20 new integration tests added and passing
+   - Builtins: 79 → 99 (+20)
+   - Total tests: 71 → 91 (+20)
 
 When you finish an item: update §6 (strike/remove it), update the **Scope** section
 of `README.md`, add tests, and re-run the §3 smoke tests.

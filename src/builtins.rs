@@ -611,6 +611,129 @@ fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_integer(result)))
 }
 
+// String length
+fn f_strlen(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strlen", a, 1)?;
+    let len = match &a[0] {
+        Value::Str(s) => s.len() as i64,
+        _ => return Err("strlen: argument must be a string".to_string()),
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(len))))
+}
+
+// Find substring index
+fn f_index(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("index", a, 2)?;
+    let haystack = match &a[0] {
+        Value::Str(s) => s,
+        _ => return Err("index: first argument must be a string".to_string()),
+    };
+    let needle = match &a[1] {
+        Value::Str(s) => s,
+        _ => return Err("index: second argument must be a string".to_string()),
+    };
+
+    match haystack.find(needle.as_str()) {
+        Some(idx) => Ok(Value::Number(Num::from_integer(BigInt::from(idx as i64)))),
+        None => Ok(Value::Number(Num::from_integer(BigInt::from(-1)))),
+    }
+}
+
+// Check if all characters are alphabetic
+fn f_isalpha(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isalpha", a, 1)?;
+    let result = match &a[0] {
+        Value::Str(s) => !s.is_empty() && s.chars().all(|c| c.is_alphabetic()),
+        _ => return Err("isalpha: argument must be a string".to_string()),
+    };
+    Ok(Value::boolean(result))
+}
+
+// Check if all characters are digits
+fn f_isdigit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isdigit", a, 1)?;
+    let result = match &a[0] {
+        Value::Str(s) => !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()),
+        _ => return Err("isdigit: argument must be a string".to_string()),
+    };
+    Ok(Value::boolean(result))
+}
+
+// Check if all characters are whitespace
+fn f_isspace(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isspace", a, 1)?;
+    let result = match &a[0] {
+        Value::Str(s) => !s.is_empty() && s.chars().all(|c| c.is_whitespace()),
+        _ => return Err("isspace: argument must be a string".to_string()),
+    };
+    Ok(Value::boolean(result))
+}
+
+// Get type of value
+fn f_typeof(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("typeof", a, 1)?;
+    let type_str = match &a[0] {
+        Value::Number(_) => "number",
+        Value::Complex(_, _) => "complex",
+        Value::Str(_) => "string",
+        Value::List(_) => "list",
+        Value::Function(_, _) => "function",
+        Value::Null => "null",
+    };
+    Ok(Value::Str(type_str.to_string()))
+}
+
+// Check for NaN (not applicable for rationals, but return 0)
+fn f_isnan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isnan", a, 1)?;
+    match &a[0] {
+        Value::Number(_) | Value::Complex(_, _) => Ok(Value::Number(Num::zero())),
+        _ => Err("isnan: argument must be a number".to_string()),
+    }
+}
+
+// Check for infinity (not applicable for rationals, but return 0)
+fn f_isinf(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isinf", a, 1)?;
+    match &a[0] {
+        Value::Number(_) | Value::Complex(_, _) => Ok(Value::Number(Num::zero())),
+        _ => Err("isinf: argument must be a number".to_string()),
+    }
+}
+
+// Degrees to radians
+fn f_d2r(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("d2r", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::d2r(n(a, 0)?, &eps)?))
+}
+
+// Radians to degrees
+fn f_r2d(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("r2d", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::r2d(n(a, 0)?, &eps)?))
+}
+
+// Degrees to gradians
+fn f_d2g(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("d2g", a, 1)?;
+    Ok(Value::Number(number::d2g(n(a, 0)?)))
+}
+
+// Gradians to radians
+fn f_g2r(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("g2r", a, 1)?;
+    let eps = it.epsilon();
+    Ok(Value::Number(number::g2r(n(a, 0)?, &eps)?))
+}
+
+// Gradians to degrees
+fn f_g2d(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("g2d", a, 1)?;
+    Ok(Value::Number(number::g2d(n(a, 0)?)))
+}
+
 // Simple primality test (trial division for small primes, then test a few bases)
 fn is_prime(n: u64) -> bool {
     if n < 2 {
@@ -940,6 +1063,22 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("first".to_string(), f_first as BuiltinFn);
     builtins.insert("last".to_string(), f_last as BuiltinFn);
     builtins.insert("slice".to_string(), f_slice as BuiltinFn);
+    // String operations
+    builtins.insert("strlen".to_string(), f_strlen as BuiltinFn);
+    builtins.insert("index".to_string(), f_index as BuiltinFn);
+    builtins.insert("isalpha".to_string(), f_isalpha as BuiltinFn);
+    builtins.insert("isdigit".to_string(), f_isdigit as BuiltinFn);
+    builtins.insert("isspace".to_string(), f_isspace as BuiltinFn);
+    // Type operations
+    builtins.insert("typeof".to_string(), f_typeof as BuiltinFn);
+    builtins.insert("isnan".to_string(), f_isnan as BuiltinFn);
+    builtins.insert("isinf".to_string(), f_isinf as BuiltinFn);
+    // Angle conversions
+    builtins.insert("d2r".to_string(), f_d2r as BuiltinFn);
+    builtins.insert("r2d".to_string(), f_r2d as BuiltinFn);
+    builtins.insert("d2g".to_string(), f_d2g as BuiltinFn);
+    builtins.insert("g2r".to_string(), f_g2r as BuiltinFn);
+    builtins.insert("g2d".to_string(), f_g2d as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -1018,5 +1157,18 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("first", "first(list)", "get first item"),
         ("last", "last(list)", "get last item"),
         ("slice", "slice(list,start[,end])", "get sublist from start to end"),
+        ("strlen", "strlen(s)", "length of string"),
+        ("index", "index(haystack,needle)", "find substring position (-1 if not found)"),
+        ("isalpha", "isalpha(s)", "is string all alphabetic? (1 or 0)"),
+        ("isdigit", "isdigit(s)", "is string all digits? (1 or 0)"),
+        ("isspace", "isspace(s)", "is string all whitespace? (1 or 0)"),
+        ("typeof", "typeof(x)", "get type of value (number, complex, string, list, function, null)"),
+        ("isnan", "isnan(x)", "is NaN? (always 0 for rationals)"),
+        ("isinf", "isinf(x)", "is infinite? (always 0 for rationals)"),
+        ("d2r", "d2r(x)", "degrees to radians"),
+        ("r2d", "r2d(x)", "radians to degrees"),
+        ("d2g", "d2g(x)", "degrees to gradians"),
+        ("g2r", "g2r(x)", "gradians to radians"),
+        ("g2d", "g2d(x)", "gradians to degrees"),
     ]
 }

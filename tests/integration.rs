@@ -568,3 +568,158 @@ fn test_catalan() {
     assert_eq!(lines[2], "2"); // C_2 = 2
     assert_eq!(lines[3], "42"); // C_5 = 42
 }
+
+// Phase 3.3: String & Type Functions
+
+#[test]
+fn test_strlen() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"strlen("hello")"#).unwrap();
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_index_found() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"index("hello world", "world")"#).unwrap();
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_index_not_found() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"index("hello", "xyz")"#).unwrap();
+    assert_eq!(result, "-1");
+}
+
+#[test]
+fn test_isalpha_true() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"isalpha("hello")"#).unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_isalpha_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"isalpha("hello123")"#).unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_isdigit_true() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"isdigit("12345")"#).unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_isdigit_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"isdigit("123a")"#).unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_isspace_true() {
+    let mut it = Interp::new();
+    let result = it.eval_render("isspace(\"   \")").unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_isspace_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"isspace("  a  ")"#).unwrap();
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_typeof_number() {
+    let mut it = Interp::new();
+    let result = it.eval_render("typeof(42)").unwrap();
+    assert_eq!(result, "number");
+}
+
+#[test]
+fn test_typeof_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render(r#"typeof("hello")"#).unwrap();
+    assert_eq!(result, "string");
+}
+
+#[test]
+fn test_typeof_complex() {
+    let mut it = Interp::new();
+    let result = it.eval_render("typeof(sqrt(-1))").unwrap();
+    assert_eq!(result, "complex");
+}
+
+#[test]
+fn test_typeof_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("typeof(list(1,2,3))").unwrap();
+    assert_eq!(result, "list");
+}
+
+#[test]
+fn test_isnan() {
+    let mut it = Interp::new();
+    let result = it.eval_render("isnan(42)").unwrap();
+    assert_eq!(result, "0"); // rationals are never NaN
+}
+
+#[test]
+fn test_isinf() {
+    let mut it = Interp::new();
+    let result = it.eval_render("isinf(42)").unwrap();
+    assert_eq!(result, "0"); // rationals are never infinite
+}
+
+#[test]
+fn test_d2r() {
+    let mut it = Interp::new();
+    let result = it.eval_render("d2r(180)").unwrap();
+    // d2r(180) should be very close to π
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - std::f64::consts::PI).abs() < 0.001);
+}
+
+#[test]
+fn test_r2d() {
+    let mut it = Interp::new();
+    // r2d(π) should be 180
+    let result = it.eval_render("r2d(pi())").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - 180.0).abs() < 0.1);
+}
+
+#[test]
+fn test_d2g() {
+    let mut it = Interp::new();
+    // d2g(180) should be 200
+    let result = it.eval_render("d2g(180)").unwrap();
+    let val: f64 = result.parse().unwrap_or(0.0);
+    assert!((val - 200.0).abs() < 0.0001);
+}
+
+#[test]
+fn test_g2d() {
+    let mut it = Interp::new();
+    // g2d(200) should be 180
+    let result = it.eval_render("g2d(200)").unwrap();
+    let val: f64 = result.parse().unwrap_or(0.0);
+    assert!((val - 180.0).abs() < 0.0001);
+}
+
+#[test]
+fn test_g2r() {
+    let mut it = Interp::new();
+    // g2r(200) should be π
+    let result = it.eval_render("g2r(200)").unwrap();
+    let clean = result.trim_start_matches('~');
+    let val: f64 = clean.parse().unwrap_or(0.0);
+    assert!((val - std::f64::consts::PI).abs() < 0.001);
+}
