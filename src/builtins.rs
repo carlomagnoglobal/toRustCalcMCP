@@ -1876,6 +1876,195 @@ fn f_rename(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::zero()))
 }
 
+// Flush file buffer (no-op in our implementation, just return success)
+fn f_fflush(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fflush", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fflush: fd out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fflush: invalid file descriptor".to_string());
+    }
+
+    // In our implementation, we don't maintain actual file buffers, so this is a no-op
+    Ok(Value::Number(Num::zero()))
+}
+
+// Rewind file to beginning
+fn f_rewind(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rewind", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("rewind: fd out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("rewind: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("rewind: file not open".to_string());
+    }
+
+    it.open_files[idx].1 = 0; // Reset position to 0
+    Ok(Value::Number(Num::zero()))
+}
+
+// Get file descriptor number (just returns the fd itself)
+fn f_fileno(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fileno", a, 1)?;
+    let fd = int(a, 0)?;
+    Ok(Value::Number(Num::from_integer(fd)))
+}
+
+// Read bytes from file
+fn f_fread(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fread", a, 2)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fread: fd out of range")?;
+    let size = int(a, 1)?.to_usize().ok_or("fread: size out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fread: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fread: file not open".to_string());
+    }
+
+    let (path, pos) = it.open_files[idx].clone();
+    let mut file = File::open(&path)
+        .map_err(|e| format!("fread: cannot read {}: {}", path, e))?;
+
+    file.seek(SeekFrom::Start(pos))
+        .map_err(|e| format!("fread: seek error: {}", e))?;
+
+    let mut buf = vec![0; size];
+    match file.read(&mut buf) {
+        Ok(n) => {
+            it.open_files[idx].1 = pos + n as u64;
+            // Return the bytes as a string
+            let data_str = String::from_utf8_lossy(&buf[..n]).to_string();
+            Ok(Value::Str(data_str))
+        }
+        Err(e) => Err(format!("fread: read error: {}", e)),
+    }
+}
+
+// Write bytes to file
+fn f_fwrite(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fwrite", a, 2)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fwrite: fd out of range")?;
+    let data = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("fwrite: data must be a string".to_string()),
+    };
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fwrite: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fwrite: file not open".to_string());
+    }
+
+    let path = it.open_files[idx].0.clone();
+    let mut file = OpenOptions::new().write(true).append(true).open(&path)
+        .map_err(|e| format!("fwrite: cannot write to {}: {}", path, e))?;
+
+    match file.write_all(data.as_bytes()) {
+        Ok(_) => Ok(Value::Number(Num::from_integer(BigInt::from(data.len() as i64)))),
+        Err(e) => Err(format!("fwrite: write error: {}", e)),
+    }
+}
+
+// Seek with whence parameter (0=SEEK_SET, 1=SEEK_CUR, 2=SEEK_END)
+fn f_fseek(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fseek", a, 3)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fseek: fd out of range")?;
+    let offset = int(a, 1)?.to_i64().ok_or("fseek: offset out of range")?;
+    let whence = int(a, 2)?.to_i64().ok_or("fseek: whence out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fseek: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fseek: file not open".to_string());
+    }
+
+    let (path, _) = &it.open_files[idx];
+    let file = File::open(path)
+        .map_err(|e| format!("fseek: cannot open {}: {}", path, e))?;
+
+    let new_pos = match whence {
+        0 => { // SEEK_SET
+            if offset < 0 {
+                return Err("fseek: offset cannot be negative with SEEK_SET".to_string());
+            }
+            offset as u64
+        }
+        1 => { // SEEK_CUR
+            let current = it.open_files[idx].1 as i64;
+            let new = current + offset;
+            if new < 0 {
+                return Err("fseek: resulting position would be negative".to_string());
+            }
+            new as u64
+        }
+        2 => { // SEEK_END
+            let metadata = std::fs::metadata(path)
+                .map_err(|e| format!("fseek: cannot stat {}: {}", path, e))?;
+            let end = metadata.len() as i64;
+            let new = end + offset;
+            if new < 0 {
+                return Err("fseek: resulting position would be negative".to_string());
+            }
+            new as u64
+        }
+        _ => return Err("fseek: whence must be 0 (SEEK_SET), 1 (SEEK_CUR), or 2 (SEEK_END)".to_string()),
+    };
+
+    it.open_files[idx].1 = new_pos;
+    Ok(Value::Number(Num::from_integer(BigInt::from(new_pos as i64))))
+}
+
+// Write formatted string to file (simplified - just writes the value as string)
+fn f_fprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.len() < 2 {
+        return Err("fprintf: expects at least 2 arguments (fd, value, ...)".to_string());
+    }
+
+    let fd = int(a, 0)?.to_i64().ok_or("fprintf: fd out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fprintf: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fprintf: file not open".to_string());
+    }
+
+    // Render all arguments as strings and concatenate
+    let mut output = String::new();
+    for i in 1..a.len() {
+        match &a[i] {
+            Value::Str(s) => output.push_str(s),
+            Value::Number(n) => output.push_str(&number::to_decimal_string(n, 15)),
+            _ => output.push_str(&a[i].render(&it.cfg)),
+        }
+    }
+
+    let path = it.open_files[idx].0.clone();
+    let mut file = OpenOptions::new().write(true).append(true).open(&path)
+        .map_err(|e| format!("fprintf: cannot write to {}: {}", path, e))?;
+
+    file.write_all(output.as_bytes())
+        .map_err(|e| format!("fprintf: write error: {}", e))?;
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(output.len() as i64))))
+}
+
 // Phase 6.2: Memory & Stack Management
 
 // Allocate memory block
@@ -2932,6 +3121,14 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("eof".to_string(), f_eof as BuiltinFn);
     builtins.insert("remove".to_string(), f_remove as BuiltinFn);
     builtins.insert("rename".to_string(), f_rename as BuiltinFn);
+    // Additional File I/O functions (Phase 6.1 extended)
+    builtins.insert("fflush".to_string(), f_fflush as BuiltinFn);
+    builtins.insert("rewind".to_string(), f_rewind as BuiltinFn);
+    builtins.insert("fileno".to_string(), f_fileno as BuiltinFn);
+    builtins.insert("fread".to_string(), f_fread as BuiltinFn);
+    builtins.insert("fwrite".to_string(), f_fwrite as BuiltinFn);
+    builtins.insert("fseek".to_string(), f_fseek as BuiltinFn);
+    builtins.insert("fprintf".to_string(), f_fprintf as BuiltinFn);
     // Memory & stack management (Phase 6.2)
     builtins.insert("blk".to_string(), f_blk as BuiltinFn);
     builtins.insert("blkcpy".to_string(), f_blkcpy as BuiltinFn);
@@ -3168,6 +3365,13 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("eof", "eof(fd)", "check if at end-of-file"),
         ("remove", "remove(filename)", "delete file"),
         ("rename", "rename(old,new)", "rename file"),
+        ("fflush", "fflush(fd)", "flush file buffer"),
+        ("rewind", "rewind(fd)", "rewind file to beginning"),
+        ("fileno", "fileno(fd)", "get file descriptor number"),
+        ("fread", "fread(fd,size)", "read bytes from file"),
+        ("fwrite", "fwrite(fd,data)", "write bytes to file"),
+        ("fseek", "fseek(fd,offset,whence)", "seek with whence (0=SET, 1=CUR, 2=END)"),
+        ("fprintf", "fprintf(fd,...)", "formatted write to file"),
         // Memory & stack management (Phase 6.2)
         ("blk", "blk(size)", "allocate memory block"),
         ("blkcpy", "blkcpy(dest,src,size)", "copy memory block"),

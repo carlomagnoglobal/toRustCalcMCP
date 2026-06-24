@@ -15,14 +15,14 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 6.7 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 235 builtins, CLI, MCP server, and 223 integration
+Current status: **Phase 6.1 extended complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 242 builtins, CLI, MCP server, and 229 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
-Phase 6.1-6.7 complete (file I/O, memory & stack, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic).
+Phase 6.1-6.7 complete (file I/O with extended functions, memory & stack, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -405,7 +405,7 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
 
 ## Phase 6: Specialized & Exotic (TBD)
 
-### 6.1 File I/O — PHASE 1 DONE (11 of 24 functions)
+### 6.1 File I/O — PHASE 1 DONE; EXTENDED DONE (18 of 24 functions)
    - ✅ `fopen(filename, mode)` — open file (r/w/a modes supported)
    - ✅ `fclose(fd)` — close file descriptor
    - ✅ `fgets(fd)` — read line from file
@@ -417,14 +417,20 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - ✅ `eof(fd)` — check end-of-file condition
    - ✅ `remove(filename)` — delete file
    - ✅ `rename(old, new)` — rename file
-   - [ ] `fprintf(fd, fmt, ...)` — formatted write
-   - [ ] `fscan(fd, fmt)` — read formatted
-   - [ ] `fscanf(fd, fmt, ...)` — formatted input with args
-   - [ ] And 10+ more streaming/file operations (flush, rewind, etc.)
-   - ✅ File descriptor management infrastructure added to Interp
-   - ✅ 6 new integration tests added and passing
-   - Builtins: 191 → 202 (+11)
-   - Total tests: 181 → 187 (+6)
+   - ✅ `fflush(fd)` — flush file buffer
+   - ✅ `rewind(fd)` — rewind to beginning
+   - ✅ `fileno(fd)` — get file descriptor number
+   - ✅ `fread(fd, size)` — read bytes
+   - ✅ `fwrite(fd, data)` — write data
+   - ✅ `fseek(fd, offset, whence)` — seek with whence parameter
+   - ✅ `fprintf(fd, ...)` — formatted write
+   - [ ] `fscan(fd, fmt)` — read formatted (scanning requires format parsing)
+   - [ ] `fscanf(fd, fmt, ...)` — formatted input (requires format parsing)
+   - [ ] 4+ more streaming/file operations (fread with format, etc.)
+   - ✅ File descriptor management infrastructure in Interp
+   - ✅ 12 new integration tests added and passing (6 phase 1 + 6 extended)
+   - Builtins: 235 → 242 (+7 extended)
+   - Total tests: 223 → 229 (+6)
 
 ### 6.2 Memory & Stack Management — DONE (9 of 13 functions)
    - ✅ `blk(n)` — allocate n bytes

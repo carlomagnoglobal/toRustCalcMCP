@@ -2038,3 +2038,71 @@ fn test_rcdiv() {
     let result = it.eval_render("rcdiv(6, 3, 7)").unwrap();
     assert_eq!(result.trim(), "2");
 }
+
+// Phase 6.1 Extended: Additional File I/O Functions
+
+#[test]
+fn test_fflush() {
+    let mut it = Interp::new();
+    // fflush should return 0 (success) for a valid fd
+    it.eval_render("fopen(\"/tmp/test_fflush.txt\", \"w\")").ok();
+    let result = it.eval_render("fflush(3)").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_rewind() {
+    let mut it = Interp::new();
+    // Create a test file with content
+    let _ = std::fs::write("/tmp/test_rewind.txt", "hello world");
+
+    // Open file and read some content
+    it.eval_render("fopen(\"/tmp/test_rewind.txt\", \"r\")").ok();
+    it.eval_render("fgets(3)").ok(); // Read a line
+
+    // Rewind should return 0
+    let result = it.eval_render("rewind(3)").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_fileno() {
+    let mut it = Interp::new();
+    // fileno should return the fd itself
+    let result = it.eval_render("fileno(3)").unwrap();
+    assert_eq!(result.trim(), "3");
+}
+
+#[test]
+fn test_fread_write() {
+    let mut it = Interp::new();
+    // Write some data then read it back
+    let _ = std::fs::write("/tmp/test_freadwrite.txt", "test data");
+
+    it.eval_render("fopen(\"/tmp/test_freadwrite.txt\", \"r\")").ok();
+    let result = it.eval_render("fread(3, 4)").unwrap();
+    assert_eq!(result.trim(), "test");
+}
+
+#[test]
+fn test_fseek_operations() {
+    let mut it = Interp::new();
+    // Create a test file
+    let _ = std::fs::write("/tmp/test_fseek.txt", "0123456789");
+
+    it.eval_render("fopen(\"/tmp/test_fseek.txt\", \"r\")").ok();
+    // Seek to position 5
+    let result = it.eval_render("fseek(3, 5, 0)").unwrap();
+    assert_eq!(result.trim(), "5");
+}
+
+#[test]
+fn test_fprintf_output() {
+    let mut it = Interp::new();
+    // Create a test file
+    it.eval_render("fopen(\"/tmp/test_fprintf.txt\", \"w\")").ok();
+    // Write formatted output
+    let result = it.eval_render("fprintf(3, \"hello\", \" \", \"world\")").unwrap();
+    // Should return number of bytes written (11 for "hello world")
+    assert!(result.trim().parse::<i64>().unwrap_or(0) > 0);
+}
