@@ -16,13 +16,13 @@
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
 Current status: **Phase 4 in progress.** The project has a full `src/` structure
-with lexer, parser, evaluator, 109 builtins, CLI, MCP server, and 103 integration
+with lexer, parser, evaluator, 118 builtins, CLI, MCP server, and 112 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
-Phase 4.1 complete (reciprocal trig and hyperbolic variants).
+Phase 4.1–4.2 complete (reciprocal trig, root/logarithm variants).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
-(e.g., `2^256`), complex arithmetic works (e.g., `sqrt(-1) * sqrt(-1) = -1`), comprehensive trigonometric coverage,
+(e.g., `2^256`), comprehensive trigonometric and root/logarithm support (nth roots, base-n logarithms, integer roots/logs),
 and the MCP server provides structured JSON alongside text results.
 
 ---
@@ -283,14 +283,16 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 99 → 109 (+10)
    - Total tests: 91 → 103 (+12)
 
-### 4.2 Root & Logarithm Variants (9 functions)
-   - [ ] `root(x, n)` — nth root (generalized sqrt)
-   - [ ] `cbrt(x)` — cube root
-   - [ ] `isqrt(x)` — integer square root
-   - [ ] `iroot(x, n)` — integer nth root
-   - [ ] `logn(x, n)` — logarithm base n
-   - [ ] `ilog(x)`, `ilog2(x)`, `ilog10(x)`, `ilogn(x, n)` — integer logarithms
-   - Integration tests: verify `root(x, n)^n ≈ x`, `logn(base^x, base) = x`
+### 4.2 Root & Logarithm Variants — DONE
+   - ✅ `root(x, n)` — nth root (generalized sqrt) via Newton's method
+   - ✅ `cbrt(x)` — cube root
+   - ✅ `isqrt(x)` — integer square root
+   - ✅ `iroot(x, n)` — integer nth root via binary search
+   - ✅ `logn(x, n)` — logarithm base n
+   - ✅ `ilog(x)`, `ilog2(x)`, `ilog10(x)`, `ilogn(x, n)` — integer logarithms
+   - ✅ 9 new integration tests added and passing
+   - Builtins: 109 → 118 (+9)
+   - Total tests: 103 → 112 (+9)
 
 ### 4.3 Prime & Number Theory Extensions (8 functions)
    - [ ] `prevprime(n)` — previous prime before n
