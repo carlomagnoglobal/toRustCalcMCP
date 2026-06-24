@@ -16,13 +16,13 @@
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
 Current status: **Phase 4 in progress.** The project has a full `src/` structure
-with lexer, parser, evaluator, 118 builtins, CLI, MCP server, and 112 integration
+with lexer, parser, evaluator, 126 builtins, CLI, MCP server, and 120 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
-Phase 4.1–4.2 complete (reciprocal trig, root/logarithm variants).
+Phase 4.1–4.3 complete (reciprocal trig, root/logarithm variants, prime/number theory).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
-(e.g., `2^256`), comprehensive trigonometric and root/logarithm support (nth roots, base-n logarithms, integer roots/logs),
+(e.g., `2^256`), comprehensive trigonometric and algebraic support (prime factorization, Euler/Bernoulli numbers, Jacobi symbols),
 and the MCP server provides structured JSON alongside text results.
 
 ---
@@ -294,15 +294,17 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 109 → 118 (+9)
    - Total tests: 103 → 112 (+9)
 
-### 4.3 Prime & Number Theory Extensions (8 functions)
-   - [ ] `prevprime(n)` — previous prime before n
-   - [ ] `factor(n)` — prime factorization
-   - [ ] `lfactor(n)` — largest prime factor
-   - [ ] `ptest(n, k)` — probabilistic primality test
-   - [ ] `euler(n)` — Euler numbers
-   - [ ] `bernoulli(n)` — Bernoulli numbers
-   - [ ] `jacobi(a, n)` — Jacobi symbol
-   - Integration tests: verify factorization, prime properties
+### 4.3 Prime & Number Theory Extensions — DONE
+   - ✅ `prevprime(n)` — previous prime before n via linear search
+   - ✅ `factor(n)` — prime factorization via trial division (returns list)
+   - ✅ `lfactor(n)` — largest prime factor
+   - ✅ `ptest(n, k)` — probabilistic primality test (k rounds)
+   - ✅ `euler(n)` — Euler numbers via recurrence relation
+   - ✅ `bernoulli(n)` — Bernoulli numbers via recurrence relation
+   - ✅ `jacobi(a, n)` — Jacobi symbol using quadratic reciprocity
+   - ✅ 8 new integration tests added and passing
+   - Builtins: 118 → 126 (+8)
+   - Total tests: 112 → 120 (+8)
 
 ### 4.4 More Special Functions (6 functions)
    - [ ] `y0(x)`, `y1(x)` — Bessel functions of 2nd kind
