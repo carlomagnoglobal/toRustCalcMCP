@@ -15,14 +15,14 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 6.3 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 191 builtins, CLI, MCP server, and 181 integration
+Current status: **Phase 6.1 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 202 builtins, CLI, MCP server, and 187 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
-Phase 6.3 complete (error & exception handling with error state tracking).
+Phase 6.1 complete (file I/O with file descriptor management); Phase 6.3 complete (error & exception handling).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -405,22 +405,26 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
 
 ## Phase 6: Specialized & Exotic (TBD)
 
-### 6.1 File I/O (24 functions) — High Priority
-   - [ ] `fopen(filename, mode)` — open file
-   - [ ] `fclose(fd)` — close file descriptor
-   - [ ] `fgets(fd)` — read line
-   - [ ] `fgetc(fd)` — read character
+### 6.1 File I/O — PHASE 1 DONE (11 of 24 functions)
+   - ✅ `fopen(filename, mode)` — open file (r/w/a modes supported)
+   - ✅ `fclose(fd)` — close file descriptor
+   - ✅ `fgets(fd)` — read line from file
+   - ✅ `fgetc(fd)` — read character from file
+   - ✅ `fputs(fd, str)` — write string to file
+   - ✅ `fputc(fd, ch)` — write character to file
+   - ✅ `seek(fd, offset)` — seek to position in file
+   - ✅ `tell(fd)` — get current file position
+   - ✅ `eof(fd)` — check end-of-file condition
+   - ✅ `remove(filename)` — delete file
+   - ✅ `rename(old, new)` — rename file
    - [ ] `fprintf(fd, fmt, ...)` — formatted write
    - [ ] `fscan(fd, fmt)` — read formatted
    - [ ] `fscanf(fd, fmt, ...)` — formatted input with args
-   - [ ] `fputs(fd, str)` — write string
-   - [ ] `fputc(fd, ch)` — write character
-   - [ ] `seek(fd, offset)` — seek in file
-   - [ ] `tell(fd)` — current position
-   - [ ] `eof(fd)` — end-of-file test
-   - [ ] `remove(filename)` — delete file
-   - [ ] `rename(old, new)` — rename file
-   - [ ] And 10+ more streaming/file operations
+   - [ ] And 10+ more streaming/file operations (flush, rewind, etc.)
+   - ✅ File descriptor management infrastructure added to Interp
+   - ✅ 6 new integration tests added and passing
+   - Builtins: 191 → 202 (+11)
+   - Total tests: 181 → 187 (+6)
 
 ### 6.2 Memory & Stack Management (13 functions)
    - [ ] `blk(n)` — allocate n bytes

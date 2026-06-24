@@ -1610,6 +1610,272 @@ fn f_warn(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Null)
 }
 
+// Phase 6.1: File I/O
+
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write, Seek, SeekFrom, BufRead, BufReader};
+
+// Open a file
+fn f_fopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fopen", a, 2)?;
+    let filename = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("fopen: filename must be a string".to_string()),
+    };
+    let mode = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("fopen: mode must be a string".to_string()),
+    };
+
+    // Validate the file can be opened
+    let _f = match mode.as_str() {
+        "r" => File::open(&filename).map_err(|e| format!("fopen: cannot open {}: {}", filename, e))?,
+        "w" => OpenOptions::new().write(true).create(true).truncate(true).open(&filename)
+            .map_err(|e| format!("fopen: cannot create {}: {}", filename, e))?,
+        "a" => OpenOptions::new().write(true).create(true).append(true).open(&filename)
+            .map_err(|e| format!("fopen: cannot open {}: {}", filename, e))?,
+        _ => return Err("fopen: mode must be 'r', 'w', or 'a'".to_string()),
+    };
+
+    // Store file info
+    let fd = it.next_fd;
+    it.open_files.push((filename, 0)); // path, position
+    it.next_fd += 1;
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(fd))))
+}
+
+// Close a file
+fn f_fclose(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fclose", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fclose: fd out of range")?;
+
+    if fd < 3 || fd as usize >= it.next_fd as usize || fd as usize - 3 >= it.open_files.len() {
+        return Err("fclose: invalid file descriptor".to_string());
+    }
+
+    // Remove from open files
+    let idx = (fd - 3) as usize;
+    if idx < it.open_files.len() {
+        it.open_files.remove(idx);
+    }
+
+    Ok(Value::Number(Num::zero()))
+}
+
+// Read a line from a file
+fn f_fgets(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fgets", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fgets: fd out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fgets: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fgets: file not open".to_string());
+    }
+
+    let (path, _pos) = &it.open_files[idx];
+    let mut file = File::open(path)
+        .map_err(|e| format!("fgets: cannot read {}: {}", path, e))?;
+
+    // Simple approach: read entire file into memory (not ideal for large files)
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .map_err(|e| format!("fgets: read error: {}", e))?;
+
+    // For now, return first line
+    match contents.lines().next() {
+        Some(line) => Ok(Value::Str(line.to_string())),
+        None => Ok(Value::Str(String::new())),
+    }
+}
+
+// Read a character from a file
+fn f_fgetc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fgetc", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fgetc: fd out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fgetc: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fgetc: file not open".to_string());
+    }
+
+    let (path, pos) = it.open_files[idx].clone();
+    let mut file = File::open(&path)
+        .map_err(|e| format!("fgetc: cannot read {}: {}", path, e))?;
+
+    file.seek(SeekFrom::Start(pos))
+        .map_err(|e| format!("fgetc: seek error: {}", e))?;
+
+    let mut buf = [0; 1];
+    match file.read_exact(&mut buf) {
+        Ok(_) => {
+            it.open_files[idx].1 = pos + 1;
+            Ok(Value::Number(Num::from_integer(BigInt::from(buf[0] as i64))))
+        }
+        Err(_) => Ok(Value::Number(Num::from_integer(BigInt::from(-1)))),
+    }
+}
+
+// Write string to a file
+fn f_fputs(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fputs", a, 2)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fputs: fd out of range")?;
+    let text = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("fputs: text must be a string".to_string()),
+    };
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fputs: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fputs: file not open".to_string());
+    }
+
+    let path = it.open_files[idx].0.clone();
+    let mut file = OpenOptions::new().write(true).append(true).open(&path)
+        .map_err(|e| format!("fputs: cannot write to {}: {}", path, e))?;
+
+    file.write_all(text.as_bytes())
+        .map_err(|e| format!("fputs: write error: {}", e))?;
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(text.len() as i64))))
+}
+
+// Write character to a file
+fn f_fputc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fputc", a, 2)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fputc: fd out of range")?;
+    let ch = int(a, 1)?.to_i64().ok_or("fputc: character out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fputc: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fputc: file not open".to_string());
+    }
+
+    let path = it.open_files[idx].0.clone();
+    let mut file = OpenOptions::new().write(true).append(true).open(&path)
+        .map_err(|e| format!("fputc: cannot write to {}: {}", path, e))?;
+
+    let byte = (ch & 0xFF) as u8;
+    file.write_all(&[byte])
+        .map_err(|e| format!("fputc: write error: {}", e))?;
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(byte as i64))))
+}
+
+// Seek to position in file
+fn f_seek(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("seek", a, 2)?;
+    let fd = int(a, 0)?.to_i64().ok_or("seek: fd out of range")?;
+    let offset = int(a, 1)?.to_i64().ok_or("seek: offset out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("seek: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("seek: file not open".to_string());
+    }
+
+    if offset < 0 {
+        return Err("seek: offset cannot be negative".to_string());
+    }
+
+    it.open_files[idx].1 = offset as u64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(offset))))
+}
+
+// Get current position in file
+fn f_tell(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("tell", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("tell: fd out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("tell: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("tell: file not open".to_string());
+    }
+
+    let pos = it.open_files[idx].1;
+    Ok(Value::Number(Num::from_integer(BigInt::from(pos as i64))))
+}
+
+// Check end-of-file
+fn f_eof(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("eof", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("eof: fd out of range")?;
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("eof: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("eof: file not open".to_string());
+    }
+
+    let (path, pos) = &it.open_files[idx];
+    let mut file = File::open(path)
+        .map_err(|e| format!("eof: cannot read {}: {}", path, e))?;
+
+    let metadata = std::fs::metadata(path)
+        .map_err(|e| format!("eof: cannot stat {}: {}", path, e))?;
+
+    let at_eof = *pos >= metadata.len();
+    Ok(Value::Number(Num::from_integer(BigInt::from(if at_eof { 1 } else { 0 }))))
+}
+
+// Remove (delete) a file
+fn f_remove(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("remove", a, 1)?;
+    let filename = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("remove: filename must be a string".to_string()),
+    };
+
+    std::fs::remove_file(&filename)
+        .map_err(|e| format!("remove: cannot delete {}: {}", filename, e))?;
+
+    Ok(Value::Number(Num::zero()))
+}
+
+// Rename a file
+fn f_rename(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rename", a, 2)?;
+    let old_name = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("rename: old name must be a string".to_string()),
+    };
+    let new_name = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("rename: new name must be a string".to_string()),
+    };
+
+    std::fs::rename(&old_name, &new_name)
+        .map_err(|e| format!("rename: cannot rename {} to {}: {}", old_name, new_name, e))?;
+
+    Ok(Value::Number(Num::zero()))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -2188,6 +2454,18 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("error".to_string(), f_error as BuiltinFn);
     builtins.insert("newerror".to_string(), f_newerror as BuiltinFn);
     builtins.insert("warn".to_string(), f_warn as BuiltinFn);
+    // File I/O (Phase 6.1)
+    builtins.insert("fopen".to_string(), f_fopen as BuiltinFn);
+    builtins.insert("fclose".to_string(), f_fclose as BuiltinFn);
+    builtins.insert("fgets".to_string(), f_fgets as BuiltinFn);
+    builtins.insert("fgetc".to_string(), f_fgetc as BuiltinFn);
+    builtins.insert("fputs".to_string(), f_fputs as BuiltinFn);
+    builtins.insert("fputc".to_string(), f_fputc as BuiltinFn);
+    builtins.insert("seek".to_string(), f_seek as BuiltinFn);
+    builtins.insert("tell".to_string(), f_tell as BuiltinFn);
+    builtins.insert("eof".to_string(), f_eof as BuiltinFn);
+    builtins.insert("remove".to_string(), f_remove as BuiltinFn);
+    builtins.insert("rename".to_string(), f_rename as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -2374,5 +2652,17 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("error", "error(msg)", "raise an error with message"),
         ("newerror", "newerror(code,msg)", "register a new error type"),
         ("warn", "warn(msg)", "issue a warning (not counted as error)"),
+        // File I/O (Phase 6.1)
+        ("fopen", "fopen(filename,mode)", "open file (mode: 'r', 'w', 'a')"),
+        ("fclose", "fclose(fd)", "close file"),
+        ("fgets", "fgets(fd)", "read line from file"),
+        ("fgetc", "fgetc(fd)", "read character from file"),
+        ("fputs", "fputs(fd,str)", "write string to file"),
+        ("fputc", "fputc(fd,ch)", "write character to file"),
+        ("seek", "seek(fd,offset)", "seek to position in file"),
+        ("tell", "tell(fd)", "get current position in file"),
+        ("eof", "eof(fd)", "check if at end-of-file"),
+        ("remove", "remove(filename)", "delete file"),
+        ("rename", "rename(old,new)", "rename file"),
     ]
 }

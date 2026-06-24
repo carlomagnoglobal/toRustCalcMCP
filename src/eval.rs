@@ -7,6 +7,8 @@ use crate::parser::{BinOp, Expr, UnOp};
 use crate::value::Value;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufReader, BufWriter, Seek, SeekFrom};
 
 pub type BuiltinFn = fn(&mut Interp, &[Value]) -> Result<Value, String>;
 
@@ -20,6 +22,8 @@ pub struct Interp {
     pub error_max: i64, // Max errors before stopping (0 = unlimited)
     pub last_errno: i64, // Last error code
     pub error_messages: HashMap<i64, String>, // Error code to message mapping
+    pub open_files: Vec<(String, u64)>, // File path and current position for each fd
+    pub next_fd: i64, // Next available file descriptor
 }
 
 impl Default for Interp {
@@ -34,6 +38,8 @@ impl Default for Interp {
             error_max: 0, // 0 = unlimited
             last_errno: 0,
             error_messages: HashMap::new(),
+            open_files: Vec::new(),
+            next_fd: 3, // 0=stdin, 1=stdout, 2=stderr
         };
         builtins::register(&mut it.builtins);
         it

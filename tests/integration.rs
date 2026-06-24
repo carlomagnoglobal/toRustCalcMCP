@@ -1588,3 +1588,95 @@ fn test_newerror_and_lookup() {
     let result = it.eval_render("errsym(200)").unwrap();
     assert_eq!(result.trim(), "my custom error");
 }
+
+// Phase 6.1: File I/O
+
+#[test]
+fn test_fopen_write() {
+    let mut it = Interp::new();
+    // Open a file for writing
+    let result = it.eval_render("fopen(\"/tmp/test_calc.txt\", \"w\")").unwrap();
+    // Should return a file descriptor (3 or higher)
+    let fd: i64 = result.trim().parse().unwrap();
+    assert!(fd >= 3);
+}
+
+#[test]
+fn test_fopen_read_nonexistent() {
+    let mut it = Interp::new();
+    // Try to open non-existent file for reading
+    let result = it.eval_render("fopen(\"/tmp/nonexistent_calc_file_12345.txt\", \"r\")");
+    // Should fail
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_fputs_and_fclose() {
+    let mut it = Interp::new();
+    // Create file and write string
+    let result = it.eval_render("fd = fopen(\"/tmp/test_write.txt\", \"w\"); fputs(fd, \"Hello, World!\")").unwrap();
+    // Last statement should return length (13)
+    assert_eq!(result.lines().last().unwrap(), "13");
+
+    // Close the file
+    let close_result = it.eval_render("fclose(3)").unwrap();
+    assert_eq!(close_result.trim(), "0");
+}
+
+#[test]
+fn test_remove_file() {
+    let mut it = Interp::new();
+    // Create a file
+    it.eval_render("fd = fopen(\"/tmp/test_remove.txt\", \"w\"); fputs(fd, \"test\"); fclose(fd)").ok();
+
+    // Remove it
+    let result = it.eval_render("remove(\"/tmp/test_remove.txt\")").unwrap();
+    assert_eq!(result.trim(), "0");
+
+    // Try to remove again - should fail
+    let result2 = it.eval_render("remove(\"/tmp/test_remove.txt\")");
+    assert!(result2.is_err());
+}
+
+#[test]
+fn test_rename_file() {
+    let mut it = Interp::new();
+    // Create a file
+    it.eval_render("fd = fopen(\"/tmp/test_orig.txt\", \"w\"); fputs(fd, \"test\"); fclose(fd)").ok();
+
+    // Rename it
+    let result = it.eval_render("rename(\"/tmp/test_orig.txt\", \"/tmp/test_renamed.txt\")").unwrap();
+    assert_eq!(result.trim(), "0");
+
+    // Verify renamed file exists
+    let read_result = it.eval_render("fopen(\"/tmp/test_renamed.txt\", \"r\")");
+    assert!(read_result.is_ok());
+
+    // Cleanup
+    it.eval_render("remove(\"/tmp/test_renamed.txt\")").ok();
+}
+
+#[test]
+fn test_seek_and_tell() {
+    let mut it = Interp::new();
+    // Create file
+    it.eval_render("fd = fopen(\"/tmp/test_seek.txt\", \"w\"); fputs(fd, \"0123456789\"); fclose(fd)").ok();
+
+    // Reopen for reading
+    it.eval_render("fd = fopen(\"/tmp/test_seek.txt\", \"r\")").ok();
+
+    // Check initial position
+    let pos1 = it.eval_render("tell(3)").unwrap();
+    assert_eq!(pos1.trim(), "0");
+
+    // Seek to position 5
+    it.eval_render("seek(3, 5)").ok();
+
+    // Check position
+    let pos2 = it.eval_render("tell(3)").unwrap();
+    assert_eq!(pos2.trim(), "5");
+
+    // Cleanup
+    it.eval_render("fclose(3)").ok();
+    it.eval_render("remove(\"/tmp/test_seek.txt\")").ok();
+}
