@@ -1876,6 +1876,102 @@ fn f_rename(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::zero()))
 }
 
+// Phase 6.2: Memory & Stack Management
+
+// Allocate memory block
+fn f_blk(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("blk", a, 1)?;
+    let size = int(a, 0)?.to_usize().ok_or("blk: size out of range")?;
+
+    let block_id = it.next_block_id;
+    it.memory_blocks.insert(block_id, vec![0; size]);
+    it.next_block_id += 1;
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(block_id))))
+}
+
+// Copy memory block
+fn f_blkcpy(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("blkcpy", a, 3)?;
+    let dest_id = int(a, 0)?.to_i64().ok_or("blkcpy: dest out of range")?;
+    let src_id = int(a, 1)?.to_i64().ok_or("blkcpy: src out of range")?;
+    let size = int(a, 2)?.to_usize().ok_or("blkcpy: size out of range")?;
+
+    let src = it.memory_blocks.get(&src_id)
+        .ok_or("blkcpy: source block not found")?
+        .clone();
+
+    if size > src.len() {
+        return Err("blkcpy: size exceeds source block".to_string());
+    }
+
+    let dest = it.memory_blocks.get_mut(&dest_id)
+        .ok_or("blkcpy: destination block not found")?;
+
+    if size > dest.len() {
+        return Err("blkcpy: size exceeds destination block".to_string());
+    }
+
+    dest[..size].copy_from_slice(&src[..size]);
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(size as i64))))
+}
+
+// Free memory block
+fn f_blkfree(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("blkfree", a, 1)?;
+    let block_id = int(a, 0)?.to_i64().ok_or("blkfree: block_id out of range")?;
+
+    match it.memory_blocks.remove(&block_id) {
+        Some(_) => Ok(Value::Number(Num::zero())),
+        None => Err("blkfree: block not found".to_string()),
+    }
+}
+
+// Get number of allocated blocks
+fn f_blocks(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("blocks", a, 0)?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(it.memory_blocks.len() as i64))))
+}
+
+// Free all memory (clears all blocks)
+fn f_free(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("free", a, 0)?;
+    let count = it.memory_blocks.len();
+    it.memory_blocks.clear();
+    Ok(Value::Number(Num::from_integer(BigInt::from(count as i64))))
+}
+
+// Free all global variables
+fn f_freeglobals(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freeglobals", a, 0)?;
+    let count = it.global_vars.len();
+    it.global_vars.clear();
+    Ok(Value::Number(Num::from_integer(BigInt::from(count as i64))))
+}
+
+// Push value onto evaluation stack
+fn f_push(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("push", a, 1)?;
+    it.eval_stack.push(a[0].clone());
+    Ok(Value::Number(Num::from_integer(BigInt::from(it.eval_stack.len() as i64))))
+}
+
+// Pop value from evaluation stack
+fn f_pop(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("pop", a, 0)?;
+    match it.eval_stack.pop() {
+        Some(val) => Ok(val),
+        None => Err("pop: stack is empty".to_string()),
+    }
+}
+
+// Get evaluation stack depth
+fn f_depth(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("depth", a, 0)?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(it.eval_stack.len() as i64))))
+}
+
 // Catalan number
 fn f_catalan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("catalan", a, 1)?;
@@ -2466,6 +2562,16 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("eof".to_string(), f_eof as BuiltinFn);
     builtins.insert("remove".to_string(), f_remove as BuiltinFn);
     builtins.insert("rename".to_string(), f_rename as BuiltinFn);
+    // Memory & stack management (Phase 6.2)
+    builtins.insert("blk".to_string(), f_blk as BuiltinFn);
+    builtins.insert("blkcpy".to_string(), f_blkcpy as BuiltinFn);
+    builtins.insert("blkfree".to_string(), f_blkfree as BuiltinFn);
+    builtins.insert("blocks".to_string(), f_blocks as BuiltinFn);
+    builtins.insert("free".to_string(), f_free as BuiltinFn);
+    builtins.insert("freeglobals".to_string(), f_freeglobals as BuiltinFn);
+    builtins.insert("push".to_string(), f_push as BuiltinFn);
+    builtins.insert("pop".to_string(), f_pop as BuiltinFn);
+    builtins.insert("depth".to_string(), f_depth as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -2664,5 +2770,15 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("eof", "eof(fd)", "check if at end-of-file"),
         ("remove", "remove(filename)", "delete file"),
         ("rename", "rename(old,new)", "rename file"),
+        // Memory & stack management (Phase 6.2)
+        ("blk", "blk(size)", "allocate memory block"),
+        ("blkcpy", "blkcpy(dest,src,size)", "copy memory block"),
+        ("blkfree", "blkfree(id)", "free memory block"),
+        ("blocks", "blocks()", "get number of allocated blocks"),
+        ("free", "free()", "free all allocated memory"),
+        ("freeglobals", "freeglobals()", "free all global variables"),
+        ("push", "push(val)", "push value onto evaluation stack"),
+        ("pop", "pop()", "pop value from evaluation stack"),
+        ("depth", "depth()", "get evaluation stack depth"),
     ]
 }

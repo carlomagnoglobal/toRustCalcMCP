@@ -1680,3 +1680,106 @@ fn test_seek_and_tell() {
     it.eval_render("fclose(3)").ok();
     it.eval_render("remove(\"/tmp/test_seek.txt\")").ok();
 }
+
+// Phase 6.2: Memory & Stack Management
+
+#[test]
+fn test_blk_allocate() {
+    let mut it = Interp::new();
+    // Allocate 100 bytes
+    let result = it.eval_render("blk(100)").unwrap();
+    let block_id: i64 = result.trim().parse().unwrap();
+    assert!(block_id >= 1);
+}
+
+#[test]
+fn test_blocks_count() {
+    let mut it = Interp::new();
+    // Allocate two blocks and check count
+    it.eval_render("id1 = blk(50); id2 = blk(100)").ok();
+    let result = it.eval_render("blocks()").unwrap();
+    assert_eq!(result.lines().last().unwrap(), "2");
+}
+
+#[test]
+fn test_blkfree() {
+    let mut it = Interp::new();
+    // Allocate block
+    it.eval_render("id = blk(50)").ok();
+
+    // Free it
+    let result = it.eval_render("blkfree(1)").unwrap();
+    assert_eq!(result.trim(), "0");
+
+    // Check count
+    let count = it.eval_render("blocks()").unwrap();
+    assert_eq!(count.trim(), "0");
+}
+
+#[test]
+fn test_push_and_pop() {
+    let mut it = Interp::new();
+    // Push value
+    it.eval_render("push(42)").ok();
+
+    // Check depth
+    let depth = it.eval_render("depth()").unwrap();
+    assert_eq!(depth.trim(), "1");
+
+    // Pop value
+    let result = it.eval_render("pop()").unwrap();
+    assert_eq!(result.trim(), "42");
+}
+
+#[test]
+fn test_stack_operations() {
+    let mut it = Interp::new();
+    // Push multiple values
+    it.eval_render("push(1); push(2); push(3)").ok();
+
+    // Check depth
+    let depth = it.eval_render("depth()").unwrap();
+    assert_eq!(depth.lines().last().unwrap(), "3");
+
+    // Pop one
+    let val = it.eval_render("pop()").unwrap();
+    assert_eq!(val.trim(), "3");
+
+    // Check depth again
+    let depth2 = it.eval_render("depth()").unwrap();
+    assert_eq!(depth2.trim(), "2");
+}
+
+#[test]
+fn test_free_all_memory() {
+    let mut it = Interp::new();
+    // Allocate blocks
+    it.eval_render("blk(50); blk(100); blk(200)").ok();
+
+    // Free all
+    let result = it.eval_render("free()").unwrap();
+    assert_eq!(result.lines().last().unwrap(), "3");
+
+    // Check count
+    let count = it.eval_render("blocks()").unwrap();
+    assert_eq!(count.trim(), "0");
+}
+
+#[test]
+fn test_freeglobals() {
+    let mut it = Interp::new();
+    // Create global variables
+    it.eval_render("x = 10; y = 20; z = 30").ok();
+
+    // Check some exist
+    let x = it.eval_render("x").unwrap();
+    assert_eq!(x.trim(), "10");
+
+    // Free globals
+    let result = it.eval_render("freeglobals()").unwrap();
+    assert_eq!(result.lines().last().unwrap(), "3");
+
+    // Try to access - should fail (undefined variable)
+    let result2 = it.eval_render("x");
+    assert!(result2.is_err());
+}

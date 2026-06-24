@@ -24,6 +24,9 @@ pub struct Interp {
     pub error_messages: HashMap<i64, String>, // Error code to message mapping
     pub open_files: Vec<(String, u64)>, // File path and current position for each fd
     pub next_fd: i64, // Next available file descriptor
+    pub memory_blocks: HashMap<i64, Vec<u8>>, // Allocated memory blocks (id -> data)
+    pub next_block_id: i64, // Next block ID to allocate
+    pub eval_stack: Vec<Value>, // Evaluation stack for push/pop
 }
 
 impl Default for Interp {
@@ -40,6 +43,9 @@ impl Default for Interp {
             error_messages: HashMap::new(),
             open_files: Vec::new(),
             next_fd: 3, // 0=stdin, 1=stdout, 2=stderr
+            memory_blocks: HashMap::new(),
+            next_block_id: 1, // Block IDs start at 1
+            eval_stack: Vec::new(),
         };
         builtins::register(&mut it.builtins);
         it
