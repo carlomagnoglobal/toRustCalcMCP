@@ -2065,6 +2065,172 @@ fn f_fprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_integer(BigInt::from(output.len() as i64))))
 }
 
+// Read formatted data from file (simplified scanf)
+fn f_fscan(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fscan", a, 2)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fscan: fd out of range")?;
+    let fmt = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("fscan: format must be a string".to_string()),
+    };
+
+    if fd < 3 || (fd as usize) >= it.next_fd as usize {
+        return Err("fscan: invalid file descriptor".to_string());
+    }
+
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err("fscan: file not open".to_string());
+    }
+
+    let (path, pos) = it.open_files[idx].clone();
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("fscan: cannot read {}: {}", path, e))?;
+
+    // Skip to current position
+    let remaining = if (pos as usize) < content.len() {
+        &content[(pos as usize)..]
+    } else {
+        ""
+    };
+
+    let mut results = Vec::new();
+    let mut input_idx = 0;
+    let mut fmt_idx = 0;
+    let fmt_bytes = fmt.as_bytes();
+    let remaining_bytes = remaining.as_bytes();
+
+    while fmt_idx < fmt_bytes.len() && input_idx < remaining_bytes.len() {
+        if fmt_bytes[fmt_idx] == b'%' && fmt_idx + 1 < fmt_bytes.len() {
+            fmt_idx += 1;
+            let spec = fmt_bytes[fmt_idx] as char;
+
+            // Skip whitespace in input
+            while input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char).is_whitespace() {
+                input_idx += 1;
+            }
+
+            match spec {
+                'd' | 'i' => {
+                    // Read integer
+                    let start = input_idx;
+                    if input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char) == '-' {
+                        input_idx += 1;
+                    }
+                    while input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char).is_ascii_digit() {
+                        input_idx += 1;
+                    }
+                    if input_idx > start {
+                        let num_str = String::from_utf8_lossy(&remaining_bytes[start..input_idx]);
+                        if let Ok(n) = num_str.parse::<i64>() {
+                            results.push(Value::Number(Num::from_integer(BigInt::from(n))));
+                        }
+                    }
+                }
+                'x' => {
+                    // Read hex integer
+                    let start = input_idx;
+                    while input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char).is_ascii_hexdigit() {
+                        input_idx += 1;
+                    }
+                    if input_idx > start {
+                        let num_str = String::from_utf8_lossy(&remaining_bytes[start..input_idx]);
+                        if let Ok(n) = i64::from_str_radix(&num_str, 16) {
+                            results.push(Value::Number(Num::from_integer(BigInt::from(n))));
+                        }
+                    }
+                }
+                'o' => {
+                    // Read octal integer
+                    let start = input_idx;
+                    while input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char).is_ascii_digit() && remaining_bytes[input_idx] < b'8' {
+                        input_idx += 1;
+                    }
+                    if input_idx > start {
+                        let num_str = String::from_utf8_lossy(&remaining_bytes[start..input_idx]);
+                        if let Ok(n) = i64::from_str_radix(&num_str, 8) {
+                            results.push(Value::Number(Num::from_integer(BigInt::from(n))));
+                        }
+                    }
+                }
+                'f' => {
+                    // Read float
+                    let start = input_idx;
+                    if input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char) == '-' {
+                        input_idx += 1;
+                    }
+                    while input_idx < remaining_bytes.len() && ((remaining_bytes[input_idx] as char).is_ascii_digit() || (remaining_bytes[input_idx] as char) == '.') {
+                        input_idx += 1;
+                    }
+                    if input_idx > start {
+                        let num_str = String::from_utf8_lossy(&remaining_bytes[start..input_idx]);
+                        if let Ok(n) = num_str.parse::<f64>() {
+                            if let Some(num) = Num::from_float(n) {
+                                results.push(Value::Number(num));
+                            }
+                        }
+                    }
+                }
+                's' => {
+                    // Read string (until whitespace)
+                    let start = input_idx;
+                    while input_idx < remaining_bytes.len() && !(remaining_bytes[input_idx] as char).is_whitespace() {
+                        input_idx += 1;
+                    }
+                    if input_idx > start {
+                        let str_val = String::from_utf8_lossy(&remaining_bytes[start..input_idx]).to_string();
+                        results.push(Value::Str(str_val));
+                    }
+                }
+                'c' => {
+                    // Read single character
+                    if input_idx < remaining_bytes.len() {
+                        let ch = (remaining_bytes[input_idx] as char).to_string();
+                        results.push(Value::Str(ch));
+                        input_idx += 1;
+                    }
+                }
+                _ => {}
+            }
+            fmt_idx += 1;
+        } else if (fmt_bytes[fmt_idx] as char).is_whitespace() {
+            // Skip whitespace in format string
+            while input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char).is_whitespace() {
+                input_idx += 1;
+            }
+            while fmt_idx < fmt_bytes.len() && (fmt_bytes[fmt_idx] as char).is_whitespace() {
+                fmt_idx += 1;
+            }
+        } else {
+            // Match literal character
+            if remaining_bytes[input_idx] as char == fmt_bytes[fmt_idx] as char {
+                input_idx += 1;
+            }
+            fmt_idx += 1;
+        }
+    }
+
+    // Update file position
+    it.open_files[idx].1 = pos + input_idx as u64;
+
+    // Return results as list
+    Ok(Value::List(results))
+}
+
+// Formatted read with arguments (reads multiple values according to format string)
+fn f_fscanf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.len() < 2 {
+        return Err("fscanf: expects at least 2 arguments (fd, format, ...)".to_string());
+    }
+
+    // First call fscan to get the parsed values
+    let fscan_result = f_fscan(it, &[a[0].clone(), a[1].clone()])?;
+
+    // If there are additional arguments, we can assign the results to them
+    // For now, just return the list from fscan
+    Ok(fscan_result)
+}
+
 // Phase 6.2: Memory & Stack Management
 
 // Allocate memory block
@@ -3129,6 +3295,8 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("fwrite".to_string(), f_fwrite as BuiltinFn);
     builtins.insert("fseek".to_string(), f_fseek as BuiltinFn);
     builtins.insert("fprintf".to_string(), f_fprintf as BuiltinFn);
+    builtins.insert("fscan".to_string(), f_fscan as BuiltinFn);
+    builtins.insert("fscanf".to_string(), f_fscanf as BuiltinFn);
     // Memory & stack management (Phase 6.2)
     builtins.insert("blk".to_string(), f_blk as BuiltinFn);
     builtins.insert("blkcpy".to_string(), f_blkcpy as BuiltinFn);
@@ -3372,6 +3540,8 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("fwrite", "fwrite(fd,data)", "write bytes to file"),
         ("fseek", "fseek(fd,offset,whence)", "seek with whence (0=SET, 1=CUR, 2=END)"),
         ("fprintf", "fprintf(fd,...)", "formatted write to file"),
+        ("fscan", "fscan(fd,fmt)", "read formatted data from file (returns list)"),
+        ("fscanf", "fscanf(fd,fmt,...)", "read formatted data with arguments (returns list)"),
         // Memory & stack management (Phase 6.2)
         ("blk", "blk(size)", "allocate memory block"),
         ("blkcpy", "blkcpy(dest,src,size)", "copy memory block"),

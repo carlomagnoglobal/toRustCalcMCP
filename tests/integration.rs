@@ -2106,3 +2106,69 @@ fn test_fprintf_output() {
     // Should return number of bytes written (11 for "hello world")
     assert!(result.trim().parse::<i64>().unwrap_or(0) > 0);
 }
+
+#[test]
+fn test_fscan_integers() {
+    let mut it = Interp::new();
+    // Create a test file with integers
+    let _ = std::fs::write("/tmp/test_fscan_int.txt", "10 20 30");
+
+    it.eval_render("fopen(\"/tmp/test_fscan_int.txt\", \"r\")").ok();
+    let result = it.eval_render("fscan(3, \"%d %d %d\")").unwrap();
+    // Should return a list [10, 20, 30]
+    assert!(result.contains("10"));
+    assert!(result.contains("20"));
+    assert!(result.contains("30"));
+}
+
+#[test]
+fn test_fscan_strings() {
+    let mut it = Interp::new();
+    // Create a test file with strings
+    let _ = std::fs::write("/tmp/test_fscan_str.txt", "hello world");
+
+    it.eval_render("fopen(\"/tmp/test_fscan_str.txt\", \"r\")").ok();
+    let result = it.eval_render("fscan(3, \"%s %s\")").unwrap();
+    // Should return a list with ["hello", "world"]
+    assert!(result.contains("hello"));
+    assert!(result.contains("world"));
+}
+
+#[test]
+fn test_fscan_mixed() {
+    let mut it = Interp::new();
+    // Create a test file with mixed types
+    let _ = std::fs::write("/tmp/test_fscan_mix.txt", "42 3.14 hello");
+
+    it.eval_render("fopen(\"/tmp/test_fscan_mix.txt\", \"r\")").ok();
+    let result = it.eval_render("fscan(3, \"%d %f %s\")").unwrap();
+    // Should parse integer, float, and string
+    assert!(result.contains("42"));
+    assert!(result.contains("3.14") || result.contains("3.1")); // May be rounded
+}
+
+#[test]
+fn test_fscan_hex() {
+    let mut it = Interp::new();
+    // Create a test file with hex numbers
+    let _ = std::fs::write("/tmp/test_fscan_hex.txt", "ff 10");
+
+    it.eval_render("fopen(\"/tmp/test_fscan_hex.txt\", \"r\")").ok();
+    let result = it.eval_render("fscan(3, \"%x %x\")").unwrap();
+    // Should parse hex values (ff=255, 10=16)
+    assert!(result.contains("255"));
+    assert!(result.contains("16"));
+}
+
+#[test]
+fn test_fscanf_basic() {
+    let mut it = Interp::new();
+    // Create a test file
+    let _ = std::fs::write("/tmp/test_fscanf.txt", "123 456");
+
+    it.eval_render("fopen(\"/tmp/test_fscanf.txt\", \"r\")").ok();
+    let result = it.eval_render("fscanf(3, \"%d %d\")").unwrap();
+    // Should work the same as fscan, returning list
+    assert!(result.contains("123"));
+    assert!(result.contains("456"));
+}
