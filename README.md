@@ -77,28 +77,26 @@ changes them for the session.
 ## Precision model
 
 Numbers are exact rationals. Irrational results are approximated to within the
-session `epsilon` (default `1e-20`), exactly like calc. `sqrt`/`hypot` are
-computed at arbitrary precision via Newton's method (e.g. `sqrt(2)` to 50 digits
-with `epsilon=1e-50` is correct to 50 digits). `pi`/`e` are exact to 60 digits.
-A leading `~` in real-mode output marks an inexact (rounded/non-terminating)
-rendering, as in calc.
+session `epsilon` (default `1e-20`), exactly like calc. Transcendentals (`exp`,
+`ln`, `sin`, `cos`, `tan`) are computed at arbitrary precision via Taylor series
+and Newton's method. `sqrt`, `sin`, `cos`, etc. converge until term < epsilon.
+`pi`/`e` are 60-digit constants. A leading `~` in real-mode output marks an
+inexact (rounded/non-terminating) rendering, as in calc.
 
 ## Scope — what this port does and does not cover
 
 calc upstream is ~92,000 lines of C with ~350 builtins and a full,
 Turing-complete scripting language. This port is a faithful **core**, not a
 1:1 reproduction. Implemented: the exact-rational engine, the expression
-language above, ~40 builtins, the `rcalc` CLI, and the complete MCP server +
-schema.
+language, ~40 builtins (arithmetic, number theory, arbitrary-precision
+transcendentals), the `rcalc` CLI, and the complete MCP server + schema.
 
 **Not yet ported** (clear next steps):
 - The remaining ~310 builtins (matrices, lists/assoc arrays, blocks, bitwise
-  ops, full transcendental suite at arbitrary precision, `config()` surface).
+  ops, `config()` surface).
 - User-defined functions, `define`, control flow (`if`/`for`/`while`), and
   reading `.cal` resource files (`-f`).
 - Complex numbers and the full `mat`/`list`/`obj` type system.
-- Arbitrary-precision `sin/cos/exp/ln/...` (currently f64-precision; `sqrt`,
-  `pi`, `e` are already arbitrary/high precision).
 
 These are additive: the lexer/parser/evaluator and the builtin registry are
 structured so each remaining piece slots in without reworking the core.

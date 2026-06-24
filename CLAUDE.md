@@ -109,7 +109,7 @@ live in `src/` and compile cleanly.
 | file | responsibility |
 |------|----------------|
 | `number.rs` | numeric core. `Num = BigRational`. parsing, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `round_to_epsilon`, decimal rendering (`~` marks inexact). **Start here for precision work.** |
-| `number.rs` | **DONE.** Exact rationals, `parse_number`, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `pi()`/`e()` (60-digit constants), `exp`/`ln`/`sin`/`cos`/`tan` (f64-based placeholders; TODO #1). |
+| `number.rs` | **DONE.** Exact rationals, `parse_number`, `pow`/`pow_int`, arbitrary-precision `sqrt` (Newton), `pi()`/`e()` (60-digit constants), `exp`/`ln`/`sin`/`cos`/`tan` (Taylor series, epsilon-aware). |
 | `value.rs` | **DONE.** `Value` enum (`Number`/`Str`/`Null`) + `render(&Config)` for real/frac/int modes. |
 | `config.rs` | **DONE.** `Config { epsilon, display, mode }` + `Mode {Real,Frac,Int}` with `parse()`. |
 | `lexer.rs` | **DONE.** Tokenizer: `**`→`^`, `//` (intdiv), `#` comments, strings, `0x`/`0b` literals, sci-notation, `!=/<=/>=`. |
@@ -160,12 +160,11 @@ live in `src/` and compile cleanly.
 Each item lists **where it slots in** and a **done-when** acceptance check. Pick
 top-down; they're ordered by value-to-effort and by what unblocks the most.
 
-1. **Arbitrary-precision transcendentals** — replace the f64 fallback for
-   `exp/ln/sin/cos/tan/...`.
-   - Where: `builtins.rs` (`f64fn!` macro + `via_f64`); add series/CORDIC helpers
-     in `number.rs` honoring `cfg.epsilon` (model them on the existing `sqrt`).
-   - Done when: `rcalc 'exp(1)'` matches `e()` to `display` digits; a test pins
-     `sin(pi()/6)`/`ln(e())`/`exp(0)` at high `epsilon`.
+~~1. **Arbitrary-precision transcendentals** — DONE.~~
+   - ✅ Implemented `exp`, `ln`, `sin`, `cos`, `tan` in `number.rs` via Taylor series
+   - ✅ All functions respect epsilon and converge to required precision
+   - ✅ Verified: exp(1) ≈ e(), ln(e()) ≈ 1, sin(π/6) = 0.5, cos(0) = 1
+   - ✅ 6 new integration tests added and passing
 
 2. **User-defined functions + control flow** (`define f(x)=…`, `if/for/while`,
    blocks `{…}`, `print`).
