@@ -2,7 +2,6 @@
 
 use crate::config::Mode;
 use crate::eval::Interp;
-use std::fs;
 use std::io::{self, BufRead, Write};
 
 pub struct CliConfig {

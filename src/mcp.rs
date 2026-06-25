@@ -111,17 +111,6 @@ fn server_info() -> J {
     })
 }
 
-fn ok_text(id: J, text: String, is_error: bool) -> J {
-    json!({
-        "jsonrpc": "2.0",
-        "id": id,
-        "result": {
-            "content": [ { "type": "text", "text": text } ],
-            "isError": is_error
-        }
-    })
-}
-
 fn ok_result(id: J, result: J) -> J {
     json!({ "jsonrpc": "2.0", "id": id, "result": result })
 }

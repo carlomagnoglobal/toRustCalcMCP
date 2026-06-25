@@ -7,8 +7,6 @@ use crate::parser::{BinOp, Expr, UnOp};
 use crate::value::Value;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufReader, BufWriter, Seek, SeekFrom};
 
 pub type BuiltinFn = fn(&mut Interp, &[Value]) -> Result<Value, String>;
 
@@ -250,7 +248,7 @@ impl Interp {
                         let idx_usize = if idx_i64 < 0 {
                             // Negative indexing: -1 is last element
                             let len = items.len() as i64;
-                            ((len + idx_i64) as usize)
+                            (len + idx_i64) as usize
                         } else {
                             idx_i64 as usize
                         };

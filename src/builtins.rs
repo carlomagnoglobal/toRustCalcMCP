@@ -1613,7 +1613,7 @@ fn f_newerror(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 // Issue a warning (doesn't count as error)
-fn f_warn(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+fn f_warn(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("warn", a, 1)?;
     let msg = match &a[0] {
         Value::Str(s) => s.clone(),
@@ -1627,7 +1627,7 @@ fn f_warn(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Phase 6.1: File I/O
 
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write, Seek, SeekFrom, BufRead, BufReader};
+use std::io::{Read, Write, Seek, SeekFrom};
 
 // Open a file
 fn f_fopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1848,8 +1848,6 @@ fn f_eof(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let (path, pos) = &it.open_files[idx];
-    let mut file = File::open(path)
-        .map_err(|e| format!("eof: cannot read {}: {}", path, e))?;
 
     let metadata = std::fs::metadata(path)
         .map_err(|e| format!("eof: cannot stat {}: {}", path, e))?;
@@ -2007,7 +2005,7 @@ fn f_fseek(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let (path, _) = &it.open_files[idx];
-    let file = File::open(path)
+    let _file = File::open(path)
         .map_err(|e| format!("fseek: cannot open {}: {}", path, e))?;
 
     let new_pos = match whence {
@@ -3201,7 +3199,7 @@ fn f_slice(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             let start = start_num.numer();
             let start_idx = if start < &BigInt::from(0) {
                 let len = items.len() as i64;
-                ((len + start.to_i64().unwrap_or(0)) as usize)
+                (len + start.to_i64().unwrap_or(0)) as usize
             } else {
                 start.to_usize().unwrap_or(0)
             };
@@ -3214,7 +3212,7 @@ fn f_slice(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                 let end = end_num.numer();
                 if end < &BigInt::from(0) {
                     let len = items.len() as i64;
-                    ((len + end.to_i64().unwrap_or(0)) as usize)
+                    (len + end.to_i64().unwrap_or(0)) as usize
                 } else {
                     end.to_usize().unwrap_or(items.len())
                 }
@@ -3685,17 +3683,6 @@ fn f_contains_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 // Count occurrences of value in list
-fn f_count_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
-    argc("count", a, 2)?;
-    let items = match &a[0] {
-        Value::List(items) => items.clone(),
-        _ => return Err("count: first argument must be list".to_string()),
-    };
-    let search_val = &a[1];
-
-    let count = items.iter().filter(|item| *item == search_val).count();
-    Ok(Value::Number(Num::from_integer(BigInt::from(count as i64))))
-}
 
 // Flatten nested list
 fn f_flatten(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -4123,7 +4110,7 @@ fn f_mean(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Calculate median of list
 fn f_median(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("median", a, 1)?;
-    let mut items = match &a[0] {
+    let items = match &a[0] {
         Value::List(items) => items.clone(),
         _ => return Err("median: argument must be list".to_string()),
     };

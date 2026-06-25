@@ -209,7 +209,6 @@ pub fn root(x: &Num, n: i64, epsilon: &Num) -> Result<Num, String> {
     }
     if n < 0 {
         // x^(1/n) = 1 / x^(1/-n)
-        let abs_n = (-n) as u32;
         return Ok(Num::one() / root(x, -n, epsilon)?);
     }
 
@@ -597,7 +596,6 @@ pub fn asin(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let x_sq = x * x;
 
     for n in 1..500 {
-        let n_bi = bi(n as i64);
         let coeff = Num::from_integer(bi(2 * n as i64 - 1)) / Num::from_integer(bi(2 * n as i64));
         term = &term * &(&x_sq * &coeff);
         result = &result + &(&term / Num::from_integer(bi(2 * n as i64 + 1)));
@@ -1368,7 +1366,6 @@ fn is_prime_check(n: u64) -> bool {
 pub fn lcg_next(seed: u64) -> (u64, u64) {
     const A: u64 = 1664525;
     const C: u64 = 1013904223;
-    const M: u64 = u64::MAX;
     let next_seed = A.wrapping_mul(seed).wrapping_add(C);
     (next_seed, next_seed)
 }
@@ -1470,7 +1467,6 @@ pub fn systime() -> Result<i64, String> {
 
 /// Convert Unix timestamp to human-readable string
 pub fn ctime(timestamp: i64) -> Result<String, String> {
-    use std::time::{SystemTime, UNIX_EPOCH};
     let _duration = std::time::Duration::from_secs(timestamp as u64);
 
     // Format as a simple string: "DDD MMM DD HH:MM:SS YYYY"
@@ -1882,9 +1878,9 @@ pub fn det(matrix: &[Vec<Num>]) -> Result<Num, String> {
             Ok(&a - &b)
         }
         3 => {
-            let a = (&matrix[0][0] * &(&matrix[1][1] * &matrix[2][2] - &matrix[1][2] * &matrix[2][1]));
-            let b = (&matrix[0][1] * &(&matrix[1][0] * &matrix[2][2] - &matrix[1][2] * &matrix[2][0]));
-            let c = (&matrix[0][2] * &(&matrix[1][0] * &matrix[2][1] - &matrix[1][1] * &matrix[2][0]));
+            let a = &matrix[0][0] * &(&matrix[1][1] * &matrix[2][2] - &matrix[1][2] * &matrix[2][1]);
+            let b = &matrix[0][1] * &(&matrix[1][0] * &matrix[2][2] - &matrix[1][2] * &matrix[2][0]);
+            let c = &matrix[0][2] * &(&matrix[1][0] * &matrix[2][1] - &matrix[1][1] * &matrix[2][0]);
             Ok(&(&a - &b) + &c)
         }
         _ => Err("det: only 1x1, 2x2, and 3x3 matrices supported".to_string()),
