@@ -3768,6 +3768,134 @@ fn f_range(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 
+// Phase 9: Variable/Scope Management
+
+// List all global variables
+fn f_vars(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("vars", a, 0)?;
+    let mut names = Vec::new();
+    for key in it.global_vars.keys() {
+        names.push(Value::Str(key.clone()));
+    }
+    names.sort_by(|a, b| {
+        match (a, b) {
+            (Value::Str(s1), Value::Str(s2)) => s1.cmp(s2),
+            _ => std::cmp::Ordering::Equal,
+        }
+    });
+    Ok(Value::List(names))
+}
+
+// Check if variable is defined
+fn f_defined(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("defined", a, 1)?;
+    let name = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("defined: argument must be string".to_string()),
+    };
+
+    let exists = it.global_vars.contains_key(&name) ||
+                 it.scope_stack.iter().rev().any(|scope| scope.contains_key(&name));
+    Ok(Value::Number(Num::from_integer(BigInt::from(if exists { 1 } else { 0 }))))
+}
+
+// Delete/undefine a variable
+fn f_undefine(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("undefine", a, 1)?;
+    let name = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("undefine: argument must be string".to_string()),
+    };
+
+    it.global_vars.remove(&name);
+    Ok(Value::Number(Num::zero()))
+}
+
+// Alias for undefine
+fn f_del(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    f_undefine(it, a)
+}
+
+// Get type name of value
+fn f_type_name(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("type", a, 1)?;
+    let type_str = match &a[0] {
+        Value::Number(_) => "number",
+        Value::Complex(_, _) => "complex",
+        Value::Str(_) => "string",
+        Value::List(_) => "list",
+        Value::Function(_, _) => "function",
+        Value::Hash(_) => "hash",
+        Value::Null => "null",
+    };
+    Ok(Value::Str(type_str.to_string()))
+}
+
+// Get size representation of value
+fn f_sizeof(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("sizeof", a, 1)?;
+    let size = match &a[0] {
+        Value::Number(n) => {
+            // Rough estimate of bigint size in bytes
+            let (numer, denom) = (n.numer(), n.denom());
+            let numer_bits = numer.bits();
+            let denom_bits = denom.bits();
+            ((numer_bits + denom_bits) / 8 + 16) as i64 // Add overhead
+        }
+        Value::Complex(r, i) => {
+            let rb = r.numer().bits() + r.denom().bits();
+            let ib = i.numer().bits() + i.denom().bits();
+            ((rb + ib) / 8 + 32) as i64
+        }
+        Value::Str(s) => s.len() as i64,
+        Value::List(items) => (items.len() * 8) as i64,
+        Value::Hash(map) => (map.len() * 16) as i64,
+        Value::Function(_, _) => 32,
+        Value::Null => 1,
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(size))))
+}
+
+// List environment variables
+fn f_env(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("env", a, 0)?;
+    let mut env_list = Vec::new();
+    for (key, val) in std::env::vars() {
+        let entry = Value::List(vec![
+            Value::Str(key),
+            Value::Str(val),
+        ]);
+        env_list.push(entry);
+    }
+    Ok(Value::List(env_list))
+}
+
+// Dump all state (variables, functions, etc.)
+fn f_dump(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("dump", a, 0)?;
+
+    let mut output = String::new();
+    output.push_str("=== Global Variables ===\n");
+    for (key, val) in &it.global_vars {
+        output.push_str(&format!("{} = {}\n", key, val.render(&it.cfg)));
+    }
+
+    output.push_str("\n=== Configuration ===\n");
+    output.push_str(&format!("epsilon: {}\n", it.cfg.epsilon));
+    output.push_str(&format!("display: {}\n", it.cfg.display));
+    output.push_str(&format!("ibase: {}\n", it.cfg.ibase));
+    output.push_str(&format!("obase: {}\n", it.cfg.obase));
+
+    output.push_str("\n=== Statistics ===\n");
+    output.push_str(&format!("Global vars: {}\n", it.global_vars.len()));
+    output.push_str(&format!("Open files: {}\n", it.open_files.len()));
+    output.push_str(&format!("Memory blocks: {}\n", it.memory_blocks.len()));
+    output.push_str(&format!("Stack depth: {}\n", it.eval_stack.len()));
+
+    Ok(Value::Str(output))
+}
+
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -4056,6 +4184,16 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("flatten".to_string(), f_flatten as BuiltinFn);
     builtins.insert("zip".to_string(), f_zip as BuiltinFn);
     builtins.insert("range".to_string(), f_range as BuiltinFn);
+
+    // Variable/scope management (Phase 9)
+    builtins.insert("vars".to_string(), f_vars as BuiltinFn);
+    builtins.insert("defined".to_string(), f_defined as BuiltinFn);
+    builtins.insert("undefine".to_string(), f_undefine as BuiltinFn);
+    builtins.insert("del".to_string(), f_del as BuiltinFn);
+    builtins.insert("type".to_string(), f_type_name as BuiltinFn);
+    builtins.insert("sizeof".to_string(), f_sizeof as BuiltinFn);
+    builtins.insert("env".to_string(), f_env as BuiltinFn);
+    builtins.insert("dump".to_string(), f_dump as BuiltinFn);
 
     // Residue class & modular operations (Phase 6.7)
     builtins.insert("rc".to_string(), f_rc as BuiltinFn);
@@ -4351,5 +4489,14 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("flatten", "flatten(list)", "flatten nested lists"),
         ("zip", "zip(list1,list2)", "combine two lists into pairs"),
         ("range", "range(start,end[,step])", "create list of numbers"),
+        // Variable/scope management (Phase 9)
+        ("vars", "vars()", "list all global variables"),
+        ("defined", "defined(name)", "check if variable exists"),
+        ("undefine", "undefine(name)", "delete variable"),
+        ("del", "del(name)", "alias for undefine"),
+        ("type", "type(x)", "get type name of value"),
+        ("sizeof", "sizeof(x)", "get approximate size in bytes"),
+        ("env", "env()", "list environment variables as [name,value] pairs"),
+        ("dump", "dump()", "dump all state (variables, config, stats)"),
     ]
 }

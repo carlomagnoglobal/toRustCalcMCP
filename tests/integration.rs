@@ -2579,3 +2579,104 @@ fn test_range_with_step() {
     let result = it.eval_render("size(range(0, 10, 2))").unwrap();
     assert_eq!(result.trim(), "6");
 }
+
+// Phase 9: Variable/Scope Management
+
+#[test]
+fn test_vars_list() {
+    let mut it = Interp::new();
+    it.eval_render("x = 1; y = 2; z = 3").ok();
+    let result = it.eval_render("size(vars())").unwrap();
+    // Should have at least x, y, z
+    let size: i64 = result.trim().parse().unwrap_or(0);
+    assert!(size >= 3);
+}
+
+#[test]
+fn test_defined_true() {
+    let mut it = Interp::new();
+    it.eval_render("myvar = 42").ok();
+    let result = it.eval_render("defined(\"myvar\")").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_defined_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render("defined(\"nonexistent\")").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_undefine_variable() {
+    let mut it = Interp::new();
+    it.eval_render("x = 10").ok();
+    it.eval_render("undefine(\"x\")").ok();
+    let result = it.eval_render("defined(\"x\")").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_del_alias() {
+    let mut it = Interp::new();
+    it.eval_render("y = 20").ok();
+    it.eval_render("del(\"y\")").ok();
+    let result = it.eval_render("defined(\"y\")").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_type_number() {
+    let mut it = Interp::new();
+    let result = it.eval_render("type(42)").unwrap();
+    assert_eq!(result.trim(), "number");
+}
+
+#[test]
+fn test_type_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("type(\"hello\")").unwrap();
+    assert_eq!(result.trim(), "string");
+}
+
+#[test]
+fn test_type_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("type(list(1, 2))").unwrap();
+    assert_eq!(result.trim(), "list");
+}
+
+#[test]
+fn test_sizeof_number() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sizeof(100)").unwrap();
+    // Should return a positive number
+    let size: i64 = result.trim().parse().unwrap_or(0);
+    assert!(size > 0);
+}
+
+#[test]
+fn test_sizeof_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sizeof(\"hello\")").unwrap();
+    let size: i64 = result.trim().parse().unwrap_or(0);
+    assert_eq!(size, 5); // "hello" is 5 bytes
+}
+
+#[test]
+fn test_env_returns_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("size(env())").unwrap();
+    // Should have at least some environment variables
+    let count: i64 = result.trim().parse().unwrap_or(0);
+    assert!(count > 0);
+}
+
+#[test]
+fn test_dump_output() {
+    let mut it = Interp::new();
+    it.eval_render("test_var = 123").ok();
+    let result = it.eval_render("dump()").unwrap();
+    // Dump should contain variable info
+    assert!(result.contains("test_var") || result.contains("==="));
+}

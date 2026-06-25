@@ -15,8 +15,8 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 8 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 283 builtins, CLI, MCP server, and 283 integration
+Current status: **Phase 9 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 291 builtins, CLI, MCP server, and 294 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
@@ -24,7 +24,8 @@ Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
 Phase 6.1-6.7 complete (file I/O with full streaming/formatting/filesystem support, memory & stack with address operations, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic);
 Phase 7 complete (comprehensive string operations: substr, replace, split, trim variants, case conversion, padding, character code operations, and more);
-Phase 8 complete (list operations: sort/rsort, reverse, unique, min/max/sum/product, find/contains/count, flatten, zip, range).
+Phase 8 complete (list operations: sort/rsort, reverse, unique, min/max/sum/product, find/contains/count, flatten, zip, range);
+Phase 9 complete (variable/scope management: vars, defined, undefine/del, type, sizeof, env, dump).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -563,7 +564,21 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - ✅ Comprehensive list algorithms
    - ✅ 18 new integration tests added and passing
    - Builtins: 269 → 283 (+14)
-   - Total tests: 265 → 283 (+18)
+   - Total tests: 265 → 282 (+17)
+
+### 9.0 Variable/Scope Management — DONE (8 of 8 functions)
+   - ✅ `vars()` — list all global variables
+   - ✅ `defined(name)` — check if variable exists
+   - ✅ `undefine(name)` — delete variable
+   - ✅ `del(name)` — alias for undefine
+   - ✅ `type(x)` — get type name of value
+   - ✅ `sizeof(x)` — get approximate size in bytes
+   - ✅ `env()` — list environment variables
+   - ✅ `dump()` — dump all state info
+   - ✅ Variable and scope introspection tools
+   - ✅ 12 new integration tests added and passing
+   - Builtins: 283 → 291 (+8)
+   - Total tests: 282 → 294 (+12)
 
 ---
 
