@@ -5019,7 +5019,8 @@ fn f_exp2(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     // exp2(x) = 2^x, computed via exp(x * ln(2))
     let ln2 = number::ln(&Num::from_integer(BigInt::from(2)), &it.cfg.epsilon)?;
     let x_ln2 = &x * &ln2;
-    number::exp(&x_ln2, &it.cfg.epsilon)
+    let result = number::exp(&x_ln2, &it.cfg.epsilon)?;
+    Ok(Value::Number(result))
 }
 
 // 10^x (exponential base 10)
@@ -5033,7 +5034,8 @@ fn f_exp10(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     // exp10(x) = 10^x, computed via exp(x * ln(10))
     let ln10 = number::ln(&Num::from_integer(BigInt::from(10)), &it.cfg.epsilon)?;
     let x_ln10 = &x * &ln10;
-    number::exp(&x_ln10, &it.cfg.epsilon)
+    let result = number::exp(&x_ln10, &it.cfg.epsilon)?;
+    Ok(Value::Number(result))
 }
 
 // pow10 is alias for exp10
@@ -5063,7 +5065,7 @@ fn f_expm1(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             n += 1;
             term = &term * &x;
             term = &term / &Num::from_integer(BigInt::from(n));
-            if term.abs() < &it.cfg.epsilon {
+            if term.abs() < it.cfg.epsilon {
                 break;
             }
             result = &result + &term;
@@ -5098,7 +5100,7 @@ fn f_log1p(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             n += 1;
             term = &term * &(&x * &Num::from_integer(BigInt::from(-1)));
             term = &term / &Num::from_integer(BigInt::from(n));
-            if term.abs() < &it.cfg.epsilon {
+            if term.abs() < it.cfg.epsilon {
                 break;
             }
             result = &result + &term;
@@ -5107,7 +5109,8 @@ fn f_log1p(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     } else {
         // For larger x, use log(1 + x)
         let one_plus_x = &Num::from_integer(BigInt::from(1)) + &x;
-        number::ln(&one_plus_x, &it.cfg.epsilon)
+        let result = number::ln(&one_plus_x, &it.cfg.epsilon)?;
+        Ok(Value::Number(result))
     }
 }
 
