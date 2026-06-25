@@ -10,6 +10,8 @@ One codebase, two front-ends. The numeric core uses **exact rational arithmetic*
 (`num-rational` over `num-bigint`), which is the same model calc uses natively —
 so `1/3 * 3` is exactly `1`, and `2^256` is computed to the last digit.
 
+**👉 [Getting Started in 2 minutes](GETTING_STARTED.md) — new to rcalc? Start here.**
+
 ## Build
 
 ```sh
