@@ -4991,6 +4991,127 @@ fn f_mode(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 
+// Final 5 Functions to reach 100% coverage
+
+// Truncate to integer (remove fractional part)
+fn f_trunc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("trunc", a, 1)?;
+    let n = match &a[0] {
+        Value::Number(num) => num.clone(),
+        _ => return Err("trunc: argument must be number".to_string()),
+    };
+
+    // Truncate: convert to integer and back
+    let numer = n.numer().clone();
+    let denom = n.denom().clone();
+    let int_part = &numer / &denom;
+    Ok(Value::Number(Num::from_integer(int_part)))
+}
+
+// 2^x (exponential base 2)
+fn f_exp2(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("exp2", a, 1)?;
+    let x = match &a[0] {
+        Value::Number(n) => n.clone(),
+        _ => return Err("exp2: argument must be number".to_string()),
+    };
+
+    // exp2(x) = 2^x, computed via exp(x * ln(2))
+    let ln2 = number::ln(&Num::from_integer(BigInt::from(2)), &it.cfg.epsilon)?;
+    let x_ln2 = &x * &ln2;
+    number::exp(&x_ln2, &it.cfg.epsilon)
+}
+
+// 10^x (exponential base 10)
+fn f_exp10(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("exp10", a, 1)?;
+    let x = match &a[0] {
+        Value::Number(n) => n.clone(),
+        _ => return Err("exp10: argument must be number".to_string()),
+    };
+
+    // exp10(x) = 10^x, computed via exp(x * ln(10))
+    let ln10 = number::ln(&Num::from_integer(BigInt::from(10)), &it.cfg.epsilon)?;
+    let x_ln10 = &x * &ln10;
+    number::exp(&x_ln10, &it.cfg.epsilon)
+}
+
+// pow10 is alias for exp10
+fn f_pow10(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    f_exp10(it, a)
+}
+
+// exp(x) - 1, accurate for small x
+fn f_expm1(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("expm1", a, 1)?;
+    let x = match &a[0] {
+        Value::Number(n) => n.clone(),
+        _ => return Err("expm1: argument must be number".to_string()),
+    };
+
+    // For small x, use Taylor series: expm1(x) = x + x^2/2 + x^3/6 + ...
+    // For larger x, compute exp(x) - 1 directly
+    let threshold = Num::from_float(0.1).unwrap_or(Num::from_integer(BigInt::from(1)) / &Num::from_integer(BigInt::from(10)));
+
+    if x.abs() < threshold {
+        // Use Taylor series for small x
+        let mut result = x.clone();
+        let mut term = x.clone();
+        let mut n = 1;
+
+        for _ in 0..50 {
+            n += 1;
+            term = &term * &x;
+            term = &term / &Num::from_integer(BigInt::from(n));
+            if term.abs() < &it.cfg.epsilon {
+                break;
+            }
+            result = &result + &term;
+        }
+        Ok(Value::Number(result))
+    } else {
+        // For larger x, use exp(x) - 1
+        let exp_x = number::exp(&x, &it.cfg.epsilon)?;
+        Ok(Value::Number(&exp_x - &Num::from_integer(BigInt::from(1))))
+    }
+}
+
+// log(1 + x), accurate for small x
+fn f_log1p(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("log1p", a, 1)?;
+    let x = match &a[0] {
+        Value::Number(n) => n.clone(),
+        _ => return Err("log1p: argument must be number".to_string()),
+    };
+
+    // For small x, use Taylor series: log1p(x) = x - x^2/2 + x^3/3 - x^4/4 + ...
+    // For larger x, compute log(1 + x) directly
+    let threshold = Num::from_float(0.1).unwrap_or(Num::from_integer(BigInt::from(1)) / &Num::from_integer(BigInt::from(10)));
+
+    if x.abs() < threshold {
+        // Use Taylor series for small x
+        let mut result = x.clone();
+        let mut term = x.clone();
+        let mut n = 1;
+
+        for _ in 0..50 {
+            n += 1;
+            term = &term * &(&x * &Num::from_integer(BigInt::from(-1)));
+            term = &term / &Num::from_integer(BigInt::from(n));
+            if term.abs() < &it.cfg.epsilon {
+                break;
+            }
+            result = &result + &term;
+        }
+        Ok(Value::Number(result))
+    } else {
+        // For larger x, use log(1 + x)
+        let one_plus_x = &Num::from_integer(BigInt::from(1)) + &x;
+        number::ln(&one_plus_x, &it.cfg.epsilon)
+    }
+}
+
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -5355,6 +5476,13 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("cumsum".to_string(), f_cumsum as BuiltinFn);
     builtins.insert("diff".to_string(), f_diff as BuiltinFn);
     builtins.insert("mode".to_string(), f_mode as BuiltinFn);
+    // Final functions to reach 100% coverage
+    builtins.insert("trunc".to_string(), f_trunc as BuiltinFn);
+    builtins.insert("exp2".to_string(), f_exp2 as BuiltinFn);
+    builtins.insert("exp10".to_string(), f_exp10 as BuiltinFn);
+    builtins.insert("pow10".to_string(), f_pow10 as BuiltinFn);
+    builtins.insert("expm1".to_string(), f_expm1 as BuiltinFn);
+    builtins.insert("log1p".to_string(), f_log1p as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -5705,5 +5833,12 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("cumsum", "cumsum(list)", "cumulative sum"),
         ("diff", "diff(list)", "consecutive differences"),
         ("mode", "mode(list)", "most common value"),
+        // Final functions to 100%
+        ("trunc", "trunc(x)", "truncate to integer"),
+        ("exp2", "exp2(x)", "exponential base 2 (2^x)"),
+        ("exp10", "exp10(x)", "exponential base 10 (10^x)"),
+        ("pow10", "pow10(x)", "alias for exp10"),
+        ("expm1", "expm1(x)", "exp(x) - 1, accurate for small x"),
+        ("log1p", "log1p(x)", "log(1 + x), accurate for small x"),
     ]
 }
