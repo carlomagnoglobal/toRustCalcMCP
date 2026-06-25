@@ -1491,12 +1491,26 @@ fn f_delete(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
 // Count the number of key-value pairs in a hash
 fn f_count(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
-    argc("count", a, 1)?;
-    match &a[0] {
-        Value::Hash(map) => {
-            Ok(Value::Number(Num::from_integer(BigInt::from(map.len() as i64))))
+    if a.len() == 1 {
+        // Hash count: count(hash) - counts key-value pairs
+        match &a[0] {
+            Value::Hash(map) => {
+                Ok(Value::Number(Num::from_integer(BigInt::from(map.len() as i64))))
+            }
+            _ => Err("count: argument must be a hash or list".to_string()),
         }
-        _ => Err("count: argument must be a hash".to_string()),
+    } else if a.len() == 2 {
+        // List count: count(list, value) - counts occurrences of value
+        let items = match &a[0] {
+            Value::List(items) => items.clone(),
+            _ => return Err("count: first argument must be list".to_string()),
+        };
+        let search_val = &a[1];
+
+        let count = items.iter().filter(|item| *item == search_val).count();
+        Ok(Value::Number(Num::from_integer(BigInt::from(count as i64))))
+    } else {
+        Err("count: expects 1 or 2 arguments".to_string())
     }
 }
 
@@ -3487,6 +3501,273 @@ fn f_title(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Str(result))
 }
 
+// Phase 8: List Operations
+
+// Sort list in ascending order
+fn f_sort(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("sort", a, 1)?;
+    let mut items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("sort: argument must be list".to_string()),
+    };
+
+    items.sort_by(|a, b| {
+        match (a, b) {
+            (Value::Number(n1), Value::Number(n2)) => n1.cmp(n2),
+            (Value::Str(s1), Value::Str(s2)) => s1.cmp(s2),
+            _ => std::cmp::Ordering::Equal,
+        }
+    });
+    Ok(Value::List(items))
+}
+
+// Sort list in descending order
+fn f_rsort(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rsort", a, 1)?;
+    let mut items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("rsort: argument must be list".to_string()),
+    };
+
+    items.sort_by(|a, b| {
+        match (a, b) {
+            (Value::Number(n1), Value::Number(n2)) => n2.cmp(n1),
+            (Value::Str(s1), Value::Str(s2)) => s2.cmp(s1),
+            _ => std::cmp::Ordering::Equal,
+        }
+    });
+    Ok(Value::List(items))
+}
+
+// Reverse list order
+fn f_reverse_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("reverse", a, 1)?;
+    let mut items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("reverse: argument must be list".to_string()),
+    };
+
+    items.reverse();
+    Ok(Value::List(items))
+}
+
+// Remove duplicates from list
+fn f_unique(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("unique", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("unique: argument must be list".to_string()),
+    };
+
+    let mut unique_items = Vec::new();
+    for item in items {
+        if !unique_items.iter().any(|x| x == &item) {
+            unique_items.push(item);
+        }
+    }
+    Ok(Value::List(unique_items))
+}
+
+// Find minimum value in list
+fn f_min_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("min", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("min: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    let mut min_val = items[0].clone();
+    for item in &items[1..] {
+        match (&min_val, item) {
+            (Value::Number(n1), Value::Number(n2)) => {
+                if n2 < n1 {
+                    min_val = item.clone();
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(min_val)
+}
+
+// Find maximum value in list
+fn f_max_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("max", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("max: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    let mut max_val = items[0].clone();
+    for item in &items[1..] {
+        match (&max_val, item) {
+            (Value::Number(n1), Value::Number(n2)) => {
+                if n2 > n1 {
+                    max_val = item.clone();
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(max_val)
+}
+
+// Sum all numeric elements in list
+fn f_sum_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("sum", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("sum: argument must be list".to_string()),
+    };
+
+    let mut total = Num::zero();
+    for item in items {
+        if let Value::Number(n) = item {
+            total = &total + &n;
+        }
+    }
+    Ok(Value::Number(total))
+}
+
+// Multiply all numeric elements in list
+fn f_product(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("product", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("product: argument must be list".to_string()),
+    };
+
+    let mut total = Num::from_integer(BigInt::from(1));
+    for item in items {
+        if let Value::Number(n) = item {
+            total = &total * &n;
+        }
+    }
+    Ok(Value::Number(total))
+}
+
+// Find index of value in list
+fn f_find(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("find", a, 2)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("find: first argument must be list".to_string()),
+    };
+    let search_val = &a[1];
+
+    for (i, item) in items.iter().enumerate() {
+        if item == search_val {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(i as i64))));
+        }
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(-1))))
+}
+
+// Check if list contains value
+fn f_contains_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("contains", a, 2)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("contains: first argument must be list".to_string()),
+    };
+    let search_val = &a[1];
+
+    let found = items.iter().any(|item| item == search_val);
+    Ok(Value::Number(Num::from_integer(BigInt::from(if found { 1 } else { 0 }))))
+}
+
+// Count occurrences of value in list
+fn f_count_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("count", a, 2)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("count: first argument must be list".to_string()),
+    };
+    let search_val = &a[1];
+
+    let count = items.iter().filter(|item| *item == search_val).count();
+    Ok(Value::Number(Num::from_integer(BigInt::from(count as i64))))
+}
+
+// Flatten nested list
+fn f_flatten(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("flatten", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("flatten: argument must be list".to_string()),
+    };
+
+    let mut result = Vec::new();
+    for item in items {
+        match item {
+            Value::List(inner) => result.extend(inner),
+            other => result.push(other),
+        }
+    }
+    Ok(Value::List(result))
+}
+
+// Combine two lists (zip)
+fn f_zip(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("zip", a, 2)?;
+    let list1 = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("zip: first argument must be list".to_string()),
+    };
+    let list2 = match &a[1] {
+        Value::List(items) => items.clone(),
+        _ => return Err("zip: second argument must be list".to_string()),
+    };
+
+    let mut result = Vec::new();
+    let len = std::cmp::min(list1.len(), list2.len());
+    for i in 0..len {
+        result.push(Value::List(vec![list1[i].clone(), list2[i].clone()]));
+    }
+    Ok(Value::List(result))
+}
+
+// Create range of numbers
+fn f_range(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("range", a, 2, 3)?;
+    let start = int(a, 0)?.to_i64().ok_or("range: start out of range")?;
+    let end = int(a, 1)?.to_i64().ok_or("range: end out of range")?;
+    let step = if a.len() > 2 {
+        int(a, 2)?.to_i64().ok_or("range: step out of range")?
+    } else {
+        1
+    };
+
+    if step == 0 {
+        return Err("range: step cannot be zero".to_string());
+    }
+
+    let mut result = Vec::new();
+    if step > 0 {
+        let mut current = start;
+        while current <= end {
+            result.push(Value::Number(Num::from_integer(BigInt::from(current))));
+            current += step;
+        }
+    } else {
+        let mut current = start;
+        while current >= end {
+            result.push(Value::Number(Num::from_integer(BigInt::from(current))));
+            current += step;
+        }
+    }
+    Ok(Value::List(result))
+}
+
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -3760,6 +4041,22 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("chr".to_string(), f_chr as BuiltinFn);
     builtins.insert("swapcase".to_string(), f_swapcase as BuiltinFn);
     builtins.insert("title".to_string(), f_title as BuiltinFn);
+
+    // List operations (Phase 8)
+    builtins.insert("sort".to_string(), f_sort as BuiltinFn);
+    builtins.insert("rsort".to_string(), f_rsort as BuiltinFn);
+    builtins.insert("reverse".to_string(), f_reverse_list as BuiltinFn);
+    builtins.insert("unique".to_string(), f_unique as BuiltinFn);
+    builtins.insert("min".to_string(), f_min_list as BuiltinFn);
+    builtins.insert("max".to_string(), f_max_list as BuiltinFn);
+    builtins.insert("sum".to_string(), f_sum_list as BuiltinFn);
+    builtins.insert("product".to_string(), f_product as BuiltinFn);
+    builtins.insert("find".to_string(), f_find as BuiltinFn);
+    builtins.insert("contains".to_string(), f_contains_list as BuiltinFn);
+    builtins.insert("flatten".to_string(), f_flatten as BuiltinFn);
+    builtins.insert("zip".to_string(), f_zip as BuiltinFn);
+    builtins.insert("range".to_string(), f_range as BuiltinFn);
+
     // Residue class & modular operations (Phase 6.7)
     builtins.insert("rc".to_string(), f_rc as BuiltinFn);
     builtins.insert("rcadd".to_string(), f_rcadd as BuiltinFn);
@@ -4039,5 +4336,20 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("chr", "chr(code)", "get character from ASCII code"),
         ("swapcase", "swapcase(s)", "swap case of all characters"),
         ("title", "title(s)", "convert string to title case"),
+        // List operations (Phase 8)
+        ("sort", "sort(list)", "sort list in ascending order"),
+        ("rsort", "rsort(list)", "sort list in descending order"),
+        ("reverse", "reverse(list)", "reverse list order"),
+        ("unique", "unique(list)", "remove duplicates from list"),
+        ("min", "min(list)", "find minimum value in list"),
+        ("max", "max(list)", "find maximum value in list"),
+        ("sum", "sum(list)", "sum all numeric elements"),
+        ("product", "product(list)", "multiply all numeric elements"),
+        ("find", "find(list,value)", "find index of value (-1 if not found)"),
+        ("contains", "contains(list,value)", "check if list contains value"),
+        ("count", "count(list,value)", "count occurrences of value"),
+        ("flatten", "flatten(list)", "flatten nested lists"),
+        ("zip", "zip(list1,list2)", "combine two lists into pairs"),
+        ("range", "range(start,end[,step])", "create list of numbers"),
     ]
 }

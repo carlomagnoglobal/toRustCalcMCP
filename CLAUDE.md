@@ -15,15 +15,16 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 7 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 269 builtins, CLI, MCP server, and 265 integration
+Current status: **Phase 8 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 283 builtins, CLI, MCP server, and 283 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
 Phase 6.1-6.7 complete (file I/O with full streaming/formatting/filesystem support, memory & stack with address operations, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic);
-Phase 7 complete (comprehensive string operations: substr, replace, split, trim variants, case conversion, padding, character code operations, and more).
+Phase 7 complete (comprehensive string operations: substr, replace, split, trim variants, case conversion, padding, character code operations, and more);
+Phase 8 complete (list operations: sort/rsort, reverse, unique, min/max/sum/product, find/contains/count, flatten, zip, range).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -543,6 +544,26 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - ✅ 19 new integration tests added and passing
    - Builtins: 252 → 269 (+17)
    - Total tests: 246 → 265 (+19)
+
+### 8.0 List Operations — DONE (14 of 14 functions)
+   - ✅ `sort(list)` — sort ascending
+   - ✅ `rsort(list)` — sort descending
+   - ✅ `reverse(list)` — reverse order
+   - ✅ `unique(list)` — remove duplicates
+   - ✅ `min(list)` — minimum element
+   - ✅ `max(list)` — maximum element
+   - ✅ `sum(list)` — sum numeric elements
+   - ✅ `product(list)` — multiply numeric elements
+   - ✅ `find(list, value)` — find index (or -1)
+   - ✅ `contains(list, value)` — check membership (1/0)
+   - ✅ `count(list, value)` — count occurrences
+   - ✅ `flatten(list)` — flatten nested lists
+   - ✅ `zip(list1, list2)` — combine into pairs
+   - ✅ `range(start, end[, step])` — create number list
+   - ✅ Comprehensive list algorithms
+   - ✅ 18 new integration tests added and passing
+   - Builtins: 269 → 283 (+14)
+   - Total tests: 265 → 283 (+18)
 
 ---
 

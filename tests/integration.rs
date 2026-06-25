@@ -2453,3 +2453,129 @@ fn test_title_case() {
     let result = it.eval_render("title(\"hello world\")").unwrap();
     assert_eq!(result.trim(), "Hello World");
 }
+
+// Phase 8: List Operations
+
+#[test]
+fn test_sort_ascending() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sort(list(3, 1, 2))").unwrap();
+    assert!(result.contains("1"));
+    assert!(result.contains("2"));
+    assert!(result.contains("3"));
+}
+
+#[test]
+fn test_rsort_descending() {
+    let mut it = Interp::new();
+    let result = it.eval_render("rsort(list(1, 3, 2))").unwrap();
+    assert!(result.contains("3"));
+    assert!(result.contains("2"));
+    assert!(result.contains("1"));
+}
+
+#[test]
+fn test_reverse_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("reverse(list(1, 2, 3))").unwrap();
+    assert!(result.contains("3"));
+}
+
+#[test]
+fn test_unique_removes_dupes() {
+    let mut it = Interp::new();
+    let result = it.eval_render("size(unique(list(1, 2, 2, 3, 3, 3)))").unwrap();
+    assert_eq!(result.trim(), "3");
+}
+
+#[test]
+fn test_min_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("min(list(5, 2, 8, 1, 9))").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_max_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("max(list(5, 2, 8, 1, 9))").unwrap();
+    assert_eq!(result.trim(), "9");
+}
+
+#[test]
+fn test_sum_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sum(list(1, 2, 3, 4, 5))").unwrap();
+    assert_eq!(result.trim(), "15");
+}
+
+#[test]
+fn test_product_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("product(list(2, 3, 4))").unwrap();
+    assert_eq!(result.trim(), "24");
+}
+
+#[test]
+fn test_find_value() {
+    let mut it = Interp::new();
+    let result = it.eval_render("find(list(10, 20, 30), 20)").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_find_not_found() {
+    let mut it = Interp::new();
+    let result = it.eval_render("find(list(10, 20, 30), 99)").unwrap();
+    assert_eq!(result.trim(), "-1");
+}
+
+#[test]
+fn test_contains_true() {
+    let mut it = Interp::new();
+    let result = it.eval_render("contains(list(1, 2, 3), 2)").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_contains_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render("contains(list(1, 2, 3), 5)").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_count_list() {
+    let mut it = Interp::new();
+    let result = it.eval_render("count(list(1, 2, 2, 3, 2), 2)").unwrap();
+    assert_eq!(result.trim(), "3");
+}
+
+#[test]
+fn test_flatten_nested() {
+    let mut it = Interp::new();
+    it.eval_render("x = list(1, 2); y = list(3, 4); z = list(x, y)").ok();
+    let result = it.eval_render("size(flatten(z))").unwrap();
+    assert_eq!(result.trim(), "4");
+}
+
+#[test]
+fn test_zip_lists() {
+    let mut it = Interp::new();
+    let result = it.eval_render("size(zip(list(1, 2, 3), list(4, 5, 6)))").unwrap();
+    assert_eq!(result.trim(), "3");
+}
+
+#[test]
+fn test_range_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("size(range(1, 5))").unwrap();
+    assert_eq!(result.trim(), "5");
+}
+
+#[test]
+fn test_range_with_step() {
+    let mut it = Interp::new();
+    let result = it.eval_render("size(range(0, 10, 2))").unwrap();
+    assert_eq!(result.trim(), "6");
+}
