@@ -9,3 +9,4 @@ pub mod eval;
 pub mod builtins;
 pub mod cli;
 pub mod mcp;
+pub mod help;

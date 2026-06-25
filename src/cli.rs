@@ -177,8 +177,15 @@ fn repl(interp: &mut Interp, quiet: bool) -> Result<(), String> {
                     break;
                 }
 
-                if trimmed == "help" {
-                    print_function_help();
+                if trimmed.starts_with("help") {
+                    let filter = if trimmed == "help" {
+                        None
+                    } else if trimmed.starts_with("help ") {
+                        Some(trimmed[5..].trim())
+                    } else {
+                        None
+                    };
+                    print_function_help(filter);
                     continue;
                 }
 
@@ -225,25 +232,59 @@ fn dirs_home() -> Option<String> {
     None
 }
 
-fn print_function_help() {
-    println!("\n📚 Available Functions (351 total)\n");
+fn print_function_help(filter: Option<&str>) {
+    // No argument: show topic list and full catalog
+    let Some(f) = filter else {
+        println!("\nHelp topics: {}", crate::help::TOPICS.join("  "));
+        println!("\nUsage:");
+        println!("  help <topic>  — show topic documentation (e.g. help intro)");
+        println!("  help <name>   — search functions by name (e.g. help sin)");
+        println!("\nAvailable functions (351 total):\n");
+        println!("{:<20} {:<40} {}", "Function", "Signature", "Description");
+        println!("{}", "─".repeat(100));
+        for (name, sig, desc) in crate::builtins::catalog() {
+            println!("{:<20} {:<40} {}", name, sig, desc);
+        }
+        println!();
+        return;
+    };
+
+    // Check if it's a known topic first
+    if let Some(text) = crate::help::topic(f) {
+        println!("{}", text);
+        return;
+    }
+
+    // Not a topic, search functions
+    let filter_lower = f.to_ascii_lowercase();
+    let mut matches = Vec::new();
+    for (name, sig, desc) in crate::builtins::catalog() {
+        if name.contains(filter_lower.as_str()) || sig.contains(filter_lower.as_str()) || desc.to_ascii_lowercase().contains(filter_lower.as_str()) {
+            matches.push((name, sig, desc));
+        }
+    }
+
+    if matches.is_empty() {
+        println!("\n❌ No topic or functions found matching '{}'", f);
+        println!("\n💡 Try one of these topics:");
+        println!("  help intro    — introduction and basic usage");
+        println!("  help usage    — command-line options");
+        println!("  help builtin  — about builtin functions");
+        println!("  help define   — user-defined functions");
+        println!("  help operator — operator table");
+        println!("  help list     — list operations");
+        println!("  help string   — string operations");
+        println!("\nOr search functions: help sin, help list, help string, etc.\n");
+        return;
+    }
+
+    let title = format!("📚 Functions matching '{}' ({} found)", f, matches.len());
+    println!("\n{}\n", title);
     println!("{:<20} {:<40} {}", "Function", "Signature", "Description");
     println!("{}", "─".repeat(100));
 
-    let mut count = 0;
-    for (name, sig, desc) in crate::builtins::catalog() {
+    for (name, sig, desc) in &matches {
         println!("{:<20} {:<40} {}", name, sig, desc);
-        count += 1;
-        if count % 20 == 0 {
-            println!("  ... (showing {} of 351 functions, use grep or search above)", count);
-        }
     }
-    println!("\n💡 Usage examples:");
-    println!("  > 2^100                          # Big number (exact)");
-    println!("  > sin(pi()/6)                    # Trigonometric functions");
-    println!("  > list(1,2,3); sort(list(3,1,2)) # List operations");
-    println!("  > substr(\"hello\", 1, 3)         # String functions");
-    println!("  > hex(255); oct(64); bin(15)    # Base conversion");
-    println!("  > mean(list(1,2,3,4,5))         # Statistics");
-    println!("\n🔍 Search for a function: grep the output or use Ctrl+R for history search\n");
+    println!();
 }
