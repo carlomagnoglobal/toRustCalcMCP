@@ -3896,6 +3896,200 @@ fn f_dump(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 
+// Phase 10: I/O & Formatting
+
+// Print with newline
+fn f_println(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    let mut output = Vec::new();
+    for arg in a {
+        match arg {
+            Value::Str(s) => output.push(s.clone()),
+            Value::Number(n) => output.push(number::to_decimal_string(n, it.cfg.display)),
+            Value::Null => {},
+            _ => output.push(format!("{:?}", arg)),
+        }
+    }
+    let result = output.join(" ");
+    println!("{}", result);
+    Ok(Value::Str(result))
+}
+
+// Put string with newline
+fn f_puts(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("puts", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("puts: argument must be string".to_string()),
+    };
+    println!("{}", s);
+    Ok(Value::Number(Num::from_integer(BigInt::from(s.len() as i64))))
+}
+
+// Read line from stdin
+fn f_getline(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("getline", a, 0)?;
+    let mut line = String::new();
+    match std::io::stdin().read_line(&mut line) {
+        Ok(_) => {
+            // Remove trailing newline
+            if line.ends_with('\n') {
+                line.pop();
+                if line.ends_with('\r') {
+                    line.pop();
+                }
+            }
+            Ok(Value::Str(line))
+        }
+        Err(e) => Err(format!("getline: read error: {}", e)),
+    }
+}
+
+// Read input with prompt
+fn f_input(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("input", a, 1)?;
+    let prompt = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("input: prompt must be string".to_string()),
+    };
+
+    print!("{}", prompt);
+    use std::io::Write;
+    std::io::stdout().flush().ok();
+
+    let mut line = String::new();
+    match std::io::stdin().read_line(&mut line) {
+        Ok(_) => {
+            // Remove trailing newline
+            if line.ends_with('\n') {
+                line.pop();
+                if line.ends_with('\r') {
+                    line.pop();
+                }
+            }
+            Ok(Value::Str(line))
+        }
+        Err(e) => Err(format!("input: read error: {}", e)),
+    }
+}
+
+// Formatted print (basic version without format parsing)
+fn f_printf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() {
+        return Err("printf: expects at least 1 argument".to_string());
+    }
+
+    let format_str = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("printf: format must be string".to_string()),
+    };
+
+    // Simple implementation: just concatenate all arguments
+    let mut output = format_str.clone();
+    for i in 1..a.len() {
+        let replacement = match &a[i] {
+            Value::Str(s) => s.clone(),
+            Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
+            _ => format!("{:?}", a[i]),
+        };
+        // Replace first %s or %d with the argument
+        if let Some(pos) = output.find("%s").or_else(|| output.find("%d")) {
+            output.replace_range(pos..pos+2, &replacement);
+        }
+    }
+
+    print!("{}", output);
+    use std::io::Write;
+    std::io::stdout().flush().ok();
+    Ok(Value::Number(Num::from_integer(BigInt::from(output.len() as i64))))
+}
+
+// Formatted string (basic version)
+fn f_sprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() {
+        return Err("sprintf: expects at least 1 argument".to_string());
+    }
+
+    let format_str = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("sprintf: format must be string".to_string()),
+    };
+
+    let mut output = format_str.clone();
+    for i in 1..a.len() {
+        let replacement = match &a[i] {
+            Value::Str(s) => s.clone(),
+            Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
+            _ => format!("{:?}", a[i]),
+        };
+        // Replace first %s or %d with the argument
+        if let Some(pos) = output.find("%s").or_else(|| output.find("%d")) {
+            output.replace_range(pos..pos+2, &replacement);
+        }
+    }
+
+    Ok(Value::Str(output))
+}
+
+// Generic formatting function
+fn f_format(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    if a.is_empty() {
+        return Err("format: expects at least 1 argument".to_string());
+    }
+
+    let format_str = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("format: format must be string".to_string()),
+    };
+
+    let mut output = format_str.clone();
+    for i in 1..a.len() {
+        let replacement = match &a[i] {
+            Value::Str(s) => s.clone(),
+            Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
+            _ => format!("{:?}", a[i]),
+        };
+        // Replace next placeholder with the argument
+        if let Some(pos) = output.find("{}") {
+            output.replace_range(pos..pos+2, &replacement);
+        }
+    }
+
+    Ok(Value::Str(output))
+}
+
+// Debug output
+fn f_debug(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("debug", a, 1)?;
+    let debug_str = format!("[DEBUG] {:?}", a[0]);
+    eprintln!("{}", debug_str);
+    Ok(Value::Str(debug_str))
+}
+
+// Format as hexadecimal
+fn f_hex(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hex", a, 1)?;
+    let n = int(a, 0)?;
+    let hex_str = format!("{:x}", n);
+    Ok(Value::Str(hex_str))
+}
+
+// Format as octal
+fn f_oct(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("oct", a, 1)?;
+    let n = int(a, 0)?;
+    let oct_str = format!("{:o}", n);
+    Ok(Value::Str(oct_str))
+}
+
+// Format as binary
+fn f_bin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("bin", a, 1)?;
+    let n = int(a, 0)?;
+    let bin_str = format!("{:b}", n);
+    Ok(Value::Str(bin_str))
+}
+
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -4204,6 +4398,18 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("rceq".to_string(), f_rceq as BuiltinFn);
     builtins.insert("rcneg".to_string(), f_rcneg as BuiltinFn);
     builtins.insert("rcdiv".to_string(), f_rcdiv as BuiltinFn);
+    // I/O & Formatting functions (Phase 10)
+    builtins.insert("println".to_string(), f_println as BuiltinFn);
+    builtins.insert("puts".to_string(), f_puts as BuiltinFn);
+    builtins.insert("getline".to_string(), f_getline as BuiltinFn);
+    builtins.insert("input".to_string(), f_input as BuiltinFn);
+    builtins.insert("printf".to_string(), f_printf as BuiltinFn);
+    builtins.insert("sprintf".to_string(), f_sprintf as BuiltinFn);
+    builtins.insert("format".to_string(), f_format as BuiltinFn);
+    builtins.insert("debug".to_string(), f_debug as BuiltinFn);
+    builtins.insert("hex".to_string(), f_hex as BuiltinFn);
+    builtins.insert("oct".to_string(), f_oct as BuiltinFn);
+    builtins.insert("bin".to_string(), f_bin as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -4498,5 +4704,17 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("sizeof", "sizeof(x)", "get approximate size in bytes"),
         ("env", "env()", "list environment variables as [name,value] pairs"),
         ("dump", "dump()", "dump all state (variables, config, stats)"),
+        // Phase 10: I/O & Formatting
+        ("println", "println(x,...)", "print with newline"),
+        ("puts", "puts(s)", "put string with newline"),
+        ("getline", "getline()", "read line from stdin"),
+        ("input", "input(prompt)", "read input with prompt"),
+        ("printf", "printf(fmt,...)", "formatted print"),
+        ("sprintf", "sprintf(fmt,...)", "formatted string"),
+        ("format", "format(fmt,...)", "generic formatting"),
+        ("debug", "debug(x)", "debug output to stderr"),
+        ("hex", "hex(x)", "format as hexadecimal"),
+        ("oct", "oct(x)", "format as octal"),
+        ("bin", "bin(x)", "format as binary"),
     ]
 }

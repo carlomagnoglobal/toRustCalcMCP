@@ -2680,3 +2680,103 @@ fn test_dump_output() {
     // Dump should contain variable info
     assert!(result.contains("test_var") || result.contains("==="));
 }
+
+// Phase 10: I/O & Formatting tests
+
+#[test]
+fn test_sprintf_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sprintf(\"hello %s\", \"world\")").unwrap();
+    assert!(result.contains("hello world"));
+}
+
+#[test]
+fn test_sprintf_number() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sprintf(\"value: %d\", 42)").unwrap();
+    assert!(result.contains("value: 42"));
+}
+
+#[test]
+fn test_format_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("format(\"test {}\", \"value\")").unwrap();
+    assert!(result.contains("test value"));
+}
+
+#[test]
+fn test_format_multiple() {
+    let mut it = Interp::new();
+    let result = it.eval_render("format(\"a {} b {} c\", 1, 2)").unwrap();
+    assert!(result.contains("a 1 b 2"));
+}
+
+#[test]
+fn test_hex_conversion() {
+    let mut it = Interp::new();
+    let result = it.eval_render("hex(255)").unwrap();
+    assert!(result.contains("ff"));
+}
+
+#[test]
+fn test_hex_zero() {
+    let mut it = Interp::new();
+    let result = it.eval_render("hex(0)").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_oct_conversion() {
+    let mut it = Interp::new();
+    let result = it.eval_render("oct(8)").unwrap();
+    assert!(result.contains("10"));
+}
+
+#[test]
+fn test_oct_large() {
+    let mut it = Interp::new();
+    let result = it.eval_render("oct(64)").unwrap();
+    assert!(result.contains("100"));
+}
+
+#[test]
+fn test_bin_conversion() {
+    let mut it = Interp::new();
+    let result = it.eval_render("bin(5)").unwrap();
+    assert!(result.contains("101"));
+}
+
+#[test]
+fn test_bin_powers_of_two() {
+    let mut it = Interp::new();
+    let result = it.eval_render("bin(8)").unwrap();
+    assert!(result.contains("1000"));
+}
+
+#[test]
+fn test_hex_large_number() {
+    let mut it = Interp::new();
+    let result = it.eval_render("hex(256)").unwrap();
+    assert!(result.contains("100"));
+}
+
+#[test]
+fn test_bin_all_ones() {
+    let mut it = Interp::new();
+    let result = it.eval_render("bin(15)").unwrap();
+    assert!(result.contains("1111"));
+}
+
+#[test]
+fn test_sprintf_multiple_args() {
+    let mut it = Interp::new();
+    let result = it.eval_render("sprintf(\"%d + %d = %d\", 2, 3, 5)").unwrap();
+    assert!(result.contains("2 + 3 = 5"));
+}
+
+#[test]
+fn test_format_empty() {
+    let mut it = Interp::new();
+    let result = it.eval_render("format(\"test\")").unwrap();
+    assert!(result.contains("test"));
+}
