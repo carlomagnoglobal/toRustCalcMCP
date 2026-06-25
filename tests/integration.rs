@@ -3059,3 +3059,125 @@ fn test_cd_and_pwd_consistent() {
     // Just verify the operations don't crash
     assert!(original.len() > 0);
 }
+
+// Phase 13: Advanced Operations tests
+
+#[test]
+fn test_polyval_basic() {
+    let mut it = Interp::new();
+    // p(x) = 2x^2 + 3x + 1, evaluate at x=2: 2*4 + 3*2 + 1 = 15
+    let result = it.eval_render("polyval(list(1, 3, 2), 2)").unwrap();
+    assert!(result.contains("15"));
+}
+
+#[test]
+fn test_dot_product() {
+    let mut it = Interp::new();
+    // [1, 2, 3] · [4, 5, 6] = 1*4 + 2*5 + 3*6 = 4 + 10 + 18 = 32
+    let result = it.eval_render("dot(list(1, 2, 3), list(4, 5, 6))").unwrap();
+    assert!(result.contains("32"));
+}
+
+#[test]
+fn test_norm_simple() {
+    let mut it = Interp::new();
+    // norm([3, 4]) = sqrt(9 + 16) = sqrt(25) = 5
+    let result = it.eval_render("norm(list(3, 4))").unwrap();
+    assert!(result.contains("5"));
+}
+
+#[test]
+fn test_polyderiv_linear() {
+    let mut it = Interp::new();
+    // d/dx(2x + 1) = 2
+    let result = it.eval_render("polyderiv(list(1, 2))").unwrap();
+    assert!(result.contains("2"));
+}
+
+#[test]
+fn test_union_sets() {
+    let mut it = Interp::new();
+    let result = it.eval_render("union(list(1, 2, 3), list(3, 4, 5))").unwrap();
+    // Should contain 1,2,3,4,5
+    assert!(result.contains("1"));
+    assert!(result.contains("4"));
+}
+
+#[test]
+fn test_intersection_sets() {
+    let mut it = Interp::new();
+    let result = it.eval_render("intersection(list(1, 2, 3), list(2, 3, 4))").unwrap();
+    // Should contain 2,3
+    assert!(result.contains("2"));
+    assert!(result.contains("3"));
+}
+
+#[test]
+fn test_difference_sets() {
+    let mut it = Interp::new();
+    let result = it.eval_render("difference(list(1, 2, 3), list(2, 4))").unwrap();
+    // Should contain 1,3
+    assert!(result.contains("1"));
+}
+
+#[test]
+fn test_subset_true() {
+    let mut it = Interp::new();
+    let result = it.eval_render("subset(list(1, 2), list(1, 2, 3))").unwrap();
+    assert!(result.contains("1"));
+}
+
+#[test]
+fn test_subset_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render("subset(list(1, 4), list(1, 2, 3))").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_cumsum_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("cumsum(list(1, 2, 3, 4))").unwrap();
+    // Should be [1, 3, 6, 10]
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_diff_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("diff(list(1, 3, 6, 10))").unwrap();
+    // Should be [2, 3, 4]
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_mode_single() {
+    let mut it = Interp::new();
+    let result = it.eval_render("mode(list(1, 2, 2, 3, 3, 3))").unwrap();
+    // 3 appears most often
+    assert!(result.contains("3"));
+}
+
+#[test]
+fn test_polyval_zero() {
+    let mut it = Interp::new();
+    // p(x) = x^2 - 4, evaluate at x=2: 4 - 4 = 0
+    let result = it.eval_render("polyval(list(-4, 0, 1), 2)").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_dot_zero() {
+    let mut it = Interp::new();
+    // [1, 0] · [0, 1] = 0
+    let result = it.eval_render("dot(list(1, 0), list(0, 1))").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_norm_unit() {
+    let mut it = Interp::new();
+    // norm([1]) = 1
+    let result = it.eval_render("norm(list(1))").unwrap();
+    assert!(result.contains("1"));
+}

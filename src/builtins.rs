@@ -4589,6 +4589,408 @@ fn f_uname(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 
+// Phase 13: Advanced Operations
+
+// Matrix multiplication
+fn f_matmul(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("matmul", a, 2)?;
+    let m1 = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("matmul: first argument must be matrix (list of lists)".to_string()),
+    };
+    let m2 = match &a[1] {
+        Value::List(items) => items.clone(),
+        _ => return Err("matmul: second argument must be matrix (list of lists)".to_string()),
+    };
+
+    if m1.is_empty() || m2.is_empty() {
+        return Err("matmul: matrices cannot be empty".to_string());
+    }
+
+    // Get dimensions
+    let rows1 = m1.len();
+    let cols1 = match &m1[0] {
+        Value::List(row) => row.len(),
+        _ => return Err("matmul: first matrix rows must be lists".to_string()),
+    };
+    let rows2 = m2.len();
+    let cols2 = match &m2[0] {
+        Value::List(row) => row.len(),
+        _ => return Err("matmul: second matrix rows must be lists".to_string()),
+    };
+
+    if cols1 != rows2 {
+        return Err("matmul: incompatible dimensions for multiplication".to_string());
+    }
+
+    let mut result = Vec::new();
+    for i in 0..rows1 {
+        let mut row = Vec::new();
+        for j in 0..cols2 {
+            let mut sum = Num::zero();
+            for k in 0..cols1 {
+                let val1 = match &m1[i] {
+                    Value::List(r) => match &r[k] {
+                        Value::Number(n) => n.clone(),
+                        _ => return Err("matmul: non-numeric element".to_string()),
+                    },
+                    _ => return Err("matmul: row must be list".to_string()),
+                };
+                let val2 = match &m2[k] {
+                    Value::List(r) => match &r[j] {
+                        Value::Number(n) => n.clone(),
+                        _ => return Err("matmul: non-numeric element".to_string()),
+                    },
+                    _ => return Err("matmul: row must be list".to_string()),
+                };
+                sum = &sum + &(&val1 * &val2);
+            }
+            row.push(Value::Number(sum));
+        }
+        result.push(Value::List(row));
+    }
+
+    Ok(Value::List(result))
+}
+
+// Polynomial evaluation (Horner's method)
+fn f_polyval(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("polyval", a, 2)?;
+    let coeffs = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("polyval: first argument must be coefficient list".to_string()),
+    };
+    let x = match &a[1] {
+        Value::Number(n) => n.clone(),
+        _ => return Err("polyval: second argument must be number".to_string()),
+    };
+
+    if coeffs.is_empty() {
+        return Ok(Value::Number(Num::zero()));
+    }
+
+    // Extract numeric coefficients
+    let mut nums = Vec::new();
+    for c in coeffs {
+        match c {
+            Value::Number(n) => nums.push(n),
+            _ => return Err("polyval: non-numeric coefficient".to_string()),
+        }
+    }
+
+    // Horner's method: p(x) = a0 + x(a1 + x(a2 + ...))
+    let mut result = nums[nums.len() - 1].clone();
+    for i in (0..nums.len() - 1).rev() {
+        result = &(&result * &x) + &nums[i];
+    }
+
+    Ok(Value::Number(result))
+}
+
+// Dot product of two vectors
+fn f_dot(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("dot", a, 2)?;
+    let v1 = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("dot: first argument must be vector (list)".to_string()),
+    };
+    let v2 = match &a[1] {
+        Value::List(items) => items.clone(),
+        _ => return Err("dot: second argument must be vector (list)".to_string()),
+    };
+
+    if v1.len() != v2.len() {
+        return Err("dot: vectors must have same length".to_string());
+    }
+
+    let mut sum = Num::zero();
+    for i in 0..v1.len() {
+        let n1 = match &v1[i] {
+            Value::Number(n) => n.clone(),
+            _ => return Err("dot: non-numeric element".to_string()),
+        };
+        let n2 = match &v2[i] {
+            Value::Number(n) => n.clone(),
+            _ => return Err("dot: non-numeric element".to_string()),
+        };
+        sum = &sum + &(&n1 * &n2);
+    }
+
+    Ok(Value::Number(sum))
+}
+
+// Vector norm (magnitude)
+fn f_norm(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("norm", a, 1)?;
+    let v = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("norm: argument must be vector (list)".to_string()),
+    };
+
+    let mut sum = Num::zero();
+    for item in v {
+        match item {
+            Value::Number(n) => {
+                sum = &sum + &(&n * &n);
+            }
+            _ => return Err("norm: non-numeric element".to_string()),
+        }
+    }
+
+    let result = number::sqrt(&sum, &Num::from_float(1e-15).unwrap())?;
+    Ok(Value::Number(result))
+}
+
+// Polynomial derivative
+fn f_polyderiv(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("polyderiv", a, 1)?;
+    let coeffs = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("polyderiv: argument must be coefficient list".to_string()),
+    };
+
+    if coeffs.len() <= 1 {
+        return Ok(Value::List(vec![Value::Number(Num::zero())]));
+    }
+
+    let mut deriv = Vec::new();
+    for i in 1..coeffs.len() {
+        match &coeffs[i] {
+            Value::Number(n) => {
+                let multiplier = Num::from_integer(BigInt::from(i as i64));
+                deriv.push(Value::Number(n * &multiplier));
+            }
+            _ => return Err("polyderiv: non-numeric coefficient".to_string()),
+        }
+    }
+
+    if deriv.is_empty() {
+        deriv.push(Value::Number(Num::zero()));
+    }
+
+    Ok(Value::List(deriv))
+}
+
+// Union of two sets (lists with duplicates removed)
+fn f_union(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("union", a, 2)?;
+    let set1 = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("union: first argument must be set (list)".to_string()),
+    };
+    let set2 = match &a[1] {
+        Value::List(items) => items.clone(),
+        _ => return Err("union: second argument must be set (list)".to_string()),
+    };
+
+    let mut result = set1.clone();
+    for item in set2 {
+        if !result.iter().any(|x| x == &item) {
+            result.push(item);
+        }
+    }
+
+    Ok(Value::List(result))
+}
+
+// Intersection of two sets
+fn f_intersection(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("intersection", a, 2)?;
+    let set1 = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("intersection: first argument must be set (list)".to_string()),
+    };
+    let set2 = match &a[1] {
+        Value::List(items) => items.clone(),
+        _ => return Err("intersection: second argument must be set (list)".to_string()),
+    };
+
+    let mut result = Vec::new();
+    for item in set1 {
+        if set2.iter().any(|x| x == &item) && !result.iter().any(|x| x == &item) {
+            result.push(item);
+        }
+    }
+
+    Ok(Value::List(result))
+}
+
+// Difference of two sets (set1 - set2)
+fn f_difference(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("difference", a, 2)?;
+    let set1 = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("difference: first argument must be set (list)".to_string()),
+    };
+    let set2 = match &a[1] {
+        Value::List(items) => items.clone(),
+        _ => return Err("difference: second argument must be set (list)".to_string()),
+    };
+
+    let mut result = Vec::new();
+    for item in set1 {
+        if !set2.iter().any(|x| x == &item) && !result.iter().any(|x| x == &item) {
+            result.push(item);
+        }
+    }
+
+    Ok(Value::List(result))
+}
+
+// Check if set1 is subset of set2
+fn f_subset(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("subset", a, 2)?;
+    let set1 = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("subset: first argument must be set (list)".to_string()),
+    };
+    let set2 = match &a[1] {
+        Value::List(items) => items.clone(),
+        _ => return Err("subset: second argument must be set (list)".to_string()),
+    };
+
+    let is_subset = set1.iter().all(|item| set2.iter().any(|x| x == item));
+    Ok(Value::Number(Num::from_integer(BigInt::from(if is_subset { 1 } else { 0 }))))
+}
+
+// Linear interpolation
+fn f_interp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("interp", a, 3)?;
+    let x_vals = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("interp: x values must be list".to_string()),
+    };
+    let y_vals = match &a[1] {
+        Value::List(items) => items.clone(),
+        _ => return Err("interp: y values must be list".to_string()),
+    };
+    let x = match &a[2] {
+        Value::Number(n) => n.clone(),
+        _ => return Err("interp: x must be number".to_string()),
+    };
+
+    if x_vals.len() != y_vals.len() || x_vals.is_empty() {
+        return Err("interp: x and y must have same non-empty length".to_string());
+    }
+
+    // Extract numeric values
+    let mut xs = Vec::new();
+    let mut ys = Vec::new();
+    for (xv, yv) in x_vals.iter().zip(y_vals.iter()) {
+        match (xv, yv) {
+            (Value::Number(xn), Value::Number(yn)) => {
+                xs.push(xn.clone());
+                ys.push(yn.clone());
+            }
+            _ => return Err("interp: non-numeric values".to_string()),
+        }
+    }
+
+    // Find interval containing x
+    for i in 0..xs.len() - 1 {
+        if &x >= &xs[i] && &x <= &xs[i + 1] {
+            let x0 = &xs[i];
+            let x1 = &xs[i + 1];
+            let y0 = &ys[i];
+            let y1 = &ys[i + 1];
+
+            // Linear interpolation: y = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
+            let dx = x1 - x0;
+            let dy = y1 - y0;
+            let t = &(&x - x0) / &dx;
+            let result = y0 + &(&t * &dy);
+            return Ok(Value::Number(result));
+        }
+    }
+
+    // Out of range - extrapolate from endpoints
+    let x0 = &xs[0];
+    let x1 = &xs[xs.len() - 1];
+    let y0 = &ys[0];
+    let y1 = &ys[ys.len() - 1];
+
+    let dx = x1 - x0;
+    let dy = y1 - y0;
+    let t = &(&x - x0) / &dx;
+    let result = y0 + &(&t * &dy);
+    Ok(Value::Number(result))
+}
+
+// Cumulative sum
+fn f_cumsum(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cumsum", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("cumsum: argument must be list".to_string()),
+    };
+
+    let mut result = Vec::new();
+    let mut sum = Num::zero();
+    for item in items {
+        match item {
+            Value::Number(n) => {
+                sum = &sum + &n;
+                result.push(Value::Number(sum.clone()));
+            }
+            _ => return Err("cumsum: non-numeric element".to_string()),
+        }
+    }
+
+    Ok(Value::List(result))
+}
+
+// Differences between consecutive elements
+fn f_diff(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("diff", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("diff: argument must be list".to_string()),
+    };
+
+    if items.len() < 2 {
+        return Ok(Value::List(Vec::new()));
+    }
+
+    let mut result = Vec::new();
+    for i in 1..items.len() {
+        match (&items[i - 1], &items[i]) {
+            (Value::Number(n1), Value::Number(n2)) => {
+                result.push(Value::Number(n2 - n1));
+            }
+            _ => return Err("diff: non-numeric element".to_string()),
+        }
+    }
+
+    Ok(Value::List(result))
+}
+
+// Statistical mode (most common value)
+fn f_mode(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mode", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("mode: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    let mut max_count = 0;
+    let mut mode_val = items[0].clone();
+
+    for item in items.iter() {
+        let count = items.iter().filter(|x| *x == item).count();
+        if count > max_count {
+            max_count = count;
+            mode_val = item.clone();
+        }
+    }
+
+    Ok(mode_val)
+}
+
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -4939,6 +5341,20 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("getuid".to_string(), f_getuid as BuiltinFn);
     builtins.insert("arch".to_string(), f_arch as BuiltinFn);
     builtins.insert("uname".to_string(), f_uname as BuiltinFn);
+    // Advanced Operations (Phase 13)
+    builtins.insert("matmul".to_string(), f_matmul as BuiltinFn);
+    builtins.insert("polyval".to_string(), f_polyval as BuiltinFn);
+    builtins.insert("dot".to_string(), f_dot as BuiltinFn);
+    builtins.insert("norm".to_string(), f_norm as BuiltinFn);
+    builtins.insert("polyderiv".to_string(), f_polyderiv as BuiltinFn);
+    builtins.insert("union".to_string(), f_union as BuiltinFn);
+    builtins.insert("intersection".to_string(), f_intersection as BuiltinFn);
+    builtins.insert("difference".to_string(), f_difference as BuiltinFn);
+    builtins.insert("subset".to_string(), f_subset as BuiltinFn);
+    builtins.insert("interp".to_string(), f_interp as BuiltinFn);
+    builtins.insert("cumsum".to_string(), f_cumsum as BuiltinFn);
+    builtins.insert("diff".to_string(), f_diff as BuiltinFn);
+    builtins.insert("mode".to_string(), f_mode as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -5275,5 +5691,19 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("getuid", "getuid()", "get user ID"),
         ("arch", "arch()", "get CPU architecture"),
         ("uname", "uname()", "get system info (os-arch)"),
+        // Phase 13: Advanced Operations
+        ("matmul", "matmul(m1,m2)", "matrix multiplication"),
+        ("polyval", "polyval(coeffs,x)", "polynomial evaluation"),
+        ("dot", "dot(v1,v2)", "dot product of vectors"),
+        ("norm", "norm(v)", "vector norm (magnitude)"),
+        ("polyderiv", "polyderiv(coeffs)", "polynomial derivative"),
+        ("union", "union(set1,set2)", "set union"),
+        ("intersection", "intersection(set1,set2)", "set intersection"),
+        ("difference", "difference(set1,set2)", "set difference"),
+        ("subset", "subset(set1,set2)", "check if subset"),
+        ("interp", "interp(xs,ys,x)", "linear interpolation"),
+        ("cumsum", "cumsum(list)", "cumulative sum"),
+        ("diff", "diff(list)", "consecutive differences"),
+        ("mode", "mode(list)", "most common value"),
     ]
 }

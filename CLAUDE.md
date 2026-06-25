@@ -15,8 +15,8 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 12 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 329 builtins, CLI, MCP server, and 344 integration
+Current status: **Phase 13 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 345 builtins, CLI, MCP server, and 359 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
@@ -28,7 +28,8 @@ Phase 8 complete (list operations: sort/rsort, reverse, unique, min/max/sum/prod
 Phase 9 complete (variable/scope management: vars, defined, undefine/del, type, sizeof, env, dump);
 Phase 10 complete (I/O & formatting: println, puts, getline, input, printf, sprintf, format, debug, hex, oct, bin);
 Phase 11 complete (math extensions: mean, median, variance, stdev, clz, ctz, nextpow2, prevpow2, ispow2, hammingdist, gray, igray, popcount, rms, gmean, hmean);
-Phase 12 complete (system & utility: version, platform, hostname, pid, username, homedir, tmpdir, pwd, cd, getuid, arch, uname).
+Phase 12 complete (system & utility: version, platform, hostname, pid, username, homedir, tmpdir, pwd, cd, getuid, arch, uname);
+Phase 13 complete (advanced operations: matmul, polyval, dot, norm, polyderiv, union, intersection, difference, subset, interp, cumsum, diff, mode).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -639,6 +640,25 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - ✅ 12 new integration tests added and passing
    - Builtins: 317 → 329 (+12)
    - Total tests: 332 → 344 (+12)
+
+### 13.0 Advanced Operations — DONE (13 of 13 functions)
+   - ✅ `matmul(m1,m2)` — matrix multiplication
+   - ✅ `polyval(coeffs,x)` — polynomial evaluation (Horner's method)
+   - ✅ `dot(v1,v2)` — dot product of vectors
+   - ✅ `norm(v)` — vector norm (magnitude)
+   - ✅ `polyderiv(coeffs)` — polynomial derivative
+   - ✅ `union(set1,set2)` — set union
+   - ✅ `intersection(set1,set2)` — set intersection
+   - ✅ `difference(set1,set2)` — set difference (set1 - set2)
+   - ✅ `subset(set1,set2)` — check if set1 is subset of set2
+   - ✅ `interp(xs,ys,x)` — linear interpolation
+   - ✅ `cumsum(list)` — cumulative sum
+   - ✅ `diff(list)` — consecutive differences
+   - ✅ `mode(list)` — most common value in list
+   - ✅ Advanced linear algebra, polynomial, set, and statistical operations
+   - ✅ 16 new integration tests added and passing
+   - Builtins: 329 → 345 (+16)
+   - Total tests: 344 → 359 (+15)
 
 ---
 
