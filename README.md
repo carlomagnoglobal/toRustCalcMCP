@@ -1,12 +1,13 @@
 # toRustCalcMCP
 
 A Rust port of [`calc`](https://github.com/lcn2/calc) (Landon Curt Noll's
-arbitrary-precision calculator) that works **both** as:
+arbitrary-precision calculator) that works as:
 
-- **`rcalc`** — a calc-compatible command-line calculator, and
-- **an MCP server** — JSON-RPC 2.0 over stdio, so an LLM/agent can do exact math.
+- **`rcalc`** — a calc-compatible command-line calculator
+- **Web REPL** — browser-based interactive calculator
+- **MCP server** — JSON-RPC 2.0 over stdio for LLM/agent integration
 
-One codebase, two front-ends. The numeric core uses **exact rational arithmetic**
+**Three interfaces, one engine.** The numeric core uses **exact rational arithmetic**
 (`num-rational` over `num-bigint`), which is the same model calc uses natively —
 so `1/3 * 3` is exactly `1`, and `2^256` is computed to the last digit.
 
@@ -40,6 +41,23 @@ rcalc                        # interactive REPL (Ctrl-D to exit)
 
 Flags: `-p` pipe mode, `-q` quiet, `-m real|frac|int`, `-v` version, `-h` help.
 Several classic calc flags (`-c -C -d -e -i -O -s -u`) are accepted and ignored.
+
+## Web REPL usage
+
+```sh
+cargo build --release
+./target/release/rcalc-web
+# Open browser: http://localhost:8888
+```
+
+A modern browser-based REPL with:
+- Interactive expression evaluation
+- Command history (↑/↓ arrow keys)
+- Syntax-highlighted output
+- Full calc functionality (all 351 builtins)
+- Responsive design for mobile/desktop
+
+Try it: open http://localhost:8888 and enter `2^256` or `sin(pi()/6)`.
 
 ## MCP usage
 

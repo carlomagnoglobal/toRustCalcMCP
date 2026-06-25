@@ -24,7 +24,15 @@ cargo build --release
 
 ## Try It (2 minutes)
 
-### Interactive mode:
+### Browser-based REPL (Easiest):
+```bash
+./target/release/rcalc-web
+# Then open: http://localhost:8888
+```
+Type in the browser: `2^100`, `1/3 + 1/6`, `sin(pi()/6)`, etc.
+Use arrow keys for command history. Ctrl+L to clear.
+
+### Interactive mode (Terminal):
 ```bash
 ./target/release/toRustCalcMCP
 > 2 + 3
