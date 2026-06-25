@@ -15,14 +15,15 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 6.1 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 252 builtins, CLI, MCP server, and 246 integration
+Current status: **Phase 7 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 269 builtins, CLI, MCP server, and 265 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
 Phase 4.1–4.6 complete (reciprocal trig, root/logarithm variants, prime/number theory, special functions, RNG, environment/system);
 Phase 5.1–5.5 complete (character classification, advanced modular arithmetic, rational approximations, matrix operations, hash & associative arrays);
-Phase 6.1-6.7 complete (file I/O with full streaming/formatting/filesystem support, memory & stack with address operations, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic).
+Phase 6.1-6.7 complete (file I/O with full streaming/formatting/filesystem support, memory & stack with address operations, error handling, command & script, obscure trig, cryptographic hashing, residue class modular arithmetic);
+Phase 7 complete (comprehensive string operations: substr, replace, split, trim variants, case conversion, padding, character code operations, and more).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -520,6 +521,28 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - ✅ 9 new integration tests added and passing
    - Builtins: 227 → 235 (+8)
    - Total tests: 214 → 223 (+9)
+
+### 7.0 String Operations — DONE (17 of 17 functions)
+   - ✅ `substr(s, start[, len])` — extract substring
+   - ✅ `str(x)` — convert value to string
+   - ✅ `replace(s, old, new)` — replace all occurrences
+   - ✅ `split(s, sep)` — split by separator into list
+   - ✅ `ltrim(s)` — trim left whitespace
+   - ✅ `rtrim(s)` — trim right whitespace
+   - ✅ `trim(s)` — trim both sides
+   - ✅ `repeat(s, n)` — repeat string n times
+   - ✅ `startswith(s, prefix)` — check prefix (returns 1/0)
+   - ✅ `endswith(s, suffix)` — check suffix (returns 1/0)
+   - ✅ `lpad(s, width[, fill])` — left pad to width
+   - ✅ `rpad(s, width[, fill])` — right pad to width
+   - ✅ `ord(c)` — character to ASCII code
+   - ✅ `chr(code)` — ASCII code to character
+   - ✅ `swapcase(s)` — swap case of all characters
+   - ✅ `title(s)` — convert to title case
+   - ✅ String utilities integrated with list/type system
+   - ✅ 19 new integration tests added and passing
+   - Builtins: 252 → 269 (+17)
+   - Total tests: 246 → 265 (+19)
 
 ---
 

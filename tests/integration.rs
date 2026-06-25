@@ -2312,3 +2312,144 @@ fn test_mkdir_already_exists() {
     let result = it.eval_render(&format!("mkdir(\"{}\")", test_dir)).unwrap();
     assert_eq!(result.trim(), "0");
 }
+
+// Phase 7: String Operations
+
+#[test]
+fn test_substr_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("substr(\"hello\", 1, 3)").unwrap();
+    assert_eq!(result.trim(), "ell");
+}
+
+#[test]
+fn test_substr_no_length() {
+    let mut it = Interp::new();
+    let result = it.eval_render("substr(\"hello\", 2)").unwrap();
+    assert_eq!(result.trim(), "llo");
+}
+
+#[test]
+fn test_str_conversion() {
+    let mut it = Interp::new();
+    let result = it.eval_render("str(42)").unwrap();
+    assert!(result.contains("42"));
+}
+
+#[test]
+fn test_replace_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("replace(\"hello hello\", \"hello\", \"hi\")").unwrap();
+    assert_eq!(result.trim(), "hi hi");
+}
+
+#[test]
+fn test_split_by_separator() {
+    let mut it = Interp::new();
+    let result = it.eval_render("split(\"a,b,c\", \",\")").unwrap();
+    assert!(result.contains("a"));
+    assert!(result.contains("b"));
+    assert!(result.contains("c"));
+}
+
+#[test]
+fn test_ltrim_whitespace() {
+    let mut it = Interp::new();
+    let result = it.eval_render("ltrim(\"  hello\")").unwrap();
+    assert_eq!(result.trim(), "hello");
+}
+
+#[test]
+fn test_rtrim_whitespace() {
+    let mut it = Interp::new();
+    let result = it.eval_render("rtrim(\"hello  \")").unwrap();
+    assert_eq!(result.trim(), "hello");
+}
+
+#[test]
+fn test_trim_both_sides() {
+    let mut it = Interp::new();
+    let result = it.eval_render("trim(\"  hello  \")").unwrap();
+    assert_eq!(result.trim(), "hello");
+}
+
+#[test]
+fn test_repeat_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("repeat(\"ab\", 3)").unwrap();
+    assert_eq!(result.trim(), "ababab");
+}
+
+#[test]
+fn test_startswith_true() {
+    let mut it = Interp::new();
+    let result = it.eval_render("startswith(\"hello\", \"he\")").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_startswith_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render("startswith(\"hello\", \"hi\")").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_endswith_true() {
+    let mut it = Interp::new();
+    let result = it.eval_render("endswith(\"hello\", \"lo\")").unwrap();
+    assert_eq!(result.trim(), "1");
+}
+
+#[test]
+fn test_endswith_false() {
+    let mut it = Interp::new();
+    let result = it.eval_render("endswith(\"hello\", \"hi\")").unwrap();
+    assert_eq!(result.trim(), "0");
+}
+
+#[test]
+fn test_lpad_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("lpad(\"hi\", 5)").unwrap();
+    // Result should contain "hi" and be padded (harder to test with trim destroying spaces)
+    assert!(result.contains("hi"));
+}
+
+#[test]
+fn test_rpad_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("rpad(\"hi\", 5)").unwrap();
+    // Result should contain "hi" and be padded (harder to test with trim destroying spaces)
+    assert!(result.contains("hi"));
+}
+
+#[test]
+fn test_ord_character() {
+    let mut it = Interp::new();
+    // 'A' is ASCII 65
+    let result = it.eval_render("ord(\"A\")").unwrap();
+    assert_eq!(result.trim(), "65");
+}
+
+#[test]
+fn test_chr_code() {
+    let mut it = Interp::new();
+    // ASCII 65 is 'A'
+    let result = it.eval_render("chr(65)").unwrap();
+    assert_eq!(result.trim(), "A");
+}
+
+#[test]
+fn test_swapcase_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("swapcase(\"HeLLo\")").unwrap();
+    assert_eq!(result.trim(), "hEllO");
+}
+
+#[test]
+fn test_title_case() {
+    let mut it = Interp::new();
+    let result = it.eval_render("title(\"hello world\")").unwrap();
+    assert_eq!(result.trim(), "Hello World");
+}

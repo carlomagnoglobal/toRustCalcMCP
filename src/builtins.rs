@@ -3219,6 +3219,274 @@ fn f_slice(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// Phase 7: String Operations
+
+// Extract substring from string
+fn f_substr(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("substr", a, 2, 3)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("substr: first argument must be string".to_string()),
+    };
+    let start = int(a, 1)?.to_usize().ok_or("substr: start out of range")?;
+    let len = if a.len() > 2 {
+        int(a, 2)?.to_usize().ok_or("substr: length out of range")?
+    } else {
+        s.len()
+    };
+
+    if start > s.len() {
+        Ok(Value::Str(String::new()))
+    } else {
+        let end = std::cmp::min(start + len, s.len());
+        Ok(Value::Str(s[start..end].to_string()))
+    }
+}
+
+// Convert value to string
+fn f_str(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("str", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        Value::Number(n) => number::to_decimal_string(n, 15),
+        Value::Complex(r, i) => format!("{}+{}i", number::to_decimal_string(r, 15), number::to_decimal_string(i, 15)),
+        Value::List(_) => format!("{:?}", a[0]),
+        Value::Null => "null".to_string(),
+        _ => format!("{:?}", a[0]),
+    };
+    Ok(Value::Str(s))
+}
+
+// Replace all occurrences of substring
+fn f_replace(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("replace", a, 3)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("replace: first argument must be string".to_string()),
+    };
+    let old = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("replace: second argument must be string".to_string()),
+    };
+    let new = match &a[2] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("replace: third argument must be string".to_string()),
+    };
+
+    Ok(Value::Str(s.replace(&old, &new)))
+}
+
+// Split string by separator into list
+fn f_split(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("split", a, 2)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("split: first argument must be string".to_string()),
+    };
+    let sep = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("split: separator must be string".to_string()),
+    };
+
+    let parts: Vec<Value> = if sep.is_empty() {
+        s.chars().map(|c| Value::Str(c.to_string())).collect()
+    } else {
+        s.split(&sep).map(|p| Value::Str(p.to_string())).collect()
+    };
+    Ok(Value::List(parts))
+}
+
+// Trim whitespace from left
+fn f_ltrim(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ltrim", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("ltrim: argument must be string".to_string()),
+    };
+    Ok(Value::Str(s.trim_start().to_string()))
+}
+
+// Trim whitespace from right
+fn f_rtrim(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rtrim", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("rtrim: argument must be string".to_string()),
+    };
+    Ok(Value::Str(s.trim_end().to_string()))
+}
+
+// Trim whitespace from both sides
+fn f_trim(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("trim", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("trim: argument must be string".to_string()),
+    };
+    Ok(Value::Str(s.trim().to_string()))
+}
+
+// Repeat string n times
+fn f_repeat(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("repeat", a, 2)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("repeat: first argument must be string".to_string()),
+    };
+    let n = int(a, 1)?.to_usize().ok_or("repeat: count out of range")?;
+
+    Ok(Value::Str(s.repeat(n)))
+}
+
+// Check if string starts with prefix
+fn f_startswith(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("startswith", a, 2)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("startswith: first argument must be string".to_string()),
+    };
+    let prefix = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("startswith: prefix must be string".to_string()),
+    };
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(if s.starts_with(&prefix) { 1 } else { 0 }))))
+}
+
+// Check if string ends with suffix
+fn f_endswith(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("endswith", a, 2)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("endswith: first argument must be string".to_string()),
+    };
+    let suffix = match &a[1] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("endswith: suffix must be string".to_string()),
+    };
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(if s.ends_with(&suffix) { 1 } else { 0 }))))
+}
+
+// Left pad string to width
+fn f_lpad(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("lpad", a, 2, 3)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("lpad: first argument must be string".to_string()),
+    };
+    let width = int(a, 1)?.to_usize().ok_or("lpad: width out of range")?;
+    let fill = if a.len() > 2 {
+        match &a[2] {
+            Value::Str(s) => if s.is_empty() { ' ' } else { s.chars().next().unwrap() },
+            _ => return Err("lpad: fill must be string".to_string()),
+        }
+    } else {
+        ' '
+    };
+
+    if s.len() >= width {
+        Ok(Value::Str(s))
+    } else {
+        let padding = fill.to_string().repeat(width - s.len());
+        Ok(Value::Str(format!("{}{}", padding, s)))
+    }
+}
+
+// Right pad string to width
+fn f_rpad(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("rpad", a, 2, 3)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("rpad: first argument must be string".to_string()),
+    };
+    let width = int(a, 1)?.to_usize().ok_or("rpad: width out of range")?;
+    let fill = if a.len() > 2 {
+        match &a[2] {
+            Value::Str(s) => if s.is_empty() { ' ' } else { s.chars().next().unwrap() },
+            _ => return Err("rpad: fill must be string".to_string()),
+        }
+    } else {
+        ' '
+    };
+
+    if s.len() >= width {
+        Ok(Value::Str(s))
+    } else {
+        let padding = fill.to_string().repeat(width - s.len());
+        Ok(Value::Str(format!("{}{}", s, padding)))
+    }
+}
+
+// Get ASCII code of character
+fn f_ord(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ord", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("ord: argument must be string".to_string()),
+    };
+
+    if s.is_empty() {
+        Err("ord: string cannot be empty".to_string())
+    } else {
+        let code = s.chars().next().unwrap() as u32 as i64;
+        Ok(Value::Number(Num::from_integer(BigInt::from(code))))
+    }
+}
+
+// Get character from ASCII code
+fn f_chr(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("chr", a, 1)?;
+    let code = int(a, 0)?.to_u32().ok_or("chr: code out of range")?;
+
+    match char::from_u32(code) {
+        Some(c) => Ok(Value::Str(c.to_string())),
+        None => Err(format!("chr: invalid Unicode code point: {}", code)),
+    }
+}
+
+// Swap case of string
+fn f_swapcase(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("swapcase", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("swapcase: argument must be string".to_string()),
+    };
+
+    let swapped = s.chars().map(|c| {
+        if c.is_uppercase() {
+            c.to_lowercase().to_string()
+        } else {
+            c.to_uppercase().to_string()
+        }
+    }).collect::<String>();
+    Ok(Value::Str(swapped))
+}
+
+// Title case string
+fn f_title(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("title", a, 1)?;
+    let s = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("title: argument must be string".to_string()),
+    };
+
+    let mut result = String::new();
+    let mut capitalize_next = true;
+    for c in s.chars() {
+        if c.is_whitespace() {
+            result.push(c);
+            capitalize_next = true;
+        } else if capitalize_next {
+            result.push_str(&c.to_uppercase().to_string());
+            capitalize_next = false;
+        } else {
+            result.push_str(&c.to_lowercase().to_string());
+        }
+    }
+    Ok(Value::Str(result))
+}
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -3474,6 +3742,24 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("sha1".to_string(), f_sha1 as BuiltinFn);
     builtins.insert("md5".to_string(), f_md5 as BuiltinFn);
     builtins.insert("crc32".to_string(), f_crc32 as BuiltinFn);
+
+    // String operations (Phase 7)
+    builtins.insert("substr".to_string(), f_substr as BuiltinFn);
+    builtins.insert("str".to_string(), f_str as BuiltinFn);
+    builtins.insert("replace".to_string(), f_replace as BuiltinFn);
+    builtins.insert("split".to_string(), f_split as BuiltinFn);
+    builtins.insert("ltrim".to_string(), f_ltrim as BuiltinFn);
+    builtins.insert("rtrim".to_string(), f_rtrim as BuiltinFn);
+    builtins.insert("trim".to_string(), f_trim as BuiltinFn);
+    builtins.insert("repeat".to_string(), f_repeat as BuiltinFn);
+    builtins.insert("startswith".to_string(), f_startswith as BuiltinFn);
+    builtins.insert("endswith".to_string(), f_endswith as BuiltinFn);
+    builtins.insert("lpad".to_string(), f_lpad as BuiltinFn);
+    builtins.insert("rpad".to_string(), f_rpad as BuiltinFn);
+    builtins.insert("ord".to_string(), f_ord as BuiltinFn);
+    builtins.insert("chr".to_string(), f_chr as BuiltinFn);
+    builtins.insert("swapcase".to_string(), f_swapcase as BuiltinFn);
+    builtins.insert("title".to_string(), f_title as BuiltinFn);
     // Residue class & modular operations (Phase 6.7)
     builtins.insert("rc".to_string(), f_rc as BuiltinFn);
     builtins.insert("rcadd".to_string(), f_rcadd as BuiltinFn);
@@ -3736,5 +4022,22 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("rcinv", "rcinv(a,m)", "modular inverse of a mod m"),
         ("rceq", "rceq(a,b,m)", "residue equality: check if a≡b (mod m)"),
         ("rcneg", "rcneg(a,m)", "residue negation: (-a) mod m"),
+        // String operations (Phase 7)
+        ("substr", "substr(s,start[,len])", "extract substring from position"),
+        ("str", "str(x)", "convert value to string"),
+        ("replace", "replace(s,old,new)", "replace all occurrences in string"),
+        ("split", "split(s,sep)", "split string by separator into list"),
+        ("ltrim", "ltrim(s)", "trim whitespace from left"),
+        ("rtrim", "rtrim(s)", "trim whitespace from right"),
+        ("trim", "trim(s)", "trim whitespace from both sides"),
+        ("repeat", "repeat(s,n)", "repeat string n times"),
+        ("startswith", "startswith(s,prefix)", "check if string starts with prefix"),
+        ("endswith", "endswith(s,suffix)", "check if string ends with suffix"),
+        ("lpad", "lpad(s,width[,fill])", "left pad string to width"),
+        ("rpad", "rpad(s,width[,fill])", "right pad string to width"),
+        ("ord", "ord(c)", "get ASCII code of character"),
+        ("chr", "chr(code)", "get character from ASCII code"),
+        ("swapcase", "swapcase(s)", "swap case of all characters"),
+        ("title", "title(s)", "convert string to title case"),
     ]
 }
