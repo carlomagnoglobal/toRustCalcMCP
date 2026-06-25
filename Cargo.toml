@@ -30,6 +30,11 @@ sha1        = "0.10"
 md5         = "0.7"
 crc         = "3.0"
 rustyline   = "14"
+tiny_http   = "0.12"
+
+[[bin]]
+name = "rcalc-web"
+path = "src/bin_web.rs"
 
 [profile.release]
 opt-level = 3
