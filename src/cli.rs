@@ -2,7 +2,8 @@
 
 use crate::config::Mode;
 use crate::eval::Interp;
-use std::io::{self, BufRead, Write};
+use rustyline::DefaultEditor;
+use std::io::{self, BufRead};
 
 pub struct CliConfig {
     pub quiet: bool,
@@ -154,43 +155,95 @@ pub fn run(cfg: CliConfig, exprs: Vec<String>) -> Result<(), String> {
 }
 
 fn repl(interp: &mut Interp, quiet: bool) -> Result<(), String> {
-    let stdin = io::stdin();
-    let stdout = io::stdout();
-    let mut reader = stdin.lock();
-    let mut writer = stdout.lock();
+    let mut rl = DefaultEditor::new().map_err(|e| format!("failed to create editor: {}", e))?;
+    let history_file = dirs_home().map(|home| format!("{}/.rcalc_history", home));
+
+    if let Some(ref hf) = history_file {
+        let _ = rl.load_history(hf);
+    }
 
     loop {
-        writer.write_all(b"> ").map_err(|e| e.to_string())?;
-        writer.flush().map_err(|e| e.to_string())?;
+        let readline = rl.readline("> ");
+        match readline {
+            Ok(line) => {
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
 
-        let mut line = String::new();
-        match reader.read_line(&mut line) {
-            Ok(0) => break, // EOF
-            Ok(_) => {}
-            Err(e) => return Err(e.to_string()),
-        }
+                let _ = rl.add_history_entry(trimmed);
 
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if trimmed == "exit" || trimmed == "quit" {
-            break;
-        }
+                if trimmed == "exit" || trimmed == "quit" {
+                    break;
+                }
 
-        match interp.eval_render(trimmed) {
-            Ok(out) => {
-                if !quiet && !out.is_empty() {
-                    writeln!(writer, "{}", out).map_err(|e| e.to_string())?;
+                if trimmed == "help" {
+                    print_function_help();
+                    continue;
+                }
+
+                match interp.eval_render(trimmed) {
+                    Ok(out) => {
+                        if !quiet && !out.is_empty() {
+                            println!("{}", out);
+                        }
+                    }
+                    Err(e) => {
+                        if !quiet {
+                            eprintln!("error: {}", e);
+                        }
+                    }
                 }
             }
+            Err(rustyline::error::ReadlineError::Interrupted) => {
+                break;
+            }
+            Err(rustyline::error::ReadlineError::Eof) => {
+                break;
+            }
             Err(e) => {
-                if !quiet {
-                    writeln!(writer, "error: {}", e).map_err(|e| e.to_string())?;
-                }
+                return Err(format!("readline error: {}", e));
             }
         }
     }
 
+    if let Some(hf) = history_file {
+        let _ = rl.save_history(&hf);
+    }
+
     Ok(())
+}
+
+fn dirs_home() -> Option<String> {
+    if let Ok(home) = std::env::var("HOME") {
+        return Some(home);
+    }
+    #[cfg(windows)]
+    if let Ok(home) = std::env::var("USERPROFILE") {
+        return Some(home);
+    }
+    None
+}
+
+fn print_function_help() {
+    println!("\n📚 Available Functions (351 total)\n");
+    println!("{:<20} {:<40} {}", "Function", "Signature", "Description");
+    println!("{}", "─".repeat(100));
+
+    let mut count = 0;
+    for (name, sig, desc) in crate::builtins::catalog() {
+        println!("{:<20} {:<40} {}", name, sig, desc);
+        count += 1;
+        if count % 20 == 0 {
+            println!("  ... (showing {} of 351 functions, use grep or search above)", count);
+        }
+    }
+    println!("\n💡 Usage examples:");
+    println!("  > 2^100                          # Big number (exact)");
+    println!("  > sin(pi()/6)                    # Trigonometric functions");
+    println!("  > list(1,2,3); sort(list(3,1,2)) # List operations");
+    println!("  > substr(\"hello\", 1, 3)         # String functions");
+    println!("  > hex(255); oct(64); bin(15)    # Base conversion");
+    println!("  > mean(list(1,2,3,4,5))         # Statistics");
+    println!("\n🔍 Search for a function: grep the output or use Ctrl+R for history search\n");
 }
