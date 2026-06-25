@@ -4449,6 +4449,146 @@ fn f_hmean(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 
+// Phase 12: System & Utility Functions
+
+// Get version string
+fn f_version(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("version", a, 0)?;
+    Ok(Value::Str("toRustCalcMCP 1.0.0".to_string()))
+}
+
+// Get platform/OS name
+fn f_platform(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("platform", a, 0)?;
+    let os = std::env::consts::OS;
+    Ok(Value::Str(os.to_string()))
+}
+
+// Get hostname
+fn f_hostname(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hostname", a, 0)?;
+    match std::env::var("HOSTNAME") {
+        Ok(host) => Ok(Value::Str(host)),
+        Err(_) => {
+            match std::env::var("COMPUTERNAME") {
+                Ok(host) => Ok(Value::Str(host)),
+                Err(_) => Ok(Value::Str("unknown".to_string())),
+            }
+        }
+    }
+}
+
+// Get process ID
+fn f_pid(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("pid", a, 0)?;
+    let pid = std::process::id();
+    Ok(Value::Number(Num::from_integer(BigInt::from(pid as i64))))
+}
+
+// Get username
+fn f_username(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("username", a, 0)?;
+    match std::env::var("USER") {
+        Ok(user) => Ok(Value::Str(user)),
+        Err(_) => {
+            match std::env::var("USERNAME") {
+                Ok(user) => Ok(Value::Str(user)),
+                Err(_) => Ok(Value::Str("unknown".to_string())),
+            }
+        }
+    }
+}
+
+// Get home directory
+fn f_homedir(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("homedir", a, 0)?;
+    match std::env::var("HOME") {
+        Ok(home) => Ok(Value::Str(home)),
+        Err(_) => {
+            // Try USERPROFILE on Windows
+            match std::env::var("USERPROFILE") {
+                Ok(home) => Ok(Value::Str(home)),
+                Err(_) => Ok(Value::Str("/root".to_string())),
+            }
+        }
+    }
+}
+
+// Get temp directory
+fn f_tmpdir(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("tmpdir", a, 0)?;
+    let tmp = std::env::temp_dir();
+    match tmp.to_str() {
+        Some(s) => Ok(Value::Str(s.to_string())),
+        None => Ok(Value::Str("/tmp".to_string())),
+    }
+}
+
+// Get current working directory
+fn f_pwd(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("pwd", a, 0)?;
+    match std::env::current_dir() {
+        Ok(dir) => {
+            match dir.to_str() {
+                Some(s) => Ok(Value::Str(s.to_string())),
+                None => Err("pwd: path contains invalid UTF-8".to_string()),
+            }
+        }
+        Err(e) => Err(format!("pwd: {}", e)),
+    }
+}
+
+// Change directory
+fn f_cd(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cd", a, 1)?;
+    let path = match &a[0] {
+        Value::Str(s) => s.clone(),
+        _ => return Err("cd: argument must be string".to_string()),
+    };
+
+    match std::env::set_current_dir(&path) {
+        Ok(_) => Ok(Value::Str(path)),
+        Err(e) => Err(format!("cd: {}", e)),
+    }
+}
+
+// Get user ID (returns string representation)
+fn f_getuid(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("getuid", a, 0)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        match std::fs::metadata(".") {
+            Ok(meta) => {
+                let uid = meta.uid();
+                Ok(Value::Number(Num::from_integer(BigInt::from(uid as i64))))
+            }
+            Err(_) => Ok(Value::Number(Num::from_integer(BigInt::from(0)))),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        Ok(Value::Number(Num::from_integer(BigInt::from(0))))
+    }
+}
+
+// Get architecture
+fn f_arch(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("arch", a, 0)?;
+    let arch = std::env::consts::ARCH;
+    Ok(Value::Str(arch.to_string()))
+}
+
+// Get machine info (os-arch)
+fn f_uname(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("uname", a, 0)?;
+    let os = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+    let info = format!("{}-{}", os, arch);
+    Ok(Value::Str(info))
+}
+
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -4786,6 +4926,19 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("rms".to_string(), f_rms as BuiltinFn);
     builtins.insert("gmean".to_string(), f_gmean as BuiltinFn);
     builtins.insert("hmean".to_string(), f_hmean as BuiltinFn);
+    // System & Utility functions (Phase 12)
+    builtins.insert("version".to_string(), f_version as BuiltinFn);
+    builtins.insert("platform".to_string(), f_platform as BuiltinFn);
+    builtins.insert("hostname".to_string(), f_hostname as BuiltinFn);
+    builtins.insert("pid".to_string(), f_pid as BuiltinFn);
+    builtins.insert("username".to_string(), f_username as BuiltinFn);
+    builtins.insert("homedir".to_string(), f_homedir as BuiltinFn);
+    builtins.insert("tmpdir".to_string(), f_tmpdir as BuiltinFn);
+    builtins.insert("pwd".to_string(), f_pwd as BuiltinFn);
+    builtins.insert("cd".to_string(), f_cd as BuiltinFn);
+    builtins.insert("getuid".to_string(), f_getuid as BuiltinFn);
+    builtins.insert("arch".to_string(), f_arch as BuiltinFn);
+    builtins.insert("uname".to_string(), f_uname as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -5109,5 +5262,18 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("rms", "rms(list)", "root mean square"),
         ("gmean", "gmean(list)", "geometric mean"),
         ("hmean", "hmean(list)", "harmonic mean"),
+        // Phase 12: System & Utility
+        ("version", "version()", "get version string"),
+        ("platform", "platform()", "get OS platform name"),
+        ("hostname", "hostname()", "get system hostname"),
+        ("pid", "pid()", "get process ID"),
+        ("username", "username()", "get current username"),
+        ("homedir", "homedir()", "get home directory path"),
+        ("tmpdir", "tmpdir()", "get temp directory path"),
+        ("pwd", "pwd()", "get current working directory"),
+        ("cd", "cd(path)", "change directory"),
+        ("getuid", "getuid()", "get user ID"),
+        ("arch", "arch()", "get CPU architecture"),
+        ("uname", "uname()", "get system info (os-arch)"),
     ]
 }

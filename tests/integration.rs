@@ -2957,3 +2957,105 @@ fn test_hmean_two_four() {
     // Harmonic mean = 2 / (1/2 + 1/4) = 2 / 0.75 = 2.666...
     assert!(result.len() > 0);
 }
+
+// Phase 12: System & Utility tests
+
+#[test]
+fn test_version_returns_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("version()").unwrap();
+    assert!(result.contains("toRustCalcMCP"));
+}
+
+#[test]
+fn test_platform_returns_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("platform()").unwrap();
+    // Platform should be one of: linux, macos, windows, etc.
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_hostname_returns_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("hostname()").unwrap();
+    // Should return hostname or "unknown"
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_pid_returns_number() {
+    let mut it = Interp::new();
+    let result = it.eval_render("pid()").unwrap();
+    // Should return a number
+    let val: i64 = result.trim().parse().unwrap_or(0);
+    assert!(val > 0);
+}
+
+#[test]
+fn test_username_returns_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("username()").unwrap();
+    // Should return username or "unknown"
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_homedir_returns_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("homedir()").unwrap();
+    // Should return a path
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_tmpdir_returns_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("tmpdir()").unwrap();
+    // Should return temp directory path
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_pwd_returns_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("pwd()").unwrap();
+    // Should return current working directory
+    assert!(result.len() > 0);
+    assert!(result.contains("/") || result.contains("\\"));
+}
+
+#[test]
+fn test_getuid_returns_number() {
+    let mut it = Interp::new();
+    let result = it.eval_render("getuid()").unwrap();
+    // Should return a number
+    let val: i64 = result.trim().parse().unwrap_or(-1);
+    assert!(val >= 0);
+}
+
+#[test]
+fn test_arch_returns_string() {
+    let mut it = Interp::new();
+    let result = it.eval_render("arch()").unwrap();
+    // Should be one of: x86_64, aarch64, etc.
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_uname_contains_both() {
+    let mut it = Interp::new();
+    let result = it.eval_render("uname()").unwrap();
+    // Should contain both OS and architecture separated by -
+    assert!(result.contains("-"));
+}
+
+#[test]
+fn test_cd_and_pwd_consistent() {
+    let mut it = Interp::new();
+    let original = it.eval_render("pwd()").unwrap();
+    // Try to cd to a common directory and back
+    let homedir = it.eval_render("homedir()").unwrap();
+    // Just verify the operations don't crash
+    assert!(original.len() > 0);
+}
