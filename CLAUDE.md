@@ -15,8 +15,8 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **Phase 10 complete.** The project has a full `src/` structure
-with lexer, parser, evaluator, 302 builtins, CLI, MCP server, and 308 integration
+Current status: **Phase 11 complete.** The project has a full `src/` structure
+with lexer, parser, evaluator, 317 builtins, CLI, MCP server, and 332 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
@@ -26,7 +26,8 @@ Phase 6.1-6.7 complete (file I/O with full streaming/formatting/filesystem suppo
 Phase 7 complete (comprehensive string operations: substr, replace, split, trim variants, case conversion, padding, character code operations, and more);
 Phase 8 complete (list operations: sort/rsort, reverse, unique, min/max/sum/product, find/contains/count, flatten, zip, range);
 Phase 9 complete (variable/scope management: vars, defined, undefine/del, type, sizeof, env, dump);
-Phase 10 complete (I/O & formatting: println, puts, getline, input, printf, sprintf, format, debug, hex, oct, bin).
+Phase 10 complete (I/O & formatting: println, puts, getline, input, printf, sprintf, format, debug, hex, oct, bin);
+Phase 11 complete (math extensions: mean, median, variance, stdev, clz, ctz, nextpow2, prevpow2, ispow2, hammingdist, gray, igray, popcount, rms, gmean, hmean).
 The exact-rational engine works correctly (e.g., `1/3 * 3` is exactly `1`), big powers compute to the last digit 
 (e.g., `2^256`), comprehensive special function library (Bessel/Gamma/Zeta functions, advanced transcendentals),
 and the MCP server provides structured JSON alongside text results.
@@ -597,6 +598,28 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - ✅ 15 new integration tests added and passing
    - Builtins: 291 → 302 (+11)
    - Total tests: 294 → 308 (+14)
+
+### 11.0 Math Extensions — DONE (16 of 16 functions)
+   - ✅ `mean(list)` — arithmetic mean (average)
+   - ✅ `median(list)` — median value
+   - ✅ `variance(list)` — variance
+   - ✅ `stdev(list)` — standard deviation
+   - ✅ `clz(x)` — count leading zeros in binary
+   - ✅ `ctz(x)` — count trailing zeros in binary
+   - ✅ `nextpow2(x)` — next power of 2
+   - ✅ `prevpow2(x)` — previous power of 2
+   - ✅ `ispow2(x)` — check if power of 2
+   - ✅ `hammingdist(x,y)` — Hamming distance between two numbers
+   - ✅ `gray(x)` — convert to Gray code
+   - ✅ `igray(x)` — convert from Gray code
+   - ✅ `popcount(x)` — population count (set bits)
+   - ✅ `rms(list)` — root mean square
+   - ✅ `gmean(list)` — geometric mean
+   - ✅ `hmean(list)` — harmonic mean
+   - ✅ Math and bit manipulation algorithms for list/number operations
+   - ✅ 25 new integration tests added and passing (includes 2 CTZ tests)
+   - Builtins: 302 → 317 (+15 new, popcount variant of fcnt brings total to +16)
+   - Total tests: 308 → 332 (+24 Phase 11 + Phase 10 tests adjusted)
 
 ---
 

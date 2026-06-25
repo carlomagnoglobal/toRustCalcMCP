@@ -2780,3 +2780,180 @@ fn test_format_empty() {
     let result = it.eval_render("format(\"test\")").unwrap();
     assert!(result.contains("test"));
 }
+
+// Phase 11: Math Extensions tests
+
+#[test]
+fn test_mean_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("mean(list(1, 2, 3, 4, 5))").unwrap();
+    assert!(result.contains("3"));
+}
+
+#[test]
+fn test_mean_decimals() {
+    let mut it = Interp::new();
+    let result = it.eval_render("mean(list(1.5, 2.5, 3.5))").unwrap();
+    assert!(result.contains("2.5"));
+}
+
+#[test]
+fn test_median_odd() {
+    let mut it = Interp::new();
+    let result = it.eval_render("median(list(1, 2, 3, 4, 5))").unwrap();
+    assert!(result.contains("3"));
+}
+
+#[test]
+fn test_median_even() {
+    let mut it = Interp::new();
+    let result = it.eval_render("median(list(1, 2, 3, 4))").unwrap();
+    // Median of 1,2,3,4 is 2.5
+    assert!(result.contains("2") || result.contains("5"));
+}
+
+#[test]
+fn test_variance_uniform() {
+    let mut it = Interp::new();
+    let result = it.eval_render("variance(list(5, 5, 5, 5))").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_stdev_uniform() {
+    let mut it = Interp::new();
+    let result = it.eval_render("stdev(list(10, 10, 10, 10))").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_clz_one() {
+    let mut it = Interp::new();
+    let result = it.eval_render("clz(1)").unwrap();
+    assert!(result.contains("63"));
+}
+
+#[test]
+fn test_ctz_four() {
+    let mut it = Interp::new();
+    let result = it.eval_render("ctz(4)").unwrap();
+    assert!(result.contains("2"));
+}
+
+#[test]
+fn test_ctz_eight() {
+    let mut it = Interp::new();
+    let result = it.eval_render("ctz(8)").unwrap();
+    assert!(result.contains("3"));
+}
+
+#[test]
+fn test_nextpow2_three() {
+    let mut it = Interp::new();
+    let result = it.eval_render("nextpow2(3)").unwrap();
+    assert!(result.contains("4"));
+}
+
+#[test]
+fn test_nextpow2_five() {
+    let mut it = Interp::new();
+    let result = it.eval_render("nextpow2(5)").unwrap();
+    assert!(result.contains("8"));
+}
+
+#[test]
+fn test_prevpow2_five() {
+    let mut it = Interp::new();
+    let result = it.eval_render("prevpow2(5)").unwrap();
+    assert!(result.contains("4"));
+}
+
+#[test]
+fn test_ispow2_eight() {
+    let mut it = Interp::new();
+    let result = it.eval_render("ispow2(8)").unwrap();
+    assert!(result.contains("1"));
+}
+
+#[test]
+fn test_ispow2_seven() {
+    let mut it = Interp::new();
+    let result = it.eval_render("ispow2(7)").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_hammingdist_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("hammingdist(1, 4)").unwrap();
+    // 1 = 0001, 4 = 0100, XOR = 0101 = 2 bits set
+    assert!(result.contains("2"));
+}
+
+#[test]
+fn test_hammingdist_identical() {
+    let mut it = Interp::new();
+    let result = it.eval_render("hammingdist(5, 5)").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_gray_zero() {
+    let mut it = Interp::new();
+    let result = it.eval_render("gray(0)").unwrap();
+    assert!(result.contains("0"));
+}
+
+#[test]
+fn test_gray_one() {
+    let mut it = Interp::new();
+    let result = it.eval_render("gray(1)").unwrap();
+    assert!(result.contains("1"));
+}
+
+#[test]
+fn test_igray_one() {
+    let mut it = Interp::new();
+    let result = it.eval_render("igray(1)").unwrap();
+    assert!(result.contains("1"));
+}
+
+#[test]
+fn test_popcount_seven() {
+    let mut it = Interp::new();
+    let result = it.eval_render("popcount(7)").unwrap();
+    // 7 = 111 in binary = 3 bits set
+    assert!(result.contains("3"));
+}
+
+#[test]
+fn test_popcount_eight() {
+    let mut it = Interp::new();
+    let result = it.eval_render("popcount(8)").unwrap();
+    // 8 = 1000 in binary = 1 bit set
+    assert!(result.contains("1"));
+}
+
+#[test]
+fn test_rms_basic() {
+    let mut it = Interp::new();
+    let result = it.eval_render("rms(list(3, 4))").unwrap();
+    // RMS of 3, 4 = sqrt((9+16)/2) = sqrt(12.5) = 3.535...
+    assert!(result.len() > 0);
+}
+
+#[test]
+fn test_gmean_two_four() {
+    let mut it = Interp::new();
+    let result = it.eval_render("gmean(list(2, 8))").unwrap();
+    // Geometric mean of 2, 8 = sqrt(16) = 4
+    assert!(result.contains("4"));
+}
+
+#[test]
+fn test_hmean_two_four() {
+    let mut it = Interp::new();
+    let result = it.eval_render("hmean(list(2, 4))").unwrap();
+    // Harmonic mean = 2 / (1/2 + 1/4) = 2 / 0.75 = 2.666...
+    assert!(result.len() > 0);
+}

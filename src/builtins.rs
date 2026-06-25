@@ -4090,6 +4090,365 @@ fn f_bin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 
+// Phase 11: Math Extensions
+
+// Calculate mean (average) of list
+fn f_mean(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mean", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("mean: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    let mut sum = Num::zero();
+    let mut count = 0;
+    for item in items {
+        if let Value::Number(n) = item {
+            sum = &sum + &n;
+            count += 1;
+        }
+    }
+
+    if count == 0 {
+        return Ok(Value::Null);
+    }
+
+    Ok(Value::Number(&sum / &Num::from_integer(BigInt::from(count))))
+}
+
+// Calculate median of list
+fn f_median(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("median", a, 1)?;
+    let mut items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("median: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    // Filter to only numeric items and sort
+    let mut numbers = Vec::new();
+    for item in items {
+        if let Value::Number(n) = item {
+            numbers.push(n);
+        }
+    }
+
+    if numbers.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    numbers.sort();
+    let len = numbers.len();
+
+    if len % 2 == 1 {
+        Ok(Value::Number(numbers[len / 2].clone()))
+    } else {
+        let mid1 = &numbers[len / 2 - 1];
+        let mid2 = &numbers[len / 2];
+        Ok(Value::Number((mid1 + mid2) / &Num::from_integer(BigInt::from(2))))
+    }
+}
+
+// Calculate variance of list
+fn f_variance(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("variance", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("variance: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    let mut sum = Num::zero();
+    let mut count = 0;
+    let mut numbers = Vec::new();
+
+    for item in items {
+        if let Value::Number(n) = item {
+            sum = &sum + &n;
+            numbers.push(n);
+            count += 1;
+        }
+    }
+
+    if count == 0 {
+        return Ok(Value::Null);
+    }
+
+    let mean = &sum / &Num::from_integer(BigInt::from(count));
+    let mut var_sum = Num::zero();
+
+    for num in numbers {
+        let diff = &num - &mean;
+        var_sum = &var_sum + &(&diff * &diff);
+    }
+
+    Ok(Value::Number(&var_sum / &Num::from_integer(BigInt::from(count))))
+}
+
+// Calculate standard deviation of list
+fn f_stdev(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("stdev", a, 1)?;
+    let variance = f_variance(_it, a)?;
+
+    match variance {
+        Value::Number(v) => {
+            let result = number::sqrt(&v, &Num::from_float(1e-15).unwrap())?;
+            Ok(Value::Number(result))
+        }
+        _ => Ok(variance),
+    }
+}
+
+// Count leading zeros in binary representation
+fn f_clz(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("clz", a, 1)?;
+    let n = int(a, 0)?;
+
+    if n <= BigInt::from(0) {
+        return Ok(Value::Number(Num::from_integer(BigInt::from(64))));
+    }
+
+    let bits = n.bits();
+    let leading_zeros = 64 - bits;
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(leading_zeros as i64))))
+}
+
+// Count trailing zeros in binary representation
+fn f_ctz(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ctz", a, 1)?;
+    let n = int(a, 0)?;
+
+    if n == BigInt::from(0) {
+        return Ok(Value::Number(Num::from_integer(BigInt::from(0))));
+    }
+
+    let mut count = 0;
+    let mut val = n.clone();
+    while &val & &BigInt::from(1) == BigInt::from(0) {
+        count += 1;
+        val = &val >> 1;
+    }
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(count))))
+}
+
+// Find next power of 2
+fn f_nextpow2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("nextpow2", a, 1)?;
+    let n = int(a, 0)?;
+
+    if n <= BigInt::from(1) {
+        return Ok(Value::Number(Num::from_integer(BigInt::from(1))));
+    }
+
+    let bits = n.bits();
+    let next = BigInt::from(1) << bits;
+
+    Ok(Value::Number(Num::from_integer(next)))
+}
+
+// Find previous power of 2
+fn f_prevpow2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("prevpow2", a, 1)?;
+    let n = int(a, 0)?;
+
+    if n <= BigInt::from(1) {
+        return Ok(Value::Number(Num::from_integer(BigInt::from(0))));
+    }
+
+    let bits = n.bits();
+    let prev = BigInt::from(1) << (bits - 1);
+    Ok(Value::Number(Num::from_integer(prev)))
+}
+
+// Check if power of 2
+fn f_ispow2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ispow2", a, 1)?;
+    let n = int(a, 0)?;
+
+    if n <= BigInt::from(0) {
+        return Ok(Value::Number(Num::from_integer(BigInt::from(0))));
+    }
+
+    // A number is a power of 2 if it has exactly one bit set
+    // This is true if n & (n-1) == 0
+    let n_minus_1 = &n - &BigInt::from(1);
+    let is_pow2 = (&n & &n_minus_1) == BigInt::from(0);
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(if is_pow2 { 1 } else { 0 }))))
+}
+
+// Hamming distance between two numbers (count differing bits)
+fn f_hammingdist(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hammingdist", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+
+    let xor = &x ^ &y;
+    let mut count = 0;
+    let mut val = xor;
+
+    while val > BigInt::from(0) {
+        if &val & &BigInt::from(1) == BigInt::from(1) {
+            count += 1;
+        }
+        val = &val >> 1;
+    }
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(count))))
+}
+
+// Convert to Gray code
+fn f_gray(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gray", a, 1)?;
+    let n = int(a, 0)?;
+
+    let gray = &n ^ &(&n >> 1);
+    Ok(Value::Number(Num::from_integer(gray)))
+}
+
+// Convert from Gray code
+fn f_igray(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("igray", a, 1)?;
+    let mut gray = int(a, 0)?;
+    let mut result = gray.clone();
+
+    while gray > BigInt::from(0) {
+        gray = &gray >> 1;
+        result = &result ^ &gray;
+    }
+
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// Population count (number of set bits)
+fn f_popcount(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("popcount", a, 1)?;
+    let n = int(a, 0)?;
+
+    let mut count = 0;
+    let mut val = n;
+    while val > BigInt::from(0) {
+        if &val & &BigInt::from(1) == BigInt::from(1) {
+            count += 1;
+        }
+        val = &val >> 1;
+    }
+
+    Ok(Value::Number(Num::from_integer(BigInt::from(count))))
+}
+
+// Root mean square
+fn f_rms(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rms", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("rms: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    let mut sum = Num::zero();
+    let mut count = 0;
+
+    for item in items {
+        if let Value::Number(n) = item {
+            sum = &sum + &(&n * &n);
+            count += 1;
+        }
+    }
+
+    if count == 0 {
+        return Ok(Value::Null);
+    }
+
+    let mean_sq = &sum / &Num::from_integer(BigInt::from(count));
+    let result = number::sqrt(&mean_sq, &Num::from_float(1e-15).unwrap())?;
+    Ok(Value::Number(result))
+}
+
+// Geometric mean
+fn f_gmean(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gmean", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("gmean: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    let mut product = Num::from_integer(BigInt::from(1));
+    let mut count = 0;
+
+    for item in items {
+        if let Value::Number(n) = item {
+            if n < Num::zero() {
+                return Err("gmean: all values must be non-negative".to_string());
+            }
+            product = &product * &n;
+            count += 1;
+        }
+    }
+
+    if count == 0 {
+        return Ok(Value::Null);
+    }
+
+    // nth root using root function
+    let n_inv = Num::from_integer(BigInt::from(1)) / &Num::from_integer(BigInt::from(count));
+    let result = number::pow(&product, &n_inv)?;
+    Ok(Value::Number(result))
+}
+
+// Harmonic mean
+fn f_hmean(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hmean", a, 1)?;
+    let items = match &a[0] {
+        Value::List(items) => items.clone(),
+        _ => return Err("hmean: argument must be list".to_string()),
+    };
+
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+
+    let mut sum_inv = Num::zero();
+    let mut count = 0;
+
+    for item in items {
+        if let Value::Number(n) = item {
+            if n == Num::zero() {
+                return Err("hmean: division by zero".to_string());
+            }
+            sum_inv = &sum_inv + &(Num::from_integer(BigInt::from(1)) / &n);
+            count += 1;
+        }
+    }
+
+    if count == 0 {
+        return Ok(Value::Null);
+    }
+
+    let n_over_sum = Num::from_integer(BigInt::from(count)) / &sum_inv;
+    Ok(Value::Number(n_over_sum))
+}
+
+
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
     builtins.insert("sgn".to_string(), f_sgn as BuiltinFn);
@@ -4410,6 +4769,23 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("hex".to_string(), f_hex as BuiltinFn);
     builtins.insert("oct".to_string(), f_oct as BuiltinFn);
     builtins.insert("bin".to_string(), f_bin as BuiltinFn);
+    // Math Extensions (Phase 11)
+    builtins.insert("mean".to_string(), f_mean as BuiltinFn);
+    builtins.insert("median".to_string(), f_median as BuiltinFn);
+    builtins.insert("variance".to_string(), f_variance as BuiltinFn);
+    builtins.insert("stdev".to_string(), f_stdev as BuiltinFn);
+    builtins.insert("clz".to_string(), f_clz as BuiltinFn);
+    builtins.insert("ctz".to_string(), f_ctz as BuiltinFn);
+    builtins.insert("nextpow2".to_string(), f_nextpow2 as BuiltinFn);
+    builtins.insert("prevpow2".to_string(), f_prevpow2 as BuiltinFn);
+    builtins.insert("ispow2".to_string(), f_ispow2 as BuiltinFn);
+    builtins.insert("hammingdist".to_string(), f_hammingdist as BuiltinFn);
+    builtins.insert("gray".to_string(), f_gray as BuiltinFn);
+    builtins.insert("igray".to_string(), f_igray as BuiltinFn);
+    builtins.insert("popcount".to_string(), f_popcount as BuiltinFn);
+    builtins.insert("rms".to_string(), f_rms as BuiltinFn);
+    builtins.insert("gmean".to_string(), f_gmean as BuiltinFn);
+    builtins.insert("hmean".to_string(), f_hmean as BuiltinFn);
 }
 
 pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
@@ -4716,5 +5092,22 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("hex", "hex(x)", "format as hexadecimal"),
         ("oct", "oct(x)", "format as octal"),
         ("bin", "bin(x)", "format as binary"),
+        // Phase 11: Math Extensions
+        ("mean", "mean(list)", "arithmetic mean (average)"),
+        ("median", "median(list)", "median value"),
+        ("variance", "variance(list)", "variance"),
+        ("stdev", "stdev(list)", "standard deviation"),
+        ("clz", "clz(x)", "count leading zeros"),
+        ("ctz", "ctz(x)", "count trailing zeros"),
+        ("nextpow2", "nextpow2(x)", "next power of 2"),
+        ("prevpow2", "prevpow2(x)", "previous power of 2"),
+        ("ispow2", "ispow2(x)", "check if power of 2"),
+        ("hammingdist", "hammingdist(x,y)", "Hamming distance between two numbers"),
+        ("gray", "gray(x)", "convert to Gray code"),
+        ("igray", "igray(x)", "convert from Gray code"),
+        ("popcount", "popcount(x)", "population count (set bits)"),
+        ("rms", "rms(list)", "root mean square"),
+        ("gmean", "gmean(list)", "geometric mean"),
+        ("hmean", "hmean(list)", "harmonic mean"),
     ]
 }
