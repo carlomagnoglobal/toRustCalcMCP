@@ -1,0 +1,1844 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>rcalc Documentation</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Complete documentation for rcalc, an arbitrary-precision calculator">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-549afdd9.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-2b6e20ca.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">rcalc Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/carlomagnoglobal/toRustCalcMCP" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="home"><a class="header" href="#home">Home</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="introduction-to-rcalc"><a class="header" href="#introduction-to-rcalc">Introduction to rcalc</a></h1>
+<p><strong>rcalc</strong> is a Rust port of the arbitrary-precision calculator <code>calc</code> (by Landon Curt Noll). It performs exact arithmetic on integers and rational numbers, with support for complex numbers, transcendental functions, user-defined functions, lists, strings, matrices, and more.</p>
+<h2 id="why-rcalc"><a class="header" href="#why-rcalc">Why rcalc?</a></h2>
+<p>Most calculators use floating-point math, which has rounding errors:</p>
+<pre><code>3 × (1 ÷ 3) = 0.999999...
+</code></pre>
+<p><strong>rcalc uses exact rational arithmetic:</strong></p>
+<pre><code>3 × (1 ÷ 3) = 1 (exactly)
+2^256 = 115792089237316195423570985008687907853269984665640564039457584007913129639936
+</code></pre>
+<p>No approximations. No rounding errors.</p>
+<h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
+<h3 id="-exact-arithmetic"><a class="header" href="#-exact-arithmetic">📐 Exact Arithmetic</a></h3>
+<ul>
+<li>Integer operations: exact, no overflow</li>
+<li>Rationals: <code>1/3 + 1/6 = 1/2</code> exactly</li>
+<li>Big numbers: <code>2^1000</code> computed to the last digit</li>
+<li>Complex numbers: <code>sqrt(-1) = i</code></li>
+</ul>
+<h3 id="-351-builtin-functions"><a class="header" href="#-351-builtin-functions">🔧 351 Builtin Functions</a></h3>
+<ul>
+<li><strong>Math:</strong> sin, cos, exp, ln, sqrt, gcd, lcm, factorial, prime operations, special functions</li>
+<li><strong>Strings:</strong> substring, replace, split, trim, case conversion (17 functions)</li>
+<li><strong>Lists:</strong> sort, reverse, flatten, zip, range, statistical (14 functions)</li>
+<li><strong>Matrices:</strong> determinant, transpose, multiplication</li>
+<li><strong>System:</strong> time, hostname, pid, environment variables</li>
+</ul>
+<h3 id="-two-interfaces"><a class="header" href="#-two-interfaces">💻 Two Interfaces</a></h3>
+<p><strong>Command-line calculator:</strong></p>
+<pre><code class="language-bash">rcalc '2^256'
+rcalc -m frac '1/3 + 1/6'
+echo '10 + 5' | rcalc -p
+</code></pre>
+<p><strong>MCP server (for AI/LLMs):</strong></p>
+<pre><code class="language-bash">rcalc --mcp
+</code></pre>
+<p>Provides JSON-RPC 2.0 interface for integration with AI tools.</p>
+<h3 id="-user-defined-functions"><a class="header" href="#-user-defined-functions">👤 User-Defined Functions</a></h3>
+<pre><code>define fib(n) {
+    if (n &lt;= 1) return n
+    return fib(n-1) + fib(n-2)
+}
+fib(10)  → 55
+</code></pre>
+<h3 id="-control-flow"><a class="header" href="#-control-flow">🎯 Control Flow</a></h3>
+<ul>
+<li><code>if / else</code> conditionals</li>
+<li><code>while</code> loops</li>
+<li><code>for</code> loops</li>
+<li>Variable assignment &amp; scoping</li>
+</ul>
+<h2 id="what-you-can-do"><a class="header" href="#what-you-can-do">What You Can Do</a></h2>
+<h3 id="calculate-exact-results"><a class="header" href="#calculate-exact-results">Calculate Exact Results</a></h3>
+<pre><code>1/3 * 3 = 1
+gcd(462, 1071) = 21
+</code></pre>
+<h3 id="work-with-big-numbers"><a class="header" href="#work-with-big-numbers">Work with Big Numbers</a></h3>
+<pre><code>2^256 = 115792089237316195423570985008687907853269984665640564039457584007913129639936
+factorial(50) = exact 64-digit result
+</code></pre>
+<h3 id="use-advanced-math"><a class="header" href="#use-advanced-math">Use Advanced Math</a></h3>
+<pre><code>sin(π/6) ≈ 0.5
+sqrt(-4) = 2i
+polyval([1,2,3], 5) = polynomial evaluation
+</code></pre>
+<h3 id="manipulate-data"><a class="header" href="#manipulate-data">Manipulate Data</a></h3>
+<pre><code>sort([3,1,2]) = [1,2,3]
+mean([1,2,3,4,5]) = 3
+split("a,b,c", ",") = ["a","b","c"]
+</code></pre>
+<h3 id="write-scripts"><a class="header" href="#write-scripts">Write Scripts</a></h3>
+<pre><code>define double(x) = x * 2
+x = 10
+double(x) + 5
+</code></pre>
+<h2 id="quick-navigation"><a class="header" href="#quick-navigation">Quick Navigation</a></h2>
+<ul>
+<li><strong>New to rcalc?</strong> Start with <a href="#quick-start-2-minutes">Quick Start</a></li>
+<li><strong>Want help with a topic?</strong> See <a href="#introduction-to-rcalc-1">Help Topics</a></li>
+<li><strong>Need a specific function?</strong> Check <a href="#complete-function-reference">All Functions</a></li>
+<li><strong>See examples?</strong> Browse <a href="#examples">Examples</a></li>
+</ul>
+<hr>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>→ <a href="#quick-start-2-minutes">Quick Start in 2 minutes</a></p>
+<p>→ <a href="#this-is-a-comment">Full Usage Guide</a></p>
+<p>→ <a href="#complete-function-reference">Browse All 351 Functions</a></p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quick-start-2-minutes"><a class="header" href="#quick-start-2-minutes">Quick Start (2 minutes)</a></h1>
+<h2 id="install"><a class="header" href="#install">Install</a></h2>
+<pre><code class="language-bash">cargo build --release
+# Binary: target/release/toRustCalcMCP
+</code></pre>
+<h2 id="run"><a class="header" href="#run">Run</a></h2>
+<h3 id="single-calculation"><a class="header" href="#single-calculation">Single calculation</a></h3>
+<pre><code class="language-bash">./target/release/toRustCalcMCP '2^100'
+# Output: 1267650600228229401496703205376
+</code></pre>
+<h3 id="interactive-mode"><a class="header" href="#interactive-mode">Interactive mode</a></h3>
+<pre><code class="language-bash">./target/release/toRustCalcMCP
+&gt; 2 + 3
+5
+&gt; sqrt(2)
+~1.41421356237309504881
+&gt; quit
+</code></pre>
+<h3 id="different-output-modes"><a class="header" href="#different-output-modes">Different output modes</a></h3>
+<pre><code class="language-bash"># Exact rationals
+./target/release/toRustCalcMCP -m frac '1/3 + 1/6'
+# Output: 1/2
+
+# Integer truncation
+./target/release/toRustCalcMCP -m int '10 / 3'
+# Output: 3
+</code></pre>
+<h3 id="pipe-mode"><a class="header" href="#pipe-mode">Pipe mode</a></h3>
+<pre><code class="language-bash">echo '2+3' | ./target/release/toRustCalcMCP -p
+# Output: 5
+</code></pre>
+<h2 id="5-quick-examples"><a class="header" href="#5-quick-examples">5 Quick Examples</a></h2>
+<pre><code class="language-bash"># Exact arithmetic
+./target/release/toRustCalcMCP '1/3 * 3'     # 1 (exactly)
+
+# Big numbers
+./target/release/toRustCalcMCP '2^256'       # exact 78-digit number
+
+# Math functions
+./target/release/toRustCalcMCP 'sin(pi()/6)' # ~0.5
+
+# Lists
+./target/release/toRustCalcMCP 'sort(list(3,1,2))' # [1, 2, 3]
+
+# Functions
+./target/release/toRustCalcMCP 'gcd(462, 1071)'    # 21
+</code></pre>
+<h2 id="get-help"><a class="header" href="#get-help">Get Help</a></h2>
+<pre><code class="language-bash"># In interactive mode
+&gt; help              # Show all topics
+&gt; help intro        # Introduction
+&gt; help sin          # Search for "sin" (19 results)
+</code></pre>
+<h2 id="more-information"><a class="header" href="#more-information">More Information</a></h2>
+<ul>
+<li><a href="#this-is-a-comment">Full User Guide</a></li>
+<li><a href="#complete-function-reference">All 351 Functions</a></li>
+<li><a href="#introduction-to-rcalc-1">Help Topics</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="introduction-to-rcalc-1"><a href="#introduction-to-rcalc-1" class="header">Introduction to rcalc</a></h1>
+<p>INTRODUCTION TO RCALC</p>
+<p>rcalc is a Rust port of the arbitrary-precision calculator calc. It performs
+exact arithmetic on integers and rational numbers, with support for complex
+numbers, transcendental functions, user-defined functions, lists, strings,
+matrices, and more.</p>
+<p>GETTING STARTED</p>
+<p>rcalc [options] [expression…]</p>
+<p>To start interactively:</p>
+<p>rcalc</p>
+<blockquote>
+<p>2 + 3
+5
+sqrt(2)
+~1.41421356237309504881
+quit</p>
+</blockquote>
+<p>BASIC ARITHMETIC</p>
+<p>Integer arithmetic is exact (no rounding):</p>
+<p>1 / 3 + 1 / 6           = 1/2 (exactly, in frac mode)
+2 ^ 256                 = exact 78-digit number
+1 / 3 * 3               = 1 (exactly)</p>
+<p>VARIABLES AND ASSIGNMENT</p>
+<p>Assign values to variables:</p>
+<p>x = 10
+y = 20
+x + y                   = 30</p>
+<p>BUILTIN FUNCTIONS</p>
+<p>Call built-in functions:</p>
+<p>sin(pi()/6)             = ~0.5
+abs(-5)                 = 5
+list(1,2,3)             = [1, 2, 3]</p>
+<p>For a complete list: help builtin</p>
+<p>MODES</p>
+<p>Real mode (default):      shows decimals with ~ for inexact
+Fractional mode (-m frac): shows exact rationals (e.g., 1/2)
+Integer mode (-m int):     truncates to integer</p>
+<p>QUITTING</p>
+<p>quit
+exit
+Ctrl+D (EOF)</p>
+<p>For more topics:  help <topic>
+Examples:         help usage   help define   help operator</topic></p>
+<div style="break-before: page; page-break-before: always;"></div>
+<p>COMMAND LINE USAGE</p>
+<p>SYNOPSIS</p>
+<p>rcalc [options] [expression…]
+rcalc –mcp</p>
+<p>OPTIONS</p>
+<p>-p, –pipe              Pipe mode: read expressions from stdin, one per line
+-q, –quiet             Suppress output (useful for scripts)
+-f, –file FILE         Load and execute a .cal script file
+-m, –mode MODE         Output mode: real, frac, or int (default: real)
+- real: decimal with ~ for inexact
+- frac: exact rationals (e.g., 1/2)
+- int: integer truncation
+-v, –version           Show version and exit
+-h, –help              Show this help and exit
+–mcp                   Start MCP server (JSON-RPC 2.0 over stdio)</p>
+<p>INVOCATION MODES</p>
+<p>Interactive REPL:
+rcalc</p>
+<blockquote>
+<p>2 + 3
+5
+quit</p>
+</blockquote>
+<p>Single Expression:
+rcalc ‘2 + 3’
+5</p>
+<p>Pipe Mode:
+echo ‘2+3’ | rcalc -p
+5</p>
+<p>Script File:
+rcalc -f script.cal</p>
+<p>EXAMPLES</p>
+<p>rcalc ‘2^256’                    # Big number
+rcalc -m frac ‘1/3 + 1/6’        # Fractional output: 1/2
+echo -e ‘2+3\n4*5’ | rcalc -p   # Pipe multiple expressions
+rcalc -f math.cal -q             # Run script silently</p>
+<p>ENVIRONMENT VARIABLES</p>
+<p>CALCRC                  Path to startup script (auto-loaded in interactive mode)
+HOME                    Used for history file (~/.rcalc_history)</p>
+<p>INTERACTIVE MODE</p>
+<p>When run without arguments, rcalc enters an interactive REPL with:</p>
+<blockquote>
+<p>prompt for input
+Arrow Up/Down           Recall previous commands from history
+Ctrl+R                  Reverse history search
+Ctrl+A/E                Jump to line start/end
+Tab                     Auto-complete (partial support)
+help                    Show all topics and functions
+help <topic>            Show topic documentation
+help <name>             Search for function (e.g., help sin)
+quit, exit              Exit the REPL
+Ctrl+D                  EOF exit</name></topic></p>
+</blockquote>
+<p>SCRIPT FILES</p>
+<p>Scripts are plain text with one statement per line. Comments start with #:</p>
+<h1 id="this-is-a-comment"><a class="header" href="#this-is-a-comment">This is a comment</a></h1>
+<p>x = 10
+y = 20
+x + y
+define f(n) = n * n
+f(5)</p>
+<p>Use -f to load: rcalc -f script.cal</p>
+<p>MCP SERVER</p>
+<p>Start rcalc as a JSON-RPC 2.0 MCP server for integration with AI tools:</p>
+<p>rcalc –mcp</p>
+<p>The server provides 4 tools:</p>
+<ul>
+<li>calc_eval: evaluate expressions</li>
+<li>calc_config: get/set session config</li>
+<li>calc_functions: list builtin functions</li>
+<li>calc_session: reset or inspect session state</li>
+</ul>
+<p>See: help mcp</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="builtin-functions"><a href="#builtin-functions" class="header">Builtin Functions</a></h1>
+<p>BUILTIN FUNCTIONS</p>
+<p>rcalc includes 351 built-in functions covering:</p>
+<p>MATH
+Basics:  abs, sgn, int, frac, floor, ceil, round, min, max, trunc
+Roots:   sqrt, root, cbrt, isqrt, iroot
+Logs:    ln, log, log2, logn, ilog, ilog2, ilog10, ilogn
+Trig:    sin, cos, tan, cot, sec, csc, asin, acos, atan, atan2, acot, asec, acsc
+Hyperbolic: sinh, cosh, tanh, coth, sech, csch, asinh, acosh, atanh, acoth, asech, acsch
+Special: exp, exp2, exp10, expm1, log1p, erf, erfc, gamma, lgamma, polygamma, zeta
+j0, j1, y0, y1 (Bessel), hypot, gd, agd (Gudermannian)
+haversin, versin, coversin, chord, exsecant (obscure trig)
+Powers:  ^ or pow, exp, sqrt
+Rounding: round(x,[places]), ceil, floor</p>
+<p>NUMBER THEORY
+Prime:   isprime, nextprime, prevprime, factor, lfactor, ptest
+Division: gcd, lcm, mod, pmod, quo, rem, quomod
+Special: catalan, euler, bernoulli, jacobi</p>
+<p>COMPLEX NUMBERS
+re, im, arg (real, imaginary parts, phase angle)
+sqrt of negative numbers returns complex</p>
+<p>STRINGS
+Length:  strlen
+Slice:   substr, index
+Modify:  replace, split, repeat, reverse
+Case:    toupper, tolower, swapcase, title
+Padding: lpad, rpad
+Trim:    trim, ltrim, rtrim
+Char:    ord, chr
+Test:    isalpha, isdigit, isspace, isalnum, isupper, islower, isprint, isgraph
+iscntrl, ispunct, isxdigit, isascii
+Parse:   str (convert to string)</p>
+<p>LISTS
+Create:  list, range
+Access:  size, first, last, append, slice, find, contains, count
+Order:   sort, rsort, reverse, unique
+Combine: zip, flatten, union, intersection, difference, subset
+Compute: sum, product, min, max, mean, median, variance, stdev, rms, gmean, hmean
+Iterate: cumsum, diff, mode</p>
+<p>MATRICES
+Create:  matfill
+Query:   matdim, matmin, matmax, matsum
+Ops:     det, inverse, mattrans, mattrace, matmul
+Linear:  dot, norm</p>
+<p>SETS (ASSOCIATIVE ARRAYS)
+Create:  assoc
+Query:   indices, count
+Modify:  insert, delete
+Reduce:  join</p>
+<p>FILE I/O
+Open:    fopen, fclose
+Read:    fgets, fgetc, fread, fscan, fscanf
+Write:   fputs, fputc, fwrite, fprintf
+Seek:    seek, tell, rewind
+Check:   eof, fflush, fileno, fsize, exists, isdir
+File:    remove, rename, mkdir</p>
+<p>SYSTEM &amp; ENVIRONMENT
+Info:    version, platform, hostname, pid, username, homedir, tmpdir, pwd, arch, uname
+User:    getuid, getenv, putenv
+Time:    time, systime, ctime, sleep, usertime
+IO:      input, getline, println, puts, printf, sprintf, format, debug
+Exec:    system, command, eval</p>
+<p>BIT OPERATIONS
+Logic:   and, or, xor, comp
+Shift:   lshift, rshift
+Test:    bit, highbit, lowbit, fcnt (count bits), popcount
+Gray:    gray, igray
+Count:   clz, ctz (leading/trailing zeros)
+Special: hammingdist</p>
+<p>CONFIGURATION &amp; INTROSPECTION
+Config:  base (get/set ibase/obase), epsilon
+Type:    typeof, sizeof, isnan, isinf
+Vars:    vars, defined, undefine, del
+Env:     env
+Debug:   dump</p>
+<p>HASHING &amp; CRYPTO
+Hash:    sha1, md5, crc32</p>
+<p>RANDOM
+Seed:    seed, srand, srandom
+Gen:     rand, random, randbit, randint, randperm</p>
+<p>SEARCH &amp; HELP
+Help:    help [topic|function]</p>
+<p>To search for a specific function:
+help sin          # Show all functions with “sin” in the name
+help list         # Show all list-related functions
+help string       # Show all string functions</p>
+<p>All 351 functions are documented in the catalog.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="defining-functions"><a href="#defining-functions" class="header">Defining Functions</a></h1>
+<p>DEFINING FUNCTIONS</p>
+<p>Define your own functions with the define keyword.</p>
+<p>SIMPLE ONE-LINE FORM</p>
+<p>Define a function in one line:</p>
+<p>define f(x) = x * x
+f(5)                    = 25</p>
+<p>Parameters can be multiple:</p>
+<p>define add(a, b) = a + b
+add(3, 4)               = 7</p>
+<p>BLOCK FORM</p>
+<p>For multi-statement functions, use braces:</p>
+<p>define fact(n) {
+if (n &lt;= 1) {
+return 1
+}
+return n * fact(n - 1)
+}
+fact(5)                 = 120</p>
+<p>RECURSION</p>
+<p>Functions can call themselves:</p>
+<p>define fib(n) {
+if (n &lt;= 1) return n
+return fib(n-1) + fib(n-2)
+}
+fib(10)                 = 55</p>
+<p>LOCAL VARIABLES</p>
+<p>Variables assigned inside a function are local to that call:</p>
+<p>define test() {
+x = 5
+return x * 2
+}
+test()                  = 10
+x                       = undefined (if not set globally)</p>
+<p>To use a global variable:</p>
+<p>x = 100
+define use_global() = x * 2
+use_global()            = 200</p>
+<p>RETURN VALUES</p>
+<p>Use return or the last expression:</p>
+<p>define f(x) {
+y = x * 2
+return y + 1
+}</p>
+<p>define g(x) {
+y = x * 2
+y + 1          # Last expression is returned
+}</p>
+<p>Both return the same value.</p>
+<p>CALLING CONVENTION</p>
+<p>Arguments are passed by value (immutable copies). Functions cannot modify
+caller’s variables:</p>
+<p>define inc(x) {
+x = x + 1
+return x
+}</p>
+<p>a = 10
+inc(a)                  = 11
+a                       = 10  (unchanged)</p>
+<p>SCOPE</p>
+<p>All variables are global by default. Function parameters are local (shadowing
+globals during the call).</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="statements"><a href="#statements" class="header">Statements</a></h1>
+<p>STATEMENTS</p>
+<p>rcalc supports several statement types.</p>
+<p>ASSIGNMENT</p>
+<p>Assign a value to a variable:</p>
+<p>x = 5
+y = x + 10</p>
+<p>Variables persist across statements.</p>
+<p>PRINT</p>
+<p>Print a value to output:</p>
+<p>print x
+print “Hello”
+println “Done”</p>
+<p>(println adds a newline)</p>
+<p>CONDITIONAL: IF/ELSE</p>
+<p>if (x &gt; 10) {
+print “x is large”
+} else {
+print “x is small”
+}</p>
+<p>The else branch is optional.</p>
+<p>LOOP: WHILE</p>
+<p>Repeat while a condition is true:</p>
+<p>i = 0
+while (i &lt; 5) {
+print i
+i = i + 1
+}</p>
+<p>LOOP: FOR</p>
+<p>Loop from start to end (inclusive):</p>
+<p>for (i = 1; 10) {
+print i
+}</p>
+<p>This prints 1 through 10.</p>
+<p>RETURN</p>
+<p>Exit a function with a value:</p>
+<p>define f(x) {
+if (x &lt; 0) return 0
+return x * 2
+}</p>
+<p>QUIT/EXIT</p>
+<p>Exit the REPL:</p>
+<p>quit
+exit</p>
+<p>(Only in interactive mode; in scripts, quits the script.)</p>
+<p>BLOCK STATEMENTS</p>
+<p>Group multiple statements with braces:</p>
+<p>{
+x = 5
+y = 10
+print x + y
+}</p>
+<p>SEMICOLON AS SEPARATOR</p>
+<p>Statements are separated by semicolons or newlines:</p>
+<p>x = 5; y = 10; print x + y</p>
+<p>Multiple statements on one line are allowed.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="expressions"><a href="#expressions" class="header">Expressions</a></h1>
+<p>EXPRESSIONS</p>
+<p>An expression evaluates to a value.</p>
+<p>LITERALS</p>
+<p>Numbers:
+123
+3.14
+1/2
+0x1A        (hexadecimal)
+0b1010      (binary)
+1.5e-10     (scientific notation)</p>
+<p>Strings:
+“hello”
+“escape: "quote"”</p>
+<p>Lists:
+list(1, 2, 3)
+[1, 2, 3]</p>
+<p>VARIABLES</p>
+<p>Use a variable by name:</p>
+<p>x               # value of x
+x + y           # value of x plus value of y</p>
+<p>FUNCTION CALLS</p>
+<p>Call a built-in or user-defined function:</p>
+<p>sqrt(2)
+max(3, 5)
+list(1, 2, 3)
+f(x, y)         # user-defined function</p>
+<p>OPERATORS &amp; PRECEDENCE</p>
+<p>Operators have priority (high to low):</p>
+<ol>
+<li>Unary:       - !       (negation, not)</li>
+<li>Power:       ^         (right-associative: 2^3^2 = 2^(3^2) = 512)</li>
+<li>Multiply:    * / // %  (*, /, integer divide, modulo)</li>
+<li>Add:         + -       (addition, subtraction)</li>
+<li>Compare:     &lt; &lt;= &gt; &gt;= == !=  (less, equal, etc.)</li>
+<li>Logical AND: &amp;&amp;        (short-circuit)</li>
+<li>Logical OR:  ||        (short-circuit)</li>
+<li>Assign:      =         (lowest precedence, right-associative)</li>
+</ol>
+<p>Examples:</p>
+<p>2 + 3 * 4               = 14  (multiply before add)
+2 ^ 3 ^ 2               = 512 (power is right-assoc)
+-2 ^ 2                  = -4  (unary minus after power)
+x = 5                   (assigns 5 to x, result is 5)</p>
+<p>GROUPING WITH PARENTHESES</p>
+<p>Use parentheses to override precedence:</p>
+<p>(2 + 3) * 4             = 20
+2 ^ (3 + 2)             = 32</p>
+<p>COMPOUND EXPRESSIONS</p>
+<p>Statements can be chained with semicolons; the result of the last is returned:</p>
+<p>x = 5; y = 10; x + y    = 15  (prints 5, 10, 15)</p>
+<p>INDEXING</p>
+<p>Access list or string elements:</p>
+<p>list(1, 2, 3)[0]        = 1   (first element, 0-indexed)
+list(1, 2, 3)[-1]       = 3   (last element)
+“hello”[1]              = “e”</p>
+<p>TRUTHINESS</p>
+<p>In conditions (if, while), values are truthy/falsy:</p>
+<p>0       = false
+1       = true
+“”      = false
+“text”  = true
+[]      = false
+[x]     = true</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="operators"><a href="#operators" class="header">Operators</a></h1>
+<p>OPERATORS</p>
+<p>ARITHMETIC</p>
+<ul>
+<li>
+<pre><code>  Addition:           2 + 3 = 5
+</code></pre>
+</li>
+</ul>
+<ul>
+<li>
+<pre><code>  Subtraction:        5 - 2 = 3
+</code></pre>
+</li>
+</ul>
+<ul>
+<li>
+<pre><code>  Multiplication:     3 * 4 = 12
+</code></pre>
+</li>
+</ul>
+<p>/       Exact division:     5 / 2 = 5/2 (in frac mode)
+//      Integer division:   5 // 2 = 2
+%       Modulo:             5 % 2 = 1
+^       Power:              2 ^ 10 = 1024</p>
+<p>UNARY</p>
+<ul>
+<li>
+<pre><code>  Negation:           -5, -x
+</code></pre>
+</li>
+</ul>
+<p>!       Logical NOT:        !0 = 1, !1 = 0</p>
+<p>COMPARISON</p>
+<p>&lt;       Less than:          2 &lt; 3 = 1
+&lt;=      Less or equal:      2 &lt;= 2 = 1</p>
+<blockquote>
+<pre><code>  Greater than:       3 &gt; 2 = 1
+</code></pre>
+<p>=      Greater or equal:   3 &gt;= 3 = 1
+==      Equal:              5 == 5 = 1
+!=      Not equal:          5 != 3 = 1</p>
+</blockquote>
+<p>LOGICAL</p>
+<p>&amp;&amp;      AND (short-circuit):  0 &amp;&amp; x  = 0 (x not evaluated)
+||      OR (short-circuit):   1 || x  = 1 (x not evaluated)</p>
+<p>ASSIGNMENT</p>
+<p>=       Assign:             x = 5, y = x + 10</p>
+<p>PRECEDENCE TABLE (High to Low)</p>
+<ol>
+<li>( )      Parentheses, function calls, array indexing</li>
+<li>
+<ul>
+<li>! +    Unary minus, NOT</li>
+</ul>
+</li>
+<li>^        Power (right-associative)</li>
+<li>
+<ul>
+<li>/ // % Multiply, divide, integer divide, modulo</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>
+<ul>
+<li>
+<pre><code> Add, subtract
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>&lt; &lt;= &gt; &gt;= == !=   Comparisons</li>
+<li>&amp;&amp;       Logical AND</li>
+<li>||       Logical OR</li>
+<li>=        Assignment (right-associative)</li>
+</ol>
+<p>POWER IS RIGHT-ASSOCIATIVE</p>
+<p>2 ^ 3 ^ 2 = 2 ^ (3 ^ 2) = 2 ^ 9 = 512
+not (2 ^ 3) ^ 2 = 8 ^ 2 = 64</p>
+<p>EXACT DIVISION</p>
+<p>rcalc always performs exact arithmetic:</p>
+<p>1 / 3               = 1/3 (exact rational, not 0.333…)
+1 / 3 * 3           = 1   (exactly, no rounding)</p>
+<p>Integer division (//) truncates:</p>
+<p>5 // 2              = 2
+-5 // 2             = -3</p>
+<p>MODULO</p>
+<p>5 % 2               = 1
+-5 % 2              = -1</p>
+<p>Note: behavior depends on the signs of operands.</p>
+<p>NOTES</p>
+<ul>
+<li>Short-circuit evaluation: &amp;&amp; and || evaluate left-to-right and stop early
+if the result is known (0 for &amp;&amp;, 1 for ||).</li>
+<li>All integer arithmetic is exact (no overflow, arbitrary precision).</li>
+<li>Rational arithmetic is exact (e.g., 1/3 + 1/6 = 1/2).</li>
+<li>Transcendental functions (sin, exp) approximate to epsilon precision.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="variables"><a href="#variables" class="header">Variables</a></h1>
+<p>VARIABLES</p>
+<p>A variable stores a value and persists across statements in a session.</p>
+<p>DECLARING &amp; ASSIGNING</p>
+<p>Simply assign a value:</p>
+<p>x = 10
+y = x + 5</p>
+<p>Variables are created on first assignment.</p>
+<p>SCOPE</p>
+<p>All variables are global within a session. Inside a function, parameters and
+local assignments shadow globals but do not modify them:</p>
+<p>x = 100
+define test(x) {
+x = 200
+return x
+}
+test(50)            = 200
+x                   = 100  (unchanged)</p>
+<p>LISTING VARIABLES</p>
+<p>Use vars() to list all global variables:</p>
+<p>x = 1
+y = 2
+z = 3
+vars()              = [x, y, z]</p>
+<p>CHECKING EXISTENCE</p>
+<p>Use defined(name) to check if a variable exists:</p>
+<p>defined(“x”)        = 1  (exists)
+defined(“unknown”)  = 0  (does not exist)</p>
+<p>DELETING VARIABLES</p>
+<p>Use undefine(name) or del(name) to remove a variable:</p>
+<p>undefine(“x”)
+del(“y”)</p>
+<p>After deletion, vars() no longer includes them.</p>
+<p>GETTING SIZE</p>
+<p>Use sizeof(x) to get the approximate size in bytes:</p>
+<p>x = list(1, 2, 3)
+sizeof(x)           (size in bytes)</p>
+<p>TYPE CHECKING</p>
+<p>Use typeof(x) to get the type of a value:</p>
+<p>typeof(5)           = “number”
+typeof(“hello”)     = “string”
+typeof(list(1,2))   = “list”</p>
+<p>SPECIAL VARIABLES</p>
+<p>Some functions act like variables (read/query):</p>
+<p>vars()              List all global variables
+env()               List environment variables as pairs
+epsilon             Current epsilon (precision target)
+pi()                Constant π (60 digits)
+e()                 Constant e (60 digits)</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="numbers--precision"><a href="#numbers--precision" class="header">Numbers &amp; Precision</a></h1>
+<p>NUMBERS</p>
+<p>rcalc performs exact arithmetic on integers and rationals.</p>
+<p>EXACT INTEGERS</p>
+<p>All integer arithmetic is exact (arbitrary precision):</p>
+<p>2 ^ 256             = 115792089237316195423570985008687907853269984665640564039457584007913129639936
+(exact 78-digit number, no overflow)
+factorial(100)      = exact product of 1<em>2</em>3*…*100</p>
+<p>EXACT RATIONALS</p>
+<p>Ratios of integers are exact:</p>
+<p>1 / 3               = 1/3 (not 0.333…)
+1 / 3 + 1 / 6       = 1/2 (exactly)
+1 / 3 * 3           = 1   (exactly, no rounding error)</p>
+<p>INEXACT (IRRATIONAL) NUMBERS</p>
+<p>Transcendental functions produce inexact results (marked with ~):</p>
+<p>sqrt(2)             = ~1.41421356237309504881
+sin(pi()/6)         = ~0.5
+ln(e())             = ~0.99999999999999999999</p>
+<p>The ~ prefix indicates the value is approximated to epsilon precision
+(default epsilon = 1e-20).</p>
+<p>EPSILON &amp; PRECISION</p>
+<p>Epsilon controls convergence of iterative algorithms (sqrt, transcendental
+series). Default is 1e-20, good for 20 decimal digits of precision.</p>
+<p>Set epsilon:</p>
+<p>epsilon(1e-50)      # Higher precision (slower)
+sqrt(2)             = (computed to 50 digits)</p>
+<p>Display digits:</p>
+<p>2 / 3               = ~0.66666666666666666667  (20 digits, default)</p>
+<p>Set display:</p>
+<p>display(50)         # Show up to 50 digits
+2 / 3               = (shows more digits)</p>
+<p>NOTATION</p>
+<p>Literals:
+123                 Integer
+123.456             Decimal (converted to exact rational internally)
+1/2                 Rational (exact)
+0x1A                Hexadecimal (26)
+0b1010              Binary (10)
+1.5e-10             Scientific notation</p>
+<p>MODES</p>
+<p>real  (default):    Show decimals with ~ for inexact
+frac:               Show exact rationals (1/2 not 0.5)
+int:                Show integer truncation (10/3 shows as 3)</p>
+<p>Set mode:</p>
+<p>rcalc -m frac ‘1/3 + 1/6’    # Output: 1/2
+rcalc -m int ‘10 / 3’         # Output: 3</p>
+<p>BASES</p>
+<p>Input base (ibase) and output base (obase) support 2-36:</p>
+<p>base(16)            # Set both to hexadecimal
+255                 = ff</p>
+<p>base(10, 2)         # ibase=10, obase=2
+255                 = 11111111</p>
+<p>COMPLEX NUMBERS</p>
+<p>Roots of negative numbers produce complex results:</p>
+<p>sqrt(-1)            = 1i
+sqrt(-4)            = 2i</p>
+<p>Complex arithmetic works as expected.</p>
+<p>OPERATIONS</p>
+<p>All standard operations preserve exactness:</p>
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li>/            Exact for rationals
+^ (integer power)   Exact
+^                   Inexact for fractional exponents
+sqrt, sin, etc.     Inexact (irrational results)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>OVERFLOW</p>
+<p>rcalc does not overflow. Numbers grow as large as memory allows:</p>
+<p>1000!               Computes exactly (2568 digits)
+2^1000000           Computes (no limit)</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="configuration"><a href="#configuration" class="header">Configuration</a></h1>
+<p>CONFIGURATION</p>
+<p>Configure rcalc’s behavior via settings.</p>
+<p>EPSILON (PRECISION)</p>
+<p>Epsilon is the convergence threshold for iterative algorithms:</p>
+<p>epsilon()           Get current epsilon (default 1e-20)
+epsilon(1e-30)      Set to 30 decimal digits of precision</p>
+<p>Higher epsilon = faster, lower precision.
+Lower epsilon = slower, higher precision.</p>
+<p>Set epsilon before evaluating:</p>
+<p>epsilon(1e-50)
+sqrt(2)             Now computed to 50 digits of precision</p>
+<p>DISPLAY DIGITS</p>
+<p>How many digits to show in real mode:</p>
+<p>display()           Get current (default 20)
+display(50)         Show up to 50 digits</p>
+<p>Example:</p>
+<p>display(10)
+2 / 3               = ~0.6666666667  (10 digits)</p>
+<p>MODE (OUTPUT FORMAT)</p>
+<p>Three output modes:</p>
+<p>real                Decimal: 2/3 = ~0.66666…
+frac                Fraction: 2/3 = 2/3
+int                 Integer: 2/3 = 0</p>
+<p>Set via flag:</p>
+<p>rcalc -m frac ‘1/3 + 1/6’    Output: 1/2</p>
+<p>Or in REPL:</p>
+<blockquote>
+<p>mode frac
+1/3 + 1/6
+1/2</p>
+</blockquote>
+<p>Quering:</p>
+<p>mode()              Get current mode</p>
+<p>BASES (IBASE / OBASE)</p>
+<p>Input base (ibase) and output base (obase) for number literals and display.
+Both support 2-36.</p>
+<p>Query:</p>
+<p>ibase()             Get input base (default 10)
+obase()             Get output base (default 10)</p>
+<p>Set both:</p>
+<p>base(16)            Set ibase and obase to 16</p>
+<p>Set separately:</p>
+<p>base(10, 16)        ibase=10, obase=16 (input decimal, output hex)
+256                 = 100</p>
+<p>Hexadecimal input (0x prefix) always works regardless of ibase:</p>
+<p>0xFF                = 255</p>
+<p>Binary input (0b prefix) always works:</p>
+<p>0b1111              = 15</p>
+<p>CONFIGURATION SUMMARY</p>
+<p>epsilon([value])    Get/set precision target
+display([digits])   Get/set display width
+mode([mode])        Get/set output mode
+base([base])        Set both ibase and obase
+base([in], [out])   Set ibase and obase separately
+ibase()             Get input base
+obase()             Get output base</p>
+<p>VIA MCP</p>
+<p>If using rcalc –mcp, the calc_config tool handles configuration:</p>
+<p>{“method”: “tools/call”,
+“params”: {“name”: “calc_config”,
+“arguments”: {“action”: “set”, “mode”: “frac”, “epsilon”: “1e-50”}}}</p>
+<p>PERSISTENCE</p>
+<p>Changes made in a session persist until you quit or reset.
+Use the MCP calc_session tool to reset:</p>
+<p>{“method”: “tools/call”,
+“params”: {“name”: “calc_session”,
+“arguments”: {“action”: “reset”}}}</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="types"><a href="#types" class="header">Types</a></h1>
+<p>TYPES</p>
+<p>rcalc supports seven value types.</p>
+<p>NUMBER (EXACT RATIONAL)</p>
+<p>An exact integer or rational number:</p>
+<p>5               Number
+1/2             Number (exact rational)
+2.5             Number (1/2 is 5/2, exact)
+~0.5            Number (marked inexact, but is still Number type)</p>
+<p>Query:</p>
+<p>typeof(5)       = “number”
+typeof(1/3)     = “number”</p>
+<p>COMPLEX</p>
+<p>A complex number with real and imaginary parts:</p>
+<p>sqrt(-1)        = 1i (complex)
+2 + 3i          = 2+3i (complex)</p>
+<p>Operations:</p>
+<p>re(2+3i)        = 2 (real part)
+im(2+3i)        = 3 (imaginary part)
+arg(2+3i)       = phase angle (argument)</p>
+<p>Query:</p>
+<p>typeof(sqrt(-1)) = “complex”</p>
+<p>STRING</p>
+<p>A sequence of characters:</p>
+<p>“hello”         String
+“say "hi"”    String with escaped quote</p>
+<p>Operations:</p>
+<p>strlen(“hello”) = 5
+substr(“hello”, 0, 3) = “hel”
+toupper(“hello”) = “HELLO”</p>
+<p>Query:</p>
+<p>typeof(“hello”) = “string”</p>
+<p>LIST</p>
+<p>An ordered collection:</p>
+<p>list(1, 2, 3)   List
+[1, 2, 3]       List (shorthand)</p>
+<p>Operations:</p>
+<p>size(list(1,2,3)) = 3
+list(1,2,3)[0] = 1 (first element)
+sort(list(3,1,2)) = [1, 2, 3]</p>
+<p>Query:</p>
+<p>typeof(list(1,2)) = “list”</p>
+<p>HASH (ASSOCIATIVE ARRAY)</p>
+<p>A key-value mapping:</p>
+<p>assoc(“name”, “Alice”, “age”, 30)  Hash</p>
+<p>Operations:</p>
+<p>insert(h, “city”, “NYC”)
+indices(h) = [“name”, “age”, “city”]
+delete(h, “age”)</p>
+<p>Query:</p>
+<p>typeof(assoc(…)) = “hash”</p>
+<p>FUNCTION</p>
+<p>A user-defined or built-in function:</p>
+<p>define f(x) = x * 2
+f               = <function></function></p>
+<p>Query:</p>
+<p>typeof(f) = “function”</p>
+<p>NULL</p>
+<p>The absence of a value:</p>
+<p>null            = null (uninitialized / void)</p>
+<p>Query:</p>
+<p>typeof(null)    = “null”</p>
+<p>TYPE PREDICATES</p>
+<p>Check types with typeof():</p>
+<p>typeof(x)       = “number”, “complex”, “string”, “list”, “hash”, “function”, “null”</p>
+<p>Test properties:</p>
+<p>isnan(x)        = 1 if x is NaN (always 0 for exact rationals)
+isinf(x)        = 1 if x is infinite (always 0 for exact rationals)</p>
+<p>CONVERSIONS</p>
+<p>Convert between types:</p>
+<p>str(5)          = “5”
+str(1/3)        = “1/3”
+typeof(str(x))  = “string”</p>
+<p>SIZE</p>
+<p>Get approximate size of a value:</p>
+<p>sizeof(5)       Bytes for a number
+sizeof(“hello”) Bytes for a string
+sizeof([1,2,3]) Bytes for a list</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="lists-1"><a href="#lists-1" class="header">Lists</a></h1>
+<p>LISTS</p>
+<p>Ordered collections of values.</p>
+<p>CREATING LISTS</p>
+<p>Use list() function:</p>
+<p>list(1, 2, 3)           = [1, 2, 3]
+list(“a”, “b”, “c”)     = [“a”, “b”, “c”]
+list(1, “two”, 3.5)     = [1, “two”, 7/2]</p>
+<p>Create a range:</p>
+<p>range(1, 5)             = [1, 2, 3, 4, 5]
+range(0, 10, 2)         = [0, 2, 4, 6, 8, 10]</p>
+<p>Empty list:</p>
+<p>list()                  = []</p>
+<p>INDEXING</p>
+<p>Access elements with [n]:</p>
+<p>x = list(10, 20, 30)
+x[0]                    = 10  (first, 0-indexed)
+x[1]                    = 20
+x[2]                    = 30
+x[-1]                   = 30  (last)
+x[-2]                   = 20  (second from last)</p>
+<p>Out of bounds returns null.</p>
+<p>BASIC OPERATIONS</p>
+<p>size(list)              Length
+first(list)             First element
+last(list)              Last element
+append(list, item, …) Add items (mutates list)
+slice(list, start[, end]) Sublist from start to end</p>
+<p>Example:</p>
+<p>x = list(1, 2, 3)
+append(x, 4, 5)         # x is now [1, 2, 3, 4, 5]
+slice(x, 1, 3)          = [2, 3]</p>
+<p>SORTING &amp; REVERSING</p>
+<p>sort(list)              Sort ascending
+rsort(list)             Sort descending
+reverse(list)           Reverse order
+unique(list)            Remove duplicates</p>
+<p>Example:</p>
+<p>sort(list(3, 1, 2))     = [1, 2, 3]
+reverse(list(1, 2, 3))  = [3, 2, 1]
+unique(list(1, 1, 2))   = [1, 2]</p>
+<p>SEARCHING</p>
+<p>find(list, value)       Index of first match (-1 if not found)
+contains(list, value)   1 if found, 0 otherwise
+count(list, value)      Number of occurrences</p>
+<p>Example:</p>
+<p>find(list(10, 20, 30), 20)    = 1
+contains(list(1, 2, 3), 2)    = 1</p>
+<p>AGGREGATION</p>
+<p>sum(list)               Sum of elements
+product(list)           Product of elements
+min(list)               Minimum value
+max(list)               Maximum value
+mean(list)              Arithmetic mean
+median(list)            Middle value
+variance(list)          Variance
+stdev(list)             Standard deviation
+rms(list)               Root mean square
+gmean(list)             Geometric mean
+hmean(list)             Harmonic mean
+mode(list)              Most common value</p>
+<p>Example:</p>
+<p>sum(list(1, 2, 3, 4))   = 10
+mean(list(1, 2, 3, 4))  = 2.5
+median(list(1, 3, 5))   = 3</p>
+<p>COMBINING LISTS</p>
+<p>zip(list1, list2)       Pair corresponding elements
+flatten(list)           Flatten nested lists
+union(list1, list2)     Set union
+intersection(list1, list2) Set intersection
+difference(list1, list2)   Set difference (list1 - list2)
+subset(list1, list2)    1 if list1 ⊆ list2</p>
+<p>Example:</p>
+<p>zip(list(1, 2), list(“a”, “b”)) = [[1, “a”], [2, “b”]]
+flatten(list(1, list(2, 3)))    = [1, 2, 3]</p>
+<p>TRANSFORMATION</p>
+<p>cumsum(list)            Cumulative sum
+diff(list)              Consecutive differences</p>
+<p>Example:</p>
+<p>cumsum(list(1, 2, 3))   = [1, 3, 6]
+diff(list(1, 3, 6))     = [2, 3]</p>
+<p>ITERATION</p>
+<p>In a script, use for() to iterate:</p>
+<p>for (x = list(1, 2, 3)) {
+print x
+}</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="strings-2"><a href="#strings-2" class="header">Strings</a></h1>
+<p>STRINGS</p>
+<p>Text values.</p>
+<p>STRING LITERALS</p>
+<p>Quoted with double quotes:</p>
+<p>“hello”
+“multi-word string”
+“”                      Empty string</p>
+<p>ESCAPE SEQUENCES</p>
+<p>"                      Double quote
+\                      Backslash
+\n                      Newline
+\t                      Tab
+\r                      Carriage return</p>
+<p>Example:</p>
+<p>“say "hi"”            = say “hi”
+“line1\nline2”          = (two lines)</p>
+<p>BASIC OPERATIONS</p>
+<p>strlen(str)             Length (number of characters)
+substr(str, start[, len]) Extract substring
+index(str, needle)      Find substring (position or -1)
+replace(str, old, new)  Replace all occurrences
+repeat(str, n)          Repeat string n times</p>
+<p>Example:</p>
+<p>strlen(“hello”)         = 5
+substr(“hello”, 1, 2)   = “el”
+index(“hello”, “ll”)    = 2
+replace(“hello”, “l”, “L”) = “heLLo”
+repeat(“ab”, 3)         = “ababab”</p>
+<p>SPLITTING &amp; JOINING</p>
+<p>split(str, sep)         Split by separator (returns list)
+join(list, sep)         Join list items with separator</p>
+<p>Example:</p>
+<p>split(“a,b,c”, “,”)     = [“a”, “b”, “c”]
+join(list(“a”, “b”, “c”), “,”) = “a,b,c”</p>
+<p>CASE CONVERSION</p>
+<p>toupper(str)            Convert to uppercase
+tolower(str)            Convert to lowercase
+swapcase(str)           Swap case of all characters
+title(str)              Title case (capitalize words)</p>
+<p>Example:</p>
+<p>toupper(“Hello”)        = “HELLO”
+tolower(“Hello”)        = “hello”
+title(“hello world”)    = “Hello World”</p>
+<p>TRIMMING</p>
+<p>trim(str)               Remove whitespace from both ends
+ltrim(str)              Remove whitespace from left
+rtrim(str)              Remove whitespace from right</p>
+<p>Example:</p>
+<p>trim(“  hello  “)       = “hello”</p>
+<p>PADDING</p>
+<p>lpad(str, width[, fill]) Pad left to width (default fill is space)
+rpad(str, width[, fill]) Pad right to width</p>
+<p>Example:</p>
+<p>lpad(“5”, 3, “0”)       = “005”
+rpad(“hi”, 5, “-”)      = “hi—”</p>
+<p>CHARACTER OPERATIONS</p>
+<p>ord(char)               Character to ASCII code
+chr(code)               ASCII code to character</p>
+<p>Example:</p>
+<p>ord(“A”)                = 65
+chr(65)                 = “A”</p>
+<p>TESTING</p>
+<p>startswith(str, prefix) 1 if starts with prefix
+endswith(str, suffix)   1 if ends with suffix</p>
+<p>Example:</p>
+<p>startswith(“hello”, “he”) = 1
+endswith(“hello”, “lo”)   = 1</p>
+<p>CHARACTER CLASS TESTS</p>
+<p>isalpha(str)            All alphabetic? (1 or 0)
+isdigit(str)            All digits? (1 or 0)
+isalnum(str)            All alphanumeric? (1 or 0)
+isspace(str)            All whitespace? (1 or 0)
+isupper(str)            All uppercase? (1 or 0)
+islower(str)            All lowercase? (1 or 0)
+isprint(str)            All printable? (1 or 0)</p>
+<p>Example:</p>
+<p>isalpha(“hello”)        = 1
+isdigit(“123”)          = 1
+isdigit(“12a”)          = 0</p>
+<p>PARSING &amp; CONVERSION</p>
+<p>str(value)              Convert value to string</p>
+<p>Example:</p>
+<p>str(123)                = “123”
+str(1/3)                = “1/3”
+str(list(1, 2))         = “[1, 2]”</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="matrices"><a href="#matrices" class="header">Matrices</a></h1>
+<p>MATRICES</p>
+<p>Matrices are represented as lists of lists (rows).</p>
+<p>CREATING MATRICES</p>
+<p>matfill(rows, cols, val) Create matrix filled with val
+[[1, 2], [3, 4]]         Literal 2x2 matrix</p>
+<p>Example:</p>
+<p>m = matfill(2, 3, 0)    = [[0, 0, 0], [0, 0, 0]]</p>
+<p>QUERYING MATRICES</p>
+<p>matdim(m)               Dimensions [rows, cols]
+matmin(m)               Minimum element
+matmax(m)               Maximum element
+matsum(m)               Sum of all elements</p>
+<p>Example:</p>
+<p>matdim([[1, 2], [3, 4]]) = [2, 2]</p>
+<p>OPERATIONS</p>
+<p>det(m)                  Determinant (2x2, 3x3)
+inverse(m)              Matrix inverse
+mattrans(m)             Transpose (swap rows/cols)
+mattrace(m)             Trace (sum of diagonal)
+matmul(m1, m2)          Matrix multiplication</p>
+<p>Example:</p>
+<p>det([[1, 2], [3, 4]])           = -2
+mattrans([[1, 2], [3, 4]])      = [[1, 3], [2, 4]]
+mattrace([[1, 0], [0, 2]])      = 3</p>
+<p>VECTORS</p>
+<p>Vectors are 1-row or 1-column lists:</p>
+<p>v = [1, 2, 3]
+dot(v, [4, 5, 6])               = 1<em>4 + 2</em>5 + 3*6 = 32
+norm(v)                          = sqrt(1^2 + 2^2 + 3^2) = sqrt(14)</p>
+<p>Example:</p>
+<p>dot([1, 2, 3], [4, 5, 6])        = 32
+norm([3, 4])                     = 5</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="associative-arrays"><a href="#associative-arrays" class="header">Associative Arrays</a></h1>
+<p>ASSOCIATIVE ARRAYS (HASHES)</p>
+<p>Key-value mappings.</p>
+<p>CREATING HASHES</p>
+<p>Use assoc() with alternating keys and values:</p>
+<p>h = assoc(“name”, “Alice”, “age”, 30)</p>
+<p>Retrieve values:</p>
+<p>h[“name”]               = “Alice”
+h[“age”]                = 30</p>
+<p>OPERATIONS</p>
+<p>indices(h)              List all keys
+count(h)                Number of key-value pairs
+insert(h, key, value)   Add or update key (mutates h)
+delete(h, key)          Remove key (mutates h)
+join(h, sep)            Join values with separator</p>
+<p>Example:</p>
+<p>h = assoc(“x”, 1, “y”, 2)
+indices(h)              = [“x”, “y”]
+insert(h, “z”, 3)       # h now has 3 key-value pairs
+delete(h, “y”)          # h now has 2 key-value pairs
+count(h)                = 2
+join(h, “, “)           = “1, 3”</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="file-io"><a href="#file-io" class="header">File I/O</a></h1>
+<p>FILE I/O</p>
+<p>Read and write files.</p>
+<p>OPENING &amp; CLOSING</p>
+<p>fd = fopen(“file.txt”, “r”)  Open file (modes: “r”=read, “w”=write, “a”=append)
+fclose(fd)                    Close file</p>
+<p>Example:</p>
+<p>fd = fopen(“data.txt”, “r”)
+fgets(fd)                     # Read a line
+fclose(fd)</p>
+<p>READING</p>
+<p>fgets(fd)                     Read one line (newline excluded)
+fgetc(fd)                     Read one character
+fread(fd, size)               Read up to size bytes
+fscan(fd, fmt)                Read formatted data (returns list)
+fscanf(fd, fmt, …)          Read formatted with args</p>
+<p>WRITING</p>
+<p>fputs(fd, str)                Write string
+fputc(fd, char)               Write character
+fwrite(fd, data)              Write data
+fprintf(fd, fmt, …)         Formatted write</p>
+<p>Example:</p>
+<p>fd = fopen(“out.txt”, “w”)
+fprintf(fd, “Value: %d\n”, 42)
+fclose(fd)</p>
+<p>SEEKING &amp; POSITION</p>
+<p>seek(fd, offset)              Move file pointer to offset
+tell(fd)                      Current position
+rewind(fd)                    Seek to start
+eof(fd)                       1 if at end of file</p>
+<p>Example:</p>
+<p>seek(fd, 100)                 Move to byte 100
+tell(fd)                      = 100
+rewind(fd)                    Back to start</p>
+<p>UTILITIES</p>
+<p>fflush(fd)                    Flush buffered data
+fileno(fd)                    File descriptor number
+fsize(filename)               File size in bytes
+exists(filename)              1 if file exists
+isdir(path)                   1 if directory
+remove(filename)              Delete file
+rename(old, new)              Rename file
+mkdir(path)                   Create directory</p>
+<p>Example:</p>
+<p>exists(“data.txt”)            = 1 or 0
+fsize(“data.txt”)             = number of bytes
+remove(“temp.txt”)            Delete temp file</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="error-handling"><a href="#error-handling" class="header">Error Handling</a></h1>
+<p>ERROR HANDLING</p>
+<p>Detect and report errors.</p>
+<p>QUERYING ERRORS</p>
+<p>errcount()                    Count of errors so far
+errmax()                      Maximum errors before stop
+errmax(n)                     Set max errors
+errno()                       Last error code
+errsym(code)                  Error name from code</p>
+<p>Example:</p>
+<p>if (errcount() &gt; 5) {
+print “Too many errors, quitting”
+quit
+}</p>
+<p>RAISING ERRORS</p>
+<p>error(message)                Raise error with message
+warn(message)                 Issue warning (non-fatal)</p>
+<p>Example:</p>
+<p>if (x &lt; 0) {
+error(“x must be non-negative”)
+}</p>
+<p>warn(“This calculation may be imprecise”)</p>
+<p>REGISTERING CUSTOM ERRORS</p>
+<p>newerror(code, message)       Register new error type</p>
+<p>Example:</p>
+<p>newerror(100, “Custom error”)
+errno()                       = 100</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<p>SCRIPTS &amp; RESOURCE FILES</p>
+<p>Load and execute files.</p>
+<p>LOADING A SCRIPT</p>
+<p>rcalc -f script.cal</p>
+<p>The file is read and executed line by line. Variables and functions persist.</p>
+<p>SCRIPT SYNTAX</p>
+<p>Plain text, one statement per line:</p>
+<h1 id="comment-starts-with-"><a class="header" href="#comment-starts-with-">Comment (starts with #)</a></h1>
+<p>x = 10
+y = 20
+print x + y</p>
+<p>Semicolons separate statements on one line:</p>
+<p>x = 5; y = 10; print x + y</p>
+<p>MULTI-LINE STATEMENTS</p>
+<p>Use blocks for control flow:</p>
+<p>if (x &gt; 10) {
+print “large”
+} else {
+print “small”
+}</p>
+<p>define fib(n) {
+if (n &lt;= 1) return n
+return fib(n-1) + fib(n-2)
+}</p>
+<p>COMMENTS</p>
+<p>Lines starting with # are comments:</p>
+<h1 id="this-is-a-comment-1"><a class="header" href="#this-is-a-comment-1">This is a comment</a></h1>
+<p>x = 5  # Also a comment after code</p>
+<p>LOADING WITHIN A SESSION</p>
+<p>Use read(filename) or source(filename) to load a file (if implemented):</p>
+<p>read(“lib.cal”)</p>
+<p>STARTUP SCRIPT</p>
+<p>Environment variable CALCRC points to an optional startup script, auto-loaded
+on interactive startup:</p>
+<p>export CALCRC=~/.calcrc
+rcalc                         Loads ~/.calcrc first</p>
+<p>COMMON PATTERNS</p>
+<p>Defining a function library:</p>
+<h1 id="libcal"><a class="header" href="#libcal">lib.cal</a></h1>
+<p>define double(x) = x * 2
+define triple(x) = x * 3</p>
+<p>Load and use:</p>
+<p>rcalc -f lib.cal</p>
+<blockquote>
+<p>double(5)
+10</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="mcp-server"><a href="#mcp-server" class="header">MCP Server</a></h1>
+<p>MCP SERVER MODE</p>
+<p>rcalc can run as a JSON-RPC 2.0 MCP server for integration with AI tools.</p>
+<p>STARTING THE SERVER</p>
+<p>rcalc –mcp</p>
+<p>The server reads JSON-RPC 2.0 requests from stdin and writes responses to stdout.</p>
+<p>PROTOCOL</p>
+<p>Requests are newline-delimited JSON. Example:</p>
+<p>{“jsonrpc”:“2.0”,“id”:1,“method”:“initialize”,“params”:{}}</p>
+<p>Response:</p>
+<p>{“jsonrpc”:“2.0”,“id”:1,“result”:{“protocolVersion”:“2025-06-18”,…}}</p>
+<p>INITIALIZATION</p>
+<p>First, initialize the connection:</p>
+<p>{“jsonrpc”:“2.0”,“id”:1,“method”:“initialize”,“params”:{}}</p>
+<p>Response includes protocol version, server info, and capabilities.</p>
+<p>TOOLS</p>
+<p>The server provides 4 tools via tools/call:</p>
+<ol>
+<li>calc_eval — Evaluate an expression</li>
+<li>calc_config — Get or set session configuration</li>
+<li>calc_functions — List builtin functions</li>
+<li>calc_session — Reset or inspect session state</li>
+</ol>
+<p>TOOL: CALC_EVAL</p>
+<p>Evaluate an arbitrary-precision expression:</p>
+<p>{“jsonrpc”:“2.0”,“id”:3,“method”:“tools/call”,
+“params”:{“name”:“calc_eval”,
+“arguments”:{“expression”:“2^256”,
+“mode”:“real”,
+“epsilon”:“1e-20”}}}</p>
+<p>Response includes both text and JSON output:</p>
+<p>{“jsonrpc”:“2.0”,“id”:3,“result”:{“content”:[
+{“type”:“text”,“text”:“<numeric result="">”},
+{“type”:“application/json”,“json”:{“expression”:“…”,“result”:“…”}}
+],“isError”:false}}</numeric></p>
+<p>Arguments:</p>
+<ul>
+<li>expression (required): expression string</li>
+<li>mode (optional): real, frac, or int</li>
+<li>epsilon (optional): precision string (e.g., “1e-50”)</li>
+<li>digits (optional): display width (e.g., 50)</li>
+</ul>
+<p>TOOL: CALC_CONFIG</p>
+<p>Get or set session configuration:</p>
+<p>{“jsonrpc”:“2.0”,“id”:4,“method”:“tools/call”,
+“params”:{“name”:“calc_config”,
+“arguments”:{“action”:“get”}}}</p>
+<p>{“jsonrpc”:“2.0”,“id”:5,“method”:“tools/call”,
+“params”:{“name”:“calc_config”,
+“arguments”:{“action”:“set”,“mode”:“frac”,“epsilon”:“1e-50”}}}</p>
+<p>Arguments for “set”:</p>
+<ul>
+<li>mode: real, frac, or int</li>
+<li>epsilon: precision string</li>
+<li>digits: display width</li>
+<li>ibase: input base (2-36)</li>
+<li>obase: output base (2-36)</li>
+</ul>
+<p>TOOL: CALC_FUNCTIONS</p>
+<p>List available builtin functions, optionally filtered:</p>
+<p>{“jsonrpc”:“2.0”,“id”:6,“method”:“tools/call”,
+“params”:{“name”:“calc_functions”,
+“arguments”:{“filter”:“sin”}}}</p>
+<p>Returns a list of functions matching the filter.</p>
+<p>TOOL: CALC_SESSION</p>
+<p>Reset or inspect the current session:</p>
+<p>{“jsonrpc”:“2.0”,“id”:7,“method”:“tools/call”,
+“params”:{“name”:“calc_session”,
+“arguments”:{“action”:“reset”}}}</p>
+<p>{“jsonrpc”:“2.0”,“id”:8,“method”:“tools/call”,
+“params”:{“name”:“calc_session”,
+“arguments”:{“action”:“state”}}}</p>
+<p>Arguments:</p>
+<ul>
+<li>action: “reset” (clear all variables) or “state” (show current state)</li>
+</ul>
+<p>EXAMPLE SESSION</p>
+<p>$ rcalc –mcp</p>
+<p>{“jsonrpc”:“2.0”,“id”:1,“method”:“initialize”,“params”:{}}
+{“jsonrpc”:“2.0”,“id”:2,“method”:“tools/list”}
+{“jsonrpc”:“2.0”,“id”:3,“method”:“tools/call”,“params”:{“name”:“calc_eval”,“arguments”:{“expression”:“2^256”}}}
+{“jsonrpc”:“2.0”,“id”:4,“method”:“tools/call”,“params”:{“name”:“calc_config”,“arguments”:{“action”:“get”}}}</p>
+<p>NOTIFICATIONS</p>
+<p>Requests without an “id” are notifications; the server does not respond:</p>
+<p>{“jsonrpc”:“2.0”,“method”:“notifications/initialized”}</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="complete-function-reference"><a class="header" href="#complete-function-reference">Complete Function Reference</a></h1>
+<p>rcalc includes <strong>351 builtin functions</strong> covering:</p>
+<ul>
+<li><strong>Arithmetic &amp; Math</strong> — 60+ functions</li>
+<li><strong>Strings</strong> — 17 functions</li>
+<li><strong>Lists</strong> — 14 functions</li>
+<li><strong>Matrices</strong> — 8 functions</li>
+<li><strong>Sets</strong> — 7 functions</li>
+<li><strong>File I/O</strong> — 24 functions</li>
+<li><strong>System &amp; Environment</strong> — 12 functions</li>
+<li><strong>Type &amp; Introspection</strong> — 8 functions</li>
+<li><strong>And many more…</strong></li>
+</ul>
+<h2 id="quick-search"><a class="header" href="#quick-search">Quick Search</a></h2>
+<p>Use <code>help &lt;name&gt;</code> in the interactive mode to search:</p>
+<pre><code class="language-bash">rcalc
+&gt; help sin           # Find all sine-related functions (19 results)
+&gt; help list          # Find all list functions
+&gt; help string        # Find all string functions
+</code></pre>
+<h2 id="by-category"><a class="header" href="#by-category">By Category</a></h2>
+<p>See the help topics for detailed information:</p>
+<ul>
+<li><a href="#builtin-functions">Builtin Functions</a> — Overview and categories</li>
+<li><a href="#numbers--precision">Math Functions</a> — Number operations</li>
+<li><a href="#strings-2">String Functions</a> — Text manipulation</li>
+<li><a href="#lists-1">List Functions</a> — Collections</li>
+<li><a href="#file-io">File I/O</a> — File operations</li>
+<li><a href="#configuration">System Access</a> — System functions</li>
+</ul>
+<h2 id="all-functions"><a class="header" href="#all-functions">All Functions</a></h2>
+<p>For the complete list of all 351 functions with signatures and descriptions, run:</p>
+<pre><code class="language-bash">rcalc
+&gt; help
+</code></pre>
+<p>This will display:</p>
+<ul>
+<li>Topic list</li>
+<li>All 351 builtin functions</li>
+<li>Search guide</li>
+</ul>
+<h2 id="examples-by-function-type"><a class="header" href="#examples-by-function-type">Examples by Function Type</a></h2>
+<h3 id="math"><a class="header" href="#math">Math</a></h3>
+<pre><code class="language-bash">rcalc 'sin(pi()/6)'        # sin(π/6) ≈ 0.5
+rcalc 'gcd(462, 1071)'     # 21
+rcalc 'factorial(10)'      # 3628800
+rcalc 'sqrt(2)'            # ~1.414...
+rcalc 'isprime(1000003)'   # 1
+</code></pre>
+<h3 id="strings"><a class="header" href="#strings">Strings</a></h3>
+<pre><code class="language-bash">rcalc 'strlen("hello")'            # 5
+rcalc 'substr("hello", 1, 3)'      # "ell"
+rcalc 'toupper("hello")'           # "HELLO"
+rcalc 'split("a,b,c", ",")'        # ["a","b","c"]
+</code></pre>
+<h3 id="lists"><a class="header" href="#lists">Lists</a></h3>
+<pre><code class="language-bash">rcalc 'sort(list(3,1,2))'          # [1,2,3]
+rcalc 'sum(list(1,2,3,4,5))'       # 15
+rcalc 'mean(list(1,2,3,4,5))'      # 3
+rcalc 'zip(list(1,2), list("a","b"))' # [[1,"a"],[2,"b"]]
+</code></pre>
+<h3 id="type-checking"><a class="header" href="#type-checking">Type Checking</a></h3>
+<pre><code class="language-bash">rcalc 'typeof(5)'                  # "number"
+rcalc 'typeof("hello")'            # "string"
+rcalc 'typeof(list(1,2))'          # "list"
+</code></pre>
+<hr>
+<p>For more detailed information, see <a href="#builtin-functions">Builtin Functions</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="math-functions"><a class="header" href="#math-functions">Math Functions</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="string-functions"><a class="header" href="#string-functions">String Functions</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="list-functions"><a class="header" href="#list-functions">List Functions</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="examples"><a class="header" href="#examples">Examples</a></h1>
+<h2 id="basic-calculations"><a class="header" href="#basic-calculations">Basic Calculations</a></h2>
+<pre><code class="language-bash"># Simple arithmetic
+rcalc '2 + 3'                          # 5
+rcalc '10 * 5'                         # 50
+rcalc '100 / 7'                        # ~14.28571...
+
+# Exact rationals
+rcalc -m frac '1/3 + 1/6'             # 1/2
+rcalc -m frac '22/7 - pi()'           # ~0.00126448...
+</code></pre>
+<h2 id="big-numbers-exact"><a class="header" href="#big-numbers-exact">Big Numbers (Exact)</a></h2>
+<pre><code class="language-bash"># 2^256 computed exactly
+rcalc '2^256'
+# Output: 115792089237316195423570985008687907853269984665640564039457584007913129639936
+
+# Factorial (exact)
+rcalc 'fact(30)'
+# Output: 265252859812191058636308480000000
+</code></pre>
+<h2 id="math-functions-1"><a class="header" href="#math-functions-1">Math Functions</a></h2>
+<pre><code class="language-bash"># Trigonometry
+rcalc 'sin(pi()/6)'                    # ~0.5
+rcalc 'cos(0)'                         # 1
+rcalc 'atan2(1, 1)'                    # ~0.785398... (π/4)
+
+# Logarithms
+rcalc 'ln(e())'                        # ~1
+rcalc 'log(1000)'                      # ~3
+rcalc 'log2(8)'                        # 3
+
+# Special functions
+rcalc 'gamma(5)'                       # 24 (4!)
+rcalc 'erf(1)'                         # ~0.8427...
+</code></pre>
+<h2 id="complex-numbers"><a class="header" href="#complex-numbers">Complex Numbers</a></h2>
+<pre><code class="language-bash"># Square root of negative
+rcalc 'sqrt(-1)'                       # 1i
+rcalc 'sqrt(-4)'                       # 2i
+
+# Complex operations
+rcalc 'sqrt(-1) * sqrt(-1)'            # -1
+rcalc 're(2 + 3i)'                     # 2 (real part)
+rcalc 'im(2 + 3i)'                     # 3 (imaginary part)
+</code></pre>
+<h2 id="lists--collections"><a class="header" href="#lists--collections">Lists &amp; Collections</a></h2>
+<pre><code class="language-bash"># Create and manipulate lists
+rcalc 'list(1,2,3,4,5)'                # [1, 2, 3, 4, 5]
+rcalc 'sort(list(5,3,1,4,2))'          # [1, 2, 3, 4, 5]
+rcalc 'reverse(list(1,2,3))'           # [3, 2, 1]
+
+# List operations
+rcalc 'sum(list(1,2,3,4,5))'           # 15
+rcalc 'mean(list(1,2,3,4,5))'          # 3
+rcalc 'max(list(1,5,3,2,4))'           # 5
+
+# Searching
+rcalc 'find(list(10,20,30), 20)'       # 1
+rcalc 'contains(list(1,2,3), 2)'       # 1
+</code></pre>
+<h2 id="strings-1"><a class="header" href="#strings-1">Strings</a></h2>
+<pre><code class="language-bash"># String operations
+rcalc 'strlen("hello")'                # 5
+rcalc 'substr("hello", 0, 3)'          # "hel"
+rcalc 'index("hello world", "world")'  # 6
+
+# Transformations
+rcalc 'toupper("hello")'               # "HELLO"
+rcalc 'tolower("HELLO")'               # "hello"
+rcalc 'replace("hello", "l", "L")'     # "heLLo"
+
+# Splitting &amp; joining
+rcalc 'split("a,b,c", ",")'            # ["a", "b", "c"]
+</code></pre>
+<h2 id="number-theory"><a class="header" href="#number-theory">Number Theory</a></h2>
+<pre><code class="language-bash"># Prime operations
+rcalc 'isprime(997)'                   # 1
+rcalc 'nextprime(1000)'                # 1009
+rcalc 'prevprime(1000)'                # 997
+
+# Factorization
+rcalc 'factor(60)'                     # [2, 2, 3, 5]
+rcalc 'gcd(462, 1071)'                 # 21
+rcalc 'lcm(12, 18)'                    # 36
+</code></pre>
+<h2 id="base-conversion"><a class="header" href="#base-conversion">Base Conversion</a></h2>
+<pre><code class="language-bash"># Hexadecimal
+rcalc 'hex(255)'                       # ff
+
+# Binary
+rcalc 'bin(15)'                        # 1111
+
+# Octal
+rcalc 'oct(64)'                        # 100
+
+# Custom bases
+rcalc -m int 'base(16); 255'           # ff
+rcalc -m int 'base(2); 255'            # 11111111
+</code></pre>
+<h2 id="user-defined-functions"><a class="header" href="#user-defined-functions">User-Defined Functions</a></h2>
+<pre><code class="language-bash"># Simple function
+rcalc &lt;&lt; 'EOF'
+define double(x) = x * 2
+double(5)
+EOF
+# Output: 10
+
+# Recursive function
+rcalc &lt;&lt; 'EOF'
+define fib(n) {
+    if (n &lt;= 1) return n
+    return fib(n-1) + fib(n-2)
+}
+fib(10)
+EOF
+# Output: 55
+</code></pre>
+<h2 id="control-flow"><a class="header" href="#control-flow">Control Flow</a></h2>
+<pre><code class="language-bash"># If/else
+rcalc &lt;&lt; 'EOF'
+x = 15
+if (x &gt; 10) {
+    print "large"
+} else {
+    print "small"
+}
+EOF
+# Output: large
+
+# Loops
+rcalc &lt;&lt; 'EOF'
+sum = 0
+for (i = 1; 5) {
+    sum = sum + i
+}
+print sum
+EOF
+# Output: 15
+</code></pre>
+<h2 id="pipe-mode-1"><a class="header" href="#pipe-mode-1">Pipe Mode</a></h2>
+<pre><code class="language-bash"># Multiple expressions
+echo -e '2+3\n10*5\nsqrt(2)' | rcalc -p
+# Output:
+# 5
+# 50
+# ~1.41421356237309504881
+
+# With different modes
+echo '1/3 + 1/6' | rcalc -p -m frac
+# Output: 1/2
+</code></pre>
+<h2 id="statistical-operations"><a class="header" href="#statistical-operations">Statistical Operations</a></h2>
+<pre><code class="language-bash"># Create sample data
+rcalc &lt;&lt; 'EOF'
+data = list(2, 4, 6, 8, 10)
+print "Mean:"
+mean(data)
+print "Median:"
+median(data)
+print "Variance:"
+variance(data)
+print "Std Dev:"
+stdev(data)
+EOF
+</code></pre>
+<h2 id="matrix-operations"><a class="header" href="#matrix-operations">Matrix Operations</a></h2>
+<pre><code class="language-bash">rcalc &lt;&lt; 'EOF'
+m = list(list(1,2), list(3,4))
+# Determinant
+det(m)          # -2
+# Transpose
+mattrans(m)     # [[1,3], [2,4]]
+# Trace
+mattrace(m)     # 5
+EOF
+</code></pre>
+<hr>
+<p>For more examples and detailed explanations, see the <a href="#introduction-to-rcalc-1">Help Topics</a> and <a href="#complete-function-reference">Function Reference</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,13 @@
+[book]
+title = "rcalc Documentation"
+authors = ["rcalc Contributors"]
+description = "Complete documentation for rcalc, an arbitrary-precision calculator"
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+search.enable = true
+git-repository-url = "https://github.com/carlomagnoglobal/toRustCalcMCP"
