@@ -2063,7 +2063,7 @@ fn f_fprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         match item {
             Value::Str(s) => output.push_str(s),
             Value::Number(n) => output.push_str(&number::to_decimal_string(n, 15)),
-            _ => output.push_str(&a[i].render(&it.cfg)),
+            _ => output.push_str(&item.render(&it.cfg)),
         }
     }
 
@@ -3969,7 +3969,7 @@ fn f_printf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         let replacement = match item {
             Value::Str(s) => s.clone(),
             Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
-            _ => format!("{:?}", a[i]),
+            _ => format!("{:?}", item),
         };
         // Replace first %s or %d with the argument
         if let Some(pos) = output.find("%s").or_else(|| output.find("%d")) {
@@ -3999,7 +3999,7 @@ fn f_sprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         let replacement = match item {
             Value::Str(s) => s.clone(),
             Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
-            _ => format!("{:?}", a[i]),
+            _ => format!("{:?}", item),
         };
         // Replace first %s or %d with the argument
         if let Some(pos) = output.find("%s").or_else(|| output.find("%d")) {
@@ -4026,7 +4026,7 @@ fn f_format(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         let replacement = match item {
             Value::Str(s) => s.clone(),
             Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
-            _ => format!("{:?}", a[i]),
+            _ => format!("{:?}", item),
         };
         // Replace next placeholder with the argument
         if let Some(pos) = output.find("{}") {
