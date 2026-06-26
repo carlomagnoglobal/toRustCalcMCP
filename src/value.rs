@@ -14,7 +14,7 @@ pub enum Value {
     Str(String),
     Null,
     Function(Vec<String>, Rc<Expr>), // params, body (as Expr)
-    List(Vec<Value>), // homogeneous list
+    List(Vec<Value>),                // homogeneous list
     Hash(std::collections::HashMap<String, Value>), // associative array
 }
 
@@ -67,7 +67,11 @@ impl Value {
                             n.numer().to_string()
                         }
                     } else {
-                        format!("{}/{}", number::to_base(n.numer(), cfg.obase), number::to_base(n.denom(), cfg.obase))
+                        format!(
+                            "{}/{}",
+                            number::to_base(n.numer(), cfg.obase),
+                            number::to_base(n.denom(), cfg.obase)
+                        )
                     }
                 }
                 crate::config::Mode::Int => {
@@ -106,9 +110,7 @@ impl Value {
             Value::Null => String::new(),
             Value::Function(_, _) => String::new(), // Functions don't render
             Value::List(items) => {
-                let rendered: Vec<String> = items.iter()
-                    .map(|v| v.render(cfg))
-                    .collect();
+                let rendered: Vec<String> = items.iter().map(|v| v.render(cfg)).collect();
                 format!("[{}]", rendered.join(", "))
             }
             Value::Hash(map) => {

@@ -7,8 +7,7 @@ use torustcalcmcp::eval::Interp;
 
 fn main() {
     let port = 8888;
-    let server = Server::http(format!("127.0.0.1:{}", port))
-        .expect("Failed to bind to port");
+    let server = Server::http(format!("127.0.0.1:{}", port)).expect("Failed to bind to port");
 
     println!("rcalc web interface running at: http://localhost:{}", port);
     println!("Press Ctrl+C to stop.\n");
@@ -28,8 +27,11 @@ fn handle_request(mut request: Request, interp: &Arc<Mutex<Interp>>) {
         ("GET", "/") => {
             let html = include_str!("../web/index.html");
             let response = Response::from_string(html).with_header(
-                tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..])
-                    .unwrap(),
+                tiny_http::Header::from_bytes(
+                    &b"Content-Type"[..],
+                    &b"text/html; charset=utf-8"[..],
+                )
+                .unwrap(),
             );
             let _ = request.respond(response);
         }
@@ -71,12 +73,18 @@ fn handle_request(mut request: Request, interp: &Arc<Mutex<Interp>>) {
 
                         let response = Response::from_string(response_json.to_string())
                             .with_header(
-                                tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
-                                    .unwrap(),
+                                tiny_http::Header::from_bytes(
+                                    &b"Content-Type"[..],
+                                    &b"application/json"[..],
+                                )
+                                .unwrap(),
                             )
                             .with_header(
-                                tiny_http::Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..])
-                                    .unwrap(),
+                                tiny_http::Header::from_bytes(
+                                    &b"Access-Control-Allow-Origin"[..],
+                                    &b"*"[..],
+                                )
+                                .unwrap(),
                             );
                         let _ = request.respond(response);
                         return;

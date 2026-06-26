@@ -237,7 +237,10 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
             })
         }
         "calc_session" => {
-            let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("state");
+            let action = args
+                .get("action")
+                .and_then(|v| v.as_str())
+                .unwrap_or("state");
             if action == "reset" {
                 *it = Interp::new();
                 json!({ "content": [{ "type": "text", "text": "session reset" }], "isError": false })

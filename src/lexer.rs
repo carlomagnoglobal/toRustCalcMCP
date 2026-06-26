@@ -19,9 +19,9 @@ pub enum Tok {
     Minus,
     Star,
     Slash,
-    SlashSlash,  // //
+    SlashSlash, // //
     Percent,
-    Caret,        // ^ (power)
+    Caret, // ^ (power)
     // Comparisons
     EqEq,
     BangEq,
@@ -213,7 +213,9 @@ pub fn lex(src: &str) -> Result<Vec<Tok>, String> {
                 }
                 toks.push(Tok::String(s));
             }
-            _ if ch.is_ascii_digit() || (ch == '.' && chars.clone().nth(1).is_some_and(|c| c.is_ascii_digit())) => {
+            _ if ch.is_ascii_digit()
+                || (ch == '.' && chars.clone().nth(1).is_some_and(|c| c.is_ascii_digit())) =>
+            {
                 toks.push(lex_number(&mut chars)?);
             }
             _ if ch.is_ascii_alphabetic() || ch == '_' => {
@@ -279,7 +281,10 @@ fn lex_number(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<Tok, S
 
 fn lex_ident(chars: &mut std::iter::Peekable<std::str::Chars>) -> Tok {
     let mut ident = String::new();
-    while chars.peek().is_some_and(|c| c.is_ascii_alphanumeric() || *c == '_') {
+    while chars
+        .peek()
+        .is_some_and(|c| c.is_ascii_alphanumeric() || *c == '_')
+    {
         ident.push(chars.next().unwrap());
     }
     match ident.as_str() {

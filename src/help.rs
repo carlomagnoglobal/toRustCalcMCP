@@ -1,9 +1,25 @@
 //! Topic-based help system (ported from calc).
 
 pub const TOPICS: &[&str] = &[
-    "intro", "usage", "builtin", "define", "statement", "expression",
-    "operator", "variable", "number", "config", "type", "list",
-    "string", "mat", "assoc", "file", "error", "resource", "mcp",
+    "intro",
+    "usage",
+    "builtin",
+    "define",
+    "statement",
+    "expression",
+    "operator",
+    "variable",
+    "number",
+    "config",
+    "type",
+    "list",
+    "string",
+    "mat",
+    "assoc",
+    "file",
+    "error",
+    "resource",
+    "mcp",
 ];
 
 pub fn topic(name: &str) -> Option<&'static str> {

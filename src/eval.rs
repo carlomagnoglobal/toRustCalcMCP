@@ -15,18 +15,18 @@ pub struct Interp {
     pub global_vars: HashMap<String, Value>,
     pub scope_stack: Vec<HashMap<String, Value>>, // Stack of local scopes
     pub builtins: HashMap<String, BuiltinFn>,
-    pub rng_seed: u64, // Seed for RNG (LCG-style)
-    pub error_count: i64, // Number of errors occurred
-    pub error_max: i64, // Max errors before stopping (0 = unlimited)
-    pub last_errno: i64, // Last error code
+    pub rng_seed: u64,                        // Seed for RNG (LCG-style)
+    pub error_count: i64,                     // Number of errors occurred
+    pub error_max: i64,                       // Max errors before stopping (0 = unlimited)
+    pub last_errno: i64,                      // Last error code
     pub error_messages: HashMap<i64, String>, // Error code to message mapping
-    pub open_files: Vec<(String, u64)>, // File path and current position for each fd
-    pub next_fd: i64, // Next available file descriptor
+    pub open_files: Vec<(String, u64)>,       // File path and current position for each fd
+    pub next_fd: i64,                         // Next available file descriptor
     pub memory_blocks: HashMap<i64, Vec<u8>>, // Allocated memory blocks (id -> data)
-    pub next_block_id: i64, // Next block ID to allocate
-    pub eval_stack: Vec<Value>, // Evaluation stack for push/pop
-    pub argv_vec: Vec<String>, // Command-line arguments
-    pub current_cmd: String, // Current command buffer
+    pub next_block_id: i64,                   // Next block ID to allocate
+    pub eval_stack: Vec<Value>,               // Evaluation stack for push/pop
+    pub argv_vec: Vec<String>,                // Command-line arguments
+    pub current_cmd: String,                  // Current command buffer
 }
 
 impl Default for Interp {
@@ -124,22 +124,29 @@ impl Interp {
                         Value::Number(n) => Value::Number(-n),
                         Value::Complex(r, i) => Value::Complex(-r, -i),
                         _ => return Err("not a number".to_string()),
-                    }
+                    },
                     UnOp::Pos => match v {
                         Value::Number(n) => Value::Number(n),
                         Value::Complex(r, i) => Value::Complex(r, i),
                         _ => return Err("not a number".to_string()),
-                    }
+                    },
                 })
             }
             Expr::Binary(op, l, r) => self.eval_binary(*op, l, r),
             Expr::Call(name, args) => {
-                let argv: Vec<Value> =
-                    args.iter().map(|a| self.eval(a)).collect::<Result<_, _>>()?;
+                let argv: Vec<Value> = args
+                    .iter()
+                    .map(|a| self.eval(a))
+                    .collect::<Result<_, _>>()?;
                 // Check if it's a user-defined function first
                 if let Some(Value::Function(params, body)) = self.get_var(name) {
                     if params.len() != argv.len() {
-                        return Err(format!("{}() expects {} args, got {}", name, params.len(), argv.len()));
+                        return Err(format!(
+                            "{}() expects {} args, got {}",
+                            name,
+                            params.len(),
+                            argv.len()
+                        ));
                     }
                     // Create new scope for function call
                     let mut local_scope = HashMap::new();
@@ -218,13 +225,18 @@ impl Interp {
                 Ok(result)
             }
             Expr::Print(args) => {
-                let values: Vec<Value> = args.iter().map(|a| self.eval(a)).collect::<Result<_, _>>()?;
+                let values: Vec<Value> = args
+                    .iter()
+                    .map(|a| self.eval(a))
+                    .collect::<Result<_, _>>()?;
                 let mut output = Vec::new();
                 for v in &values {
                     match v {
                         Value::Str(s) => output.push(s.clone()),
-                        Value::Number(n) => output.push(number::to_decimal_string(n, self.cfg.display)),
-                        Value::Null => {},
+                        Value::Number(n) => {
+                            output.push(number::to_decimal_string(n, self.cfg.display))
+                        }
+                        Value::Null => {}
                         _ => output.push(format!("{:?}", v)),
                     }
                 }
@@ -241,8 +253,7 @@ impl Interp {
                             return Err("index must be an integer".to_string());
                         }
                         let idx = idx_num.numer();
-                        let idx_i64 = idx.to_i64()
-                            .ok_or("index out of range".to_string())?;
+                        let idx_i64 = idx.to_i64().ok_or("index out of range".to_string())?;
                         let idx_usize = if idx_i64 < 0 {
                             // Negative indexing: -1 is last element
                             let len = items.len() as i64;
@@ -251,7 +262,8 @@ impl Interp {
                             idx_i64 as usize
                         };
 
-                        items.get(idx_usize)
+                        items
+                            .get(idx_usize)
                             .cloned()
                             .ok_or("index out of bounds".to_string())
                     }
@@ -279,12 +291,8 @@ impl Interp {
 
         // Perform operation on complex numbers
         let result = match op {
-            BinOp::Add => {
-                Value::Complex(&lr + &rr, &li + &ri)
-            }
-            BinOp::Sub => {
-                Value::Complex(&lr - &rr, &li - &ri)
-            }
+            BinOp::Add => Value::Complex(&lr + &rr, &li + &ri),
+            BinOp::Sub => Value::Complex(&lr - &rr, &li - &ri),
             BinOp::Mul => {
                 // (a+bi)(c+di) = (ac-bd) + (ad+bc)i
                 let real = &lr * &rr - &li * &ri;

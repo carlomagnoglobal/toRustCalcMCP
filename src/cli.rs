@@ -180,7 +180,9 @@ fn repl(interp: &mut Interp, quiet: bool) -> Result<(), String> {
                 if trimmed.starts_with("help") {
                     let filter = if trimmed == "help" {
                         None
-                    } else { trimmed.strip_prefix("help ").map(|topic| topic.trim()) };
+                    } else {
+                        trimmed.strip_prefix("help ").map(|topic| topic.trim())
+                    };
                     print_function_help(filter);
                     continue;
                 }
@@ -255,7 +257,10 @@ fn print_function_help(filter: Option<&str>) {
     let filter_lower = f.to_ascii_lowercase();
     let mut matches = Vec::new();
     for (name, sig, desc) in crate::builtins::catalog() {
-        if name.contains(filter_lower.as_str()) || sig.contains(filter_lower.as_str()) || desc.to_ascii_lowercase().contains(filter_lower.as_str()) {
+        if name.contains(filter_lower.as_str())
+            || sig.contains(filter_lower.as_str())
+            || desc.to_ascii_lowercase().contains(filter_lower.as_str())
+        {
             matches.push((name, sig, desc));
         }
     }

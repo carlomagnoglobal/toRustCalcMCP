@@ -108,7 +108,11 @@ fn test_ln_of_e() {
     let mut it = Interp::new();
     let result = it.eval_render("ln(e())").unwrap();
     // Should be very close to 1
-    assert!(result.contains("1") || result.contains("0.99999"), "ln(e()) = {}", result);
+    assert!(
+        result.contains("1") || result.contains("0.99999"),
+        "ln(e()) = {}",
+        result
+    );
 }
 
 #[test]
@@ -161,7 +165,9 @@ fn test_if_else() {
 fn test_while_loop() {
     let mut it = Interp::new();
     // Simpler while loop: increment x each iteration
-    let result = it.eval_render("x = 0; while (x < 5) (x = x + 1); x").unwrap();
+    let result = it
+        .eval_render("x = 0; while (x < 5) (x = x + 1); x")
+        .unwrap();
     let lines: Vec<&str> = result.lines().collect();
     assert_eq!(lines.last().unwrap(), &"5");
 }
@@ -169,7 +175,9 @@ fn test_while_loop() {
 #[test]
 fn test_for_loop() {
     let mut it = Interp::new();
-    let result = it.eval_render("sum = 0; for i = 1, 5 sum = sum + i; sum").unwrap();
+    let result = it
+        .eval_render("sum = 0; for i = 1, 5 sum = sum + i; sum")
+        .unwrap();
     let lines: Vec<&str> = result.lines().collect();
     // 1 + 2 + 3 + 4 + 5 = 15
     assert_eq!(lines.last().unwrap(), &"15");
@@ -276,7 +284,9 @@ fn test_list_indexing() {
 #[test]
 fn test_list_append() {
     let mut it = Interp::new();
-    let result = it.eval_render("x = list(1, 2); y = append(x, 3, 4); size(y)").unwrap();
+    let result = it
+        .eval_render("x = list(1, 2); y = append(x, 3, 4); size(y)")
+        .unwrap();
     let lines: Vec<&str> = result.lines().collect();
     assert_eq!(lines[lines.len() - 1], "4");
 }
@@ -284,7 +294,9 @@ fn test_list_append() {
 #[test]
 fn test_list_first_last() {
     let mut it = Interp::new();
-    let result = it.eval_render("x = list(10, 20, 30); first(x); last(x)").unwrap();
+    let result = it
+        .eval_render("x = list(10, 20, 30); first(x); last(x)")
+        .unwrap();
     let lines: Vec<&str> = result.lines().collect();
     assert_eq!(lines[lines.len() - 2], "10");
     assert_eq!(lines[lines.len() - 1], "30");
@@ -330,7 +342,9 @@ fn test_complex_imag_part() {
 #[test]
 fn test_complex_addition() {
     let mut it = Interp::new();
-    let result = it.eval_render("i = sqrt(-1); (1 + 2*i) + (3 + 4*i)").unwrap();
+    let result = it
+        .eval_render("i = sqrt(-1); (1 + 2*i) + (3 + 4*i)")
+        .unwrap();
     let lines: Vec<&str> = result.lines().collect();
     assert_eq!(lines[lines.len() - 1], "4+6i");
 }
@@ -346,7 +360,9 @@ fn test_complex_multiplication() {
 #[test]
 fn test_complex_division() {
     let mut it = Interp::new();
-    let result = it.eval_render("i = sqrt(-1); a = 3 + 4*i; b = 1 + i; a / b").unwrap();
+    let result = it
+        .eval_render("i = sqrt(-1); a = 3 + 4*i; b = 1 + i; a / b")
+        .unwrap();
     let lines: Vec<&str> = result.lines().collect();
     // (3+4i)/(1+i) = 3.5+0.5i
     assert!(lines[lines.len() - 1].contains("3.5"));
@@ -561,7 +577,9 @@ fn test_j1() {
 #[test]
 fn test_catalan() {
     let mut it = Interp::new();
-    let result = it.eval_render("catalan(0); catalan(1); catalan(2); catalan(5)").unwrap();
+    let result = it
+        .eval_render("catalan(0); catalan(1); catalan(2); catalan(5)")
+        .unwrap();
     let lines: Vec<&str> = result.lines().collect();
     assert_eq!(lines[0], "1"); // C_0 = 1
     assert_eq!(lines[1], "1"); // C_1 = 1
@@ -1185,7 +1203,9 @@ fn test_getenv() {
 #[test]
 fn test_putenv() {
     let mut it = Interp::new();
-    let result = it.eval_render("putenv(\"NEW_VAR\", \"new_value\")").unwrap();
+    let result = it
+        .eval_render("putenv(\"NEW_VAR\", \"new_value\")")
+        .unwrap();
     assert_eq!(result, "new_value");
     // Verify it was set
     let check = std::env::var("NEW_VAR").unwrap_or_default();
@@ -1482,7 +1502,9 @@ fn test_assoc_empty() {
 fn test_indices_basic() {
     let mut it = Interp::new();
     // get keys from hash
-    let result = it.eval_render("h = assoc(\"a\", 1, \"b\", 2); indices(h)").unwrap();
+    let result = it
+        .eval_render("h = assoc(\"a\", 1, \"b\", 2); indices(h)")
+        .unwrap();
     // Should be a list of strings
     assert!(result.contains("["));
     assert!(result.contains("a"));
@@ -1493,7 +1515,9 @@ fn test_indices_basic() {
 fn test_insert_new_key() {
     let mut it = Interp::new();
     // insert a new key-value pair
-    let result = it.eval_render("count(insert(assoc(\"a\", 1), \"b\", 2))").unwrap();
+    let result = it
+        .eval_render("count(insert(assoc(\"a\", 1), \"b\", 2))")
+        .unwrap();
     assert_eq!(result.trim(), "2");
 }
 
@@ -1501,7 +1525,9 @@ fn test_insert_new_key() {
 fn test_insert_update_existing() {
     let mut it = Interp::new();
     // update an existing key
-    let result = it.eval_render("count(insert(assoc(\"a\", 1), \"a\", 10))").unwrap();
+    let result = it
+        .eval_render("count(insert(assoc(\"a\", 1), \"a\", 10))")
+        .unwrap();
     assert_eq!(result.trim(), "1");
 }
 
@@ -1509,7 +1535,9 @@ fn test_insert_update_existing() {
 fn test_delete_key() {
     let mut it = Interp::new();
     // delete a key from hash
-    let result = it.eval_render("count(delete(assoc(\"a\", 1, \"b\", 2), \"a\"))").unwrap();
+    let result = it
+        .eval_render("count(delete(assoc(\"a\", 1, \"b\", 2), \"a\"))")
+        .unwrap();
     assert_eq!(result.trim(), "1");
 }
 
@@ -1517,7 +1545,9 @@ fn test_delete_key() {
 fn test_count_hash() {
     let mut it = Interp::new();
     // count key-value pairs
-    let result = it.eval_render("count(assoc(\"a\", 1, \"b\", 2, \"c\", 3))").unwrap();
+    let result = it
+        .eval_render("count(assoc(\"a\", 1, \"b\", 2, \"c\", 3))")
+        .unwrap();
     assert_eq!(result.trim(), "3");
 }
 
@@ -1525,7 +1555,9 @@ fn test_count_hash() {
 fn test_join_values() {
     let mut it = Interp::new();
     // join hash values with separator
-    let result = it.eval_render("h = assoc(\"a\", \"x\", \"b\", \"y\"); join(h, \",\")").unwrap();
+    let result = it
+        .eval_render("h = assoc(\"a\", \"x\", \"b\", \"y\"); join(h, \",\")")
+        .unwrap();
     // Values should be joined
     assert!(result.contains(","));
 }
@@ -1584,7 +1616,8 @@ fn test_newerror_register() {
 fn test_newerror_and_lookup() {
     let mut it = Interp::new();
     // register and then lookup a custom error
-    it.eval_render("newerror(200, \"my custom error\")").unwrap();
+    it.eval_render("newerror(200, \"my custom error\")")
+        .unwrap();
     let result = it.eval_render("errsym(200)").unwrap();
     assert_eq!(result.trim(), "my custom error");
 }
@@ -1595,7 +1628,9 @@ fn test_newerror_and_lookup() {
 fn test_fopen_write() {
     let mut it = Interp::new();
     // Open a file for writing
-    let result = it.eval_render("fopen(\"/tmp/test_calc.txt\", \"w\")").unwrap();
+    let result = it
+        .eval_render("fopen(\"/tmp/test_calc.txt\", \"w\")")
+        .unwrap();
     // Should return a file descriptor (3 or higher)
     let fd: i64 = result.trim().parse().unwrap();
     assert!(fd >= 3);
@@ -1614,7 +1649,9 @@ fn test_fopen_read_nonexistent() {
 fn test_fputs_and_fclose() {
     let mut it = Interp::new();
     // Create file and write string
-    let result = it.eval_render("fd = fopen(\"/tmp/test_write.txt\", \"w\"); fputs(fd, \"Hello, World!\")").unwrap();
+    let result = it
+        .eval_render("fd = fopen(\"/tmp/test_write.txt\", \"w\"); fputs(fd, \"Hello, World!\")")
+        .unwrap();
     // Last statement should return length (13)
     assert_eq!(result.lines().last().unwrap(), "13");
 
@@ -1627,7 +1664,8 @@ fn test_fputs_and_fclose() {
 fn test_remove_file() {
     let mut it = Interp::new();
     // Create a file
-    it.eval_render("fd = fopen(\"/tmp/test_remove.txt\", \"w\"); fputs(fd, \"test\"); fclose(fd)").ok();
+    it.eval_render("fd = fopen(\"/tmp/test_remove.txt\", \"w\"); fputs(fd, \"test\"); fclose(fd)")
+        .ok();
 
     // Remove it
     let result = it.eval_render("remove(\"/tmp/test_remove.txt\")").unwrap();
@@ -1642,10 +1680,13 @@ fn test_remove_file() {
 fn test_rename_file() {
     let mut it = Interp::new();
     // Create a file
-    it.eval_render("fd = fopen(\"/tmp/test_orig.txt\", \"w\"); fputs(fd, \"test\"); fclose(fd)").ok();
+    it.eval_render("fd = fopen(\"/tmp/test_orig.txt\", \"w\"); fputs(fd, \"test\"); fclose(fd)")
+        .ok();
 
     // Rename it
-    let result = it.eval_render("rename(\"/tmp/test_orig.txt\", \"/tmp/test_renamed.txt\")").unwrap();
+    let result = it
+        .eval_render("rename(\"/tmp/test_orig.txt\", \"/tmp/test_renamed.txt\")")
+        .unwrap();
     assert_eq!(result.trim(), "0");
 
     // Verify renamed file exists
@@ -1660,10 +1701,14 @@ fn test_rename_file() {
 fn test_seek_and_tell() {
     let mut it = Interp::new();
     // Create file
-    it.eval_render("fd = fopen(\"/tmp/test_seek.txt\", \"w\"); fputs(fd, \"0123456789\"); fclose(fd)").ok();
+    it.eval_render(
+        "fd = fopen(\"/tmp/test_seek.txt\", \"w\"); fputs(fd, \"0123456789\"); fclose(fd)",
+    )
+    .ok();
 
     // Reopen for reading
-    it.eval_render("fd = fopen(\"/tmp/test_seek.txt\", \"r\")").ok();
+    it.eval_render("fd = fopen(\"/tmp/test_seek.txt\", \"r\")")
+        .ok();
 
     // Check initial position
     let pos1 = it.eval_render("tell(3)").unwrap();
@@ -2107,7 +2152,8 @@ fn test_memory_lifecycle() {
 fn test_fflush() {
     let mut it = Interp::new();
     // fflush should return 0 (success) for a valid fd
-    it.eval_render("fopen(\"/tmp/test_fflush.txt\", \"w\")").ok();
+    it.eval_render("fopen(\"/tmp/test_fflush.txt\", \"w\")")
+        .ok();
     let result = it.eval_render("fflush(3)").unwrap();
     assert_eq!(result.trim(), "0");
 }
@@ -2119,7 +2165,8 @@ fn test_rewind() {
     let _ = std::fs::write("/tmp/test_rewind.txt", "hello world");
 
     // Open file and read some content
-    it.eval_render("fopen(\"/tmp/test_rewind.txt\", \"r\")").ok();
+    it.eval_render("fopen(\"/tmp/test_rewind.txt\", \"r\")")
+        .ok();
     it.eval_render("fgets(3)").ok(); // Read a line
 
     // Rewind should return 0
@@ -2141,7 +2188,8 @@ fn test_fread_write() {
     // Write some data then read it back
     let _ = std::fs::write("/tmp/test_freadwrite.txt", "test data");
 
-    it.eval_render("fopen(\"/tmp/test_freadwrite.txt\", \"r\")").ok();
+    it.eval_render("fopen(\"/tmp/test_freadwrite.txt\", \"r\")")
+        .ok();
     let result = it.eval_render("fread(3, 4)").unwrap();
     assert_eq!(result.trim(), "test");
 }
@@ -2162,9 +2210,12 @@ fn test_fseek_operations() {
 fn test_fprintf_output() {
     let mut it = Interp::new();
     // Create a test file
-    it.eval_render("fopen(\"/tmp/test_fprintf.txt\", \"w\")").ok();
+    it.eval_render("fopen(\"/tmp/test_fprintf.txt\", \"w\")")
+        .ok();
     // Write formatted output
-    let result = it.eval_render("fprintf(3, \"hello\", \" \", \"world\")").unwrap();
+    let result = it
+        .eval_render("fprintf(3, \"hello\", \" \", \"world\")")
+        .unwrap();
     // Should return number of bytes written (11 for "hello world")
     assert!(result.trim().parse::<i64>().unwrap_or(0) > 0);
 }
@@ -2175,7 +2226,8 @@ fn test_fscan_integers() {
     // Create a test file with integers
     let _ = std::fs::write("/tmp/test_fscan_int.txt", "10 20 30");
 
-    it.eval_render("fopen(\"/tmp/test_fscan_int.txt\", \"r\")").ok();
+    it.eval_render("fopen(\"/tmp/test_fscan_int.txt\", \"r\")")
+        .ok();
     let result = it.eval_render("fscan(3, \"%d %d %d\")").unwrap();
     // Should return a list [10, 20, 30]
     assert!(result.contains("10"));
@@ -2189,7 +2241,8 @@ fn test_fscan_strings() {
     // Create a test file with strings
     let _ = std::fs::write("/tmp/test_fscan_str.txt", "hello world");
 
-    it.eval_render("fopen(\"/tmp/test_fscan_str.txt\", \"r\")").ok();
+    it.eval_render("fopen(\"/tmp/test_fscan_str.txt\", \"r\")")
+        .ok();
     let result = it.eval_render("fscan(3, \"%s %s\")").unwrap();
     // Should return a list with ["hello", "world"]
     assert!(result.contains("hello"));
@@ -2202,7 +2255,8 @@ fn test_fscan_mixed() {
     // Create a test file with mixed types
     let _ = std::fs::write("/tmp/test_fscan_mix.txt", "42 3.14 hello");
 
-    it.eval_render("fopen(\"/tmp/test_fscan_mix.txt\", \"r\")").ok();
+    it.eval_render("fopen(\"/tmp/test_fscan_mix.txt\", \"r\")")
+        .ok();
     let result = it.eval_render("fscan(3, \"%d %f %s\")").unwrap();
     // Should parse integer, float, and string
     assert!(result.contains("42"));
@@ -2215,7 +2269,8 @@ fn test_fscan_hex() {
     // Create a test file with hex numbers
     let _ = std::fs::write("/tmp/test_fscan_hex.txt", "ff 10");
 
-    it.eval_render("fopen(\"/tmp/test_fscan_hex.txt\", \"r\")").ok();
+    it.eval_render("fopen(\"/tmp/test_fscan_hex.txt\", \"r\")")
+        .ok();
     let result = it.eval_render("fscan(3, \"%x %x\")").unwrap();
     // Should parse hex values (ff=255, 10=16)
     assert!(result.contains("255"));
@@ -2228,7 +2283,8 @@ fn test_fscanf_basic() {
     // Create a test file
     let _ = std::fs::write("/tmp/test_fscanf.txt", "123 456");
 
-    it.eval_render("fopen(\"/tmp/test_fscanf.txt\", \"r\")").ok();
+    it.eval_render("fopen(\"/tmp/test_fscanf.txt\", \"r\")")
+        .ok();
     let result = it.eval_render("fscanf(3, \"%d %d\")").unwrap();
     // Should work the same as fscan, returning list
     assert!(result.contains("123"));
@@ -2262,7 +2318,9 @@ fn test_exists_true() {
 #[test]
 fn test_exists_false() {
     let mut it = Interp::new();
-    let result = it.eval_render("exists(\"/tmp/nonexistent_file_xyz.txt\")").unwrap();
+    let result = it
+        .eval_render("exists(\"/tmp/nonexistent_file_xyz.txt\")")
+        .unwrap();
     // File doesn't exist, should return 0
     assert_eq!(result.trim(), "0");
 }
@@ -2281,7 +2339,9 @@ fn test_isdir_false() {
     let _ = std::fs::write("/tmp/test_isdir_file.txt", "test");
 
     let mut it = Interp::new();
-    let result = it.eval_render("isdir(\"/tmp/test_isdir_file.txt\")").unwrap();
+    let result = it
+        .eval_render("isdir(\"/tmp/test_isdir_file.txt\")")
+        .unwrap();
     // Regular file, not a directory
     assert_eq!(result.trim(), "0");
 }
@@ -2339,7 +2399,9 @@ fn test_str_conversion() {
 #[test]
 fn test_replace_string() {
     let mut it = Interp::new();
-    let result = it.eval_render("replace(\"hello hello\", \"hello\", \"hi\")").unwrap();
+    let result = it
+        .eval_render("replace(\"hello hello\", \"hello\", \"hi\")")
+        .unwrap();
     assert_eq!(result.trim(), "hi hi");
 }
 
@@ -2484,7 +2546,9 @@ fn test_reverse_list() {
 #[test]
 fn test_unique_removes_dupes() {
     let mut it = Interp::new();
-    let result = it.eval_render("size(unique(list(1, 2, 2, 3, 3, 3)))").unwrap();
+    let result = it
+        .eval_render("size(unique(list(1, 2, 2, 3, 3, 3)))")
+        .unwrap();
     assert_eq!(result.trim(), "3");
 }
 
@@ -2554,7 +2618,8 @@ fn test_count_list() {
 #[test]
 fn test_flatten_nested() {
     let mut it = Interp::new();
-    it.eval_render("x = list(1, 2); y = list(3, 4); z = list(x, y)").ok();
+    it.eval_render("x = list(1, 2); y = list(3, 4); z = list(x, y)")
+        .ok();
     let result = it.eval_render("size(flatten(z))").unwrap();
     assert_eq!(result.trim(), "4");
 }
@@ -2562,7 +2627,9 @@ fn test_flatten_nested() {
 #[test]
 fn test_zip_lists() {
     let mut it = Interp::new();
-    let result = it.eval_render("size(zip(list(1, 2, 3), list(4, 5, 6)))").unwrap();
+    let result = it
+        .eval_render("size(zip(list(1, 2, 3), list(4, 5, 6)))")
+        .unwrap();
     assert_eq!(result.trim(), "3");
 }
 
@@ -2770,7 +2837,9 @@ fn test_bin_all_ones() {
 #[test]
 fn test_sprintf_multiple_args() {
     let mut it = Interp::new();
-    let result = it.eval_render("sprintf(\"%d + %d = %d\", 2, 3, 5)").unwrap();
+    let result = it
+        .eval_render("sprintf(\"%d + %d = %d\", 2, 3, 5)")
+        .unwrap();
     assert!(result.contains("2 + 3 = 5"));
 }
 
@@ -3097,7 +3166,9 @@ fn test_polyderiv_linear() {
 #[test]
 fn test_union_sets() {
     let mut it = Interp::new();
-    let result = it.eval_render("union(list(1, 2, 3), list(3, 4, 5))").unwrap();
+    let result = it
+        .eval_render("union(list(1, 2, 3), list(3, 4, 5))")
+        .unwrap();
     // Should contain 1,2,3,4,5
     assert!(result.contains("1"));
     assert!(result.contains("4"));
@@ -3106,7 +3177,9 @@ fn test_union_sets() {
 #[test]
 fn test_intersection_sets() {
     let mut it = Interp::new();
-    let result = it.eval_render("intersection(list(1, 2, 3), list(2, 3, 4))").unwrap();
+    let result = it
+        .eval_render("intersection(list(1, 2, 3), list(2, 3, 4))")
+        .unwrap();
     // Should contain 2,3
     assert!(result.contains("2"));
     assert!(result.contains("3"));
@@ -3115,7 +3188,9 @@ fn test_intersection_sets() {
 #[test]
 fn test_difference_sets() {
     let mut it = Interp::new();
-    let result = it.eval_render("difference(list(1, 2, 3), list(2, 4))").unwrap();
+    let result = it
+        .eval_render("difference(list(1, 2, 3), list(2, 4))")
+        .unwrap();
     // Should contain 1,3
     assert!(result.contains("1"));
 }

@@ -15,10 +15,10 @@ pub enum Expr {
     // Control flow
     Define(String, Vec<String>, Box<Expr>), // name, params, body
     If(Box<Expr>, Box<Expr>, Option<Box<Expr>>), // cond, then_branch, else_branch
-    While(Box<Expr>, Box<Expr>), // cond, body
+    While(Box<Expr>, Box<Expr>),            // cond, body
     For(String, Box<Expr>, Box<Expr>, Box<Expr>), // var, start, end, body
-    Block(Vec<Expr>), // sequence of statements
-    Print(Vec<Expr>), // print args
+    Block(Vec<Expr>),                       // sequence of statements
+    Print(Vec<Expr>),                       // print args
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -121,9 +121,11 @@ impl Parser {
         self.expect(Tok::If)?;
         let cond = Box::new(self.parse_assignment()?);
         let then_branch = Box::new(self.parse_assignment()?);
-        let else_branch = if self.peek().map(|t| {
-            matches!(t, Tok::Ident(s) if s == "else")
-        }).unwrap_or(false) {
+        let else_branch = if self
+            .peek()
+            .map(|t| matches!(t, Tok::Ident(s) if s == "else"))
+            .unwrap_or(false)
+        {
             self.advance();
             Some(Box::new(self.parse_assignment()?))
         } else {
@@ -148,7 +150,12 @@ impl Parser {
         self.expect(Tok::Equal)?;
         let start = Box::new(self.parse_assignment()?);
         // Expect a comma or 'to' keyword
-        if self.peek() == Some(&Tok::Comma) || self.peek().map(|t| matches!(t, Tok::Ident(s) if s == "to")).unwrap_or(false) {
+        if self.peek() == Some(&Tok::Comma)
+            || self
+                .peek()
+                .map(|t| matches!(t, Tok::Ident(s) if s == "to"))
+                .unwrap_or(false)
+        {
             self.advance();
         } else {
             return Err("expected ',' or 'to' in for loop".to_string());
@@ -161,7 +168,10 @@ impl Parser {
     fn parse_print(&mut self) -> Result<Expr, String> {
         self.expect(Tok::Print)?;
         let mut args = Vec::new();
-        if self.peek() != Some(&Tok::Semicolon) && self.peek() != Some(&Tok::RParen) && self.peek().is_some() {
+        if self.peek() != Some(&Tok::Semicolon)
+            && self.peek() != Some(&Tok::RParen)
+            && self.peek().is_some()
+        {
             loop {
                 args.push(self.parse_assignment()?);
                 if self.peek() == Some(&Tok::Comma) {

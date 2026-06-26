@@ -225,9 +225,7 @@ pub fn root(x: &Num, n: i64, epsilon: &Num) -> Result<Num, String> {
 
     let n_bi = Num::from_integer(bi(n));
     let mut g = match abs_x.to_f64().map(|v| v.powf(1.0 / n as f64)) {
-        Some(v) if v.is_finite() && v > 0.0 => {
-            Num::from_float(v).unwrap_or_else(|| &abs_x / &n_bi)
-        }
+        Some(v) if v.is_finite() && v > 0.0 => Num::from_float(v).unwrap_or_else(|| &abs_x / &n_bi),
         _ => &abs_x / &n_bi,
     };
 
@@ -288,7 +286,11 @@ pub fn iroot(x: &Num, k: i64) -> Result<Num, String> {
     }
 
     let is_negative = x.is_negative();
-    let bi_x = if is_negative { -x.to_integer() } else { x.to_integer() };
+    let bi_x = if is_negative {
+        -x.to_integer()
+    } else {
+        x.to_integer()
+    };
 
     // Binary search for the integer root
     let mut low = bi(0);
@@ -502,7 +504,8 @@ pub fn sin(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let neg_y_sq = -&y_sq;
 
     for n in 1..500 {
-        term = &term * &neg_y_sq / (Num::from_integer(bi(2 * n as i64)) * Num::from_integer(bi(2 * n as i64 + 1)));
+        term = &term * &neg_y_sq
+            / (Num::from_integer(bi(2 * n as i64)) * Num::from_integer(bi(2 * n as i64 + 1)));
         result += &term;
         if &term.abs() < epsilon {
             break;
@@ -534,7 +537,8 @@ pub fn cos(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let neg_y_sq = -&y_sq;
 
     for n in 1..500 {
-        term = &term * &neg_y_sq / (Num::from_integer(bi(2 * n as i64 - 1)) * Num::from_integer(bi(2 * n as i64)));
+        term = &term * &neg_y_sq
+            / (Num::from_integer(bi(2 * n as i64 - 1)) * Num::from_integer(bi(2 * n as i64)));
         result += &term;
         if &term.abs() < epsilon {
             break;
@@ -612,7 +616,10 @@ pub fn acos(x: &Num, epsilon: &Num) -> Result<Num, String> {
         return Err("acos: domain error (|x| > 1)".to_string());
     }
     let asin_val = asin(x, epsilon)?;
-    Ok(round_to_epsilon(&(&pi() / Num::from_integer(bi(2)) - asin_val), epsilon))
+    Ok(round_to_epsilon(
+        &(&pi() / Num::from_integer(bi(2)) - asin_val),
+        epsilon,
+    ))
 }
 
 /// Inverse tangent: atan(x) via series, to within `epsilon`.
@@ -710,14 +717,20 @@ pub fn acsc(x: &Num, epsilon: &Num) -> Result<Num, String> {
 pub fn sinh(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let exp_x = exp(x, epsilon)?;
     let exp_neg_x = exp(&(-x), epsilon)?;
-    Ok(round_to_epsilon(&((&exp_x - &exp_neg_x) / Num::from_integer(bi(2))), epsilon))
+    Ok(round_to_epsilon(
+        &((&exp_x - &exp_neg_x) / Num::from_integer(bi(2))),
+        epsilon,
+    ))
 }
 
 /// Hyperbolic cosine: cosh(x) = (e^x + e^-x) / 2, to within `epsilon`.
 pub fn cosh(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let exp_x = exp(x, epsilon)?;
     let exp_neg_x = exp(&(-x), epsilon)?;
-    Ok(round_to_epsilon(&((&exp_x + &exp_neg_x) / Num::from_integer(bi(2))), epsilon))
+    Ok(round_to_epsilon(
+        &((&exp_x + &exp_neg_x) / Num::from_integer(bi(2))),
+        epsilon,
+    ))
 }
 
 /// Hyperbolic tangent: tanh(x) = sinh(x) / cosh(x), to within `epsilon`.
@@ -787,7 +800,10 @@ pub fn atanh(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let denominator = &one - x;
     let ratio = &numerator / &denominator;
     let ln_val = ln(&ratio, epsilon)?;
-    Ok(round_to_epsilon(&(&ln_val / Num::from_integer(bi(2))), epsilon))
+    Ok(round_to_epsilon(
+        &(&ln_val / Num::from_integer(bi(2))),
+        epsilon,
+    ))
 }
 
 /// Inverse hyperbolic cotangent: acoth(x) = 0.5 * ln((x+1)/(x-1)) for |x| > 1.
@@ -800,7 +816,10 @@ pub fn acoth(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let denominator = x - &one;
     let ratio = &numerator / &denominator;
     let ln_val = ln(&ratio, epsilon)?;
-    Ok(round_to_epsilon(&(&ln_val / Num::from_integer(bi(2))), epsilon))
+    Ok(round_to_epsilon(
+        &(&ln_val / Num::from_integer(bi(2))),
+        epsilon,
+    ))
 }
 
 /// Inverse hyperbolic secant: asech(x) = ln(1/x + sqrt(1/x^2 - 1)) for 0 < x <= 1.
@@ -910,7 +929,10 @@ pub fn gd(x: &Num, epsilon: &Num) -> Result<Num, String> {
     let half = Num::one() / Num::from_integer(bi(2));
     let tanh_val = tanh(&(x * &half), epsilon)?;
     let atan_val = atan(&tanh_val, epsilon)?;
-    Ok(round_to_epsilon(&(&Num::from_integer(bi(2)) * &atan_val), epsilon))
+    Ok(round_to_epsilon(
+        &(&Num::from_integer(bi(2)) * &atan_val),
+        epsilon,
+    ))
 }
 
 /// Inverse Gudermannian: agd(x) = (1/2) * ln((1 + sin(x)) / (1 - sin(x)))
@@ -924,7 +946,10 @@ pub fn agd(x: &Num, epsilon: &Num) -> Result<Num, String> {
     }
     let ratio = &numerator / &denominator;
     let ln_val = ln(&ratio, epsilon)?;
-    Ok(round_to_epsilon(&(&ln_val / Num::from_integer(bi(2))), epsilon))
+    Ok(round_to_epsilon(
+        &(&ln_val / Num::from_integer(bi(2))),
+        epsilon,
+    ))
 }
 
 /// Bessel function of the first kind, order 0: J0(x)
@@ -1080,13 +1105,17 @@ pub fn polygamma(n: i64, x: &Num, epsilon: &Num) -> Result<Num, String> {
     } else {
         // For higher orders, use numerical differentiation via finite differences
         // ψ^(n)(x) ≈ (ψ^(n-1)(x+h) - ψ^(n-1)(x-h)) / (2h)
-        let h = Num::from_float(0.0001).unwrap_or(Num::from_integer(bi(1)) / Num::from_integer(bi(10000)));
+        let h = Num::from_float(0.0001)
+            .unwrap_or(Num::from_integer(bi(1)) / Num::from_integer(bi(10000)));
         let x_plus = x + &h;
         let x_minus = x - &h;
         let psi_plus = polygamma(n - 1, &x_plus, epsilon)?;
         let psi_minus = polygamma(n - 1, &x_minus, epsilon)?;
         let diff = &psi_plus - &psi_minus;
-        Ok(round_to_epsilon(&(&diff / (&h * Num::from_integer(bi(2)))), epsilon))
+        Ok(round_to_epsilon(
+            &(&diff / (&h * Num::from_integer(bi(2)))),
+            epsilon,
+        ))
     }
 }
 
@@ -1105,12 +1134,18 @@ pub fn zeta(s: &Num, epsilon: &Num) -> Result<Num, String> {
                 2 => {
                     let pi_val = pi();
                     let pi_sq = &pi_val * &pi_val;
-                    return Ok(round_to_epsilon(&(&pi_sq / Num::from_integer(bi(6))), epsilon));
+                    return Ok(round_to_epsilon(
+                        &(&pi_sq / Num::from_integer(bi(6))),
+                        epsilon,
+                    ));
                 }
                 4 => {
                     let pi_val = pi();
                     let pi_pow4 = &pi_val * &pi_val * &pi_val * &pi_val;
-                    return Ok(round_to_epsilon(&(&pi_pow4 / Num::from_integer(bi(90))), epsilon));
+                    return Ok(round_to_epsilon(
+                        &(&pi_pow4 / Num::from_integer(bi(90))),
+                        epsilon,
+                    ));
                 }
                 _ => {}
             }
@@ -1542,7 +1577,11 @@ pub fn isalnum(s: &str) -> i32 {
         return 0;
     }
     let first_char = s.chars().next().unwrap();
-    if first_char.is_alphanumeric() { 1 } else { 0 }
+    if first_char.is_alphanumeric() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Check if character is uppercase letter
@@ -1551,7 +1590,11 @@ pub fn isupper(s: &str) -> i32 {
         return 0;
     }
     let first_char = s.chars().next().unwrap();
-    if first_char.is_uppercase() { 1 } else { 0 }
+    if first_char.is_uppercase() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Check if character is lowercase letter
@@ -1560,7 +1603,11 @@ pub fn islower(s: &str) -> i32 {
         return 0;
     }
     let first_char = s.chars().next().unwrap();
-    if first_char.is_lowercase() { 1 } else { 0 }
+    if first_char.is_lowercase() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Check if character is printable
@@ -1569,7 +1616,11 @@ pub fn isprint(s: &str) -> i32 {
         return 0;
     }
     let first_char = s.chars().next().unwrap();
-    if !first_char.is_control() { 1 } else { 0 }
+    if !first_char.is_control() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Check if character is visible (printable and not space)
@@ -1578,7 +1629,11 @@ pub fn isgraph(s: &str) -> i32 {
         return 0;
     }
     let first_char = s.chars().next().unwrap();
-    if !first_char.is_whitespace() && !first_char.is_control() { 1 } else { 0 }
+    if !first_char.is_whitespace() && !first_char.is_control() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Check if character is control character
@@ -1587,7 +1642,11 @@ pub fn iscntrl(s: &str) -> i32 {
         return 0;
     }
     let first_char = s.chars().next().unwrap();
-    if first_char.is_control() { 1 } else { 0 }
+    if first_char.is_control() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Check if character is punctuation
@@ -1610,12 +1669,20 @@ pub fn isxdigit(s: &str) -> i32 {
         return 0;
     }
     let first_char = s.chars().next().unwrap();
-    if first_char.is_ascii_hexdigit() { 1 } else { 0 }
+    if first_char.is_ascii_hexdigit() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Check if string contains only ASCII characters
 pub fn isascii(s: &str) -> i32 {
-    if s.is_ascii() { 1 } else { 0 }
+    if s.is_ascii() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Convert string to uppercase
@@ -1876,9 +1943,12 @@ pub fn det(matrix: &[Vec<Num>]) -> Result<Num, String> {
             Ok(&a - &b)
         }
         3 => {
-            let a = &matrix[0][0] * &(&matrix[1][1] * &matrix[2][2] - &matrix[1][2] * &matrix[2][1]);
-            let b = &matrix[0][1] * &(&matrix[1][0] * &matrix[2][2] - &matrix[1][2] * &matrix[2][0]);
-            let c = &matrix[0][2] * &(&matrix[1][0] * &matrix[2][1] - &matrix[1][1] * &matrix[2][0]);
+            let a =
+                &matrix[0][0] * &(&matrix[1][1] * &matrix[2][2] - &matrix[1][2] * &matrix[2][1]);
+            let b =
+                &matrix[0][1] * &(&matrix[1][0] * &matrix[2][2] - &matrix[1][2] * &matrix[2][0]);
+            let c =
+                &matrix[0][2] * &(&matrix[1][0] * &matrix[2][1] - &matrix[1][1] * &matrix[2][0]);
             Ok(&(&a - &b) + &c)
         }
         _ => Err("det: only 1x1, 2x2, and 3x3 matrices supported".to_string()),
@@ -2161,9 +2231,10 @@ pub fn to_string_in_base(x: &Num, base: u32, digits: usize) -> String {
                 while carry && i > 0 {
                     i -= 1;
                     let c = frac_chars[i];
-                    if c == b'z' || (c.is_ascii_digit() && c == b'9') ||
-                       c.is_ascii_lowercase() {
-                        frac_chars[i] = if (b'0'..=b'8').contains(&c) || c.is_ascii_lowercase() { c + 1 } else {
+                    if c == b'z' || (c.is_ascii_digit() && c == b'9') || c.is_ascii_lowercase() {
+                        frac_chars[i] = if (b'0'..=b'8').contains(&c) || c.is_ascii_lowercase() {
+                            c + 1
+                        } else {
                             b'0'
                         };
                         if frac_chars[i] != b'0' {
@@ -2173,12 +2244,24 @@ pub fn to_string_in_base(x: &Num, base: u32, digits: usize) -> String {
                 }
                 if carry {
                     let int_inc = &int_part + 1;
-                    return assemble_base(neg, &int_inc, String::from_utf8_lossy(&frac_chars).as_ref(), exact, base);
+                    return assemble_base(
+                        neg,
+                        &int_inc,
+                        String::from_utf8_lossy(&frac_chars).as_ref(),
+                        exact,
+                        base,
+                    );
                 }
             }
         }
     }
-    assemble_base(neg, &int_part, String::from_utf8_lossy(&frac_chars).as_ref(), exact, base)
+    assemble_base(
+        neg,
+        &int_part,
+        String::from_utf8_lossy(&frac_chars).as_ref(),
+        exact,
+        base,
+    )
 }
 
 fn assemble_base(neg: bool, int_part: &BigInt, frac: &str, exact: bool, base: u32) -> String {

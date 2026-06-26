@@ -1,9 +1,9 @@
 //! Builtin functions (~40 of them).
 
 use crate::eval::BuiltinFn;
+use crate::eval::Interp;
 use crate::number::{self, Num};
 use crate::value::Value;
-use crate::eval::Interp;
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive, Zero};
 
@@ -154,7 +154,9 @@ fn f_avg(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     for v in a {
         sum += v.as_number()?;
     }
-    Ok(Value::Number(sum / Num::from_integer(BigInt::from(a.len()))))
+    Ok(Value::Number(
+        sum / Num::from_integer(BigInt::from(a.len())),
+    ))
 }
 
 // GCD
@@ -253,11 +255,11 @@ fn f_arg(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         return Ok(Value::Number(Num::zero()));
     }
     // atan2(imag, real)
-    let angle_f64 = i.to_f64()
+    let angle_f64 = i
+        .to_f64()
         .and_then(|im| r.to_f64().map(|re| im.atan2(re)))
         .ok_or("overflow in arg")?;
-    let angle = Num::from_float(angle_f64)
-        .ok_or("non-finite result in arg")?;
+    let angle = Num::from_float(angle_f64).ok_or("non-finite result in arg")?;
     Ok(Value::Number(angle))
 }
 
@@ -268,9 +270,7 @@ fn f_fact(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     if n_val.is_negative() {
         return Err("factorial of negative number".to_string());
     }
-    let n_u32 = n_val
-        .to_u32()
-        .ok_or("factorial argument too large")?;
+    let n_u32 = n_val.to_u32().ok_or("factorial argument too large")?;
     let mut result = BigInt::from(1);
     for i in 2..=n_u32 {
         result *= i;
@@ -343,7 +343,11 @@ fn f_isprime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
     if let Some(n_u64) = n.to_u64() {
         let is_p = is_prime(n_u64);
-        Ok(Value::Number(Num::from_integer(BigInt::from(if is_p { 1 } else { 0 }))))
+        Ok(Value::Number(Num::from_integer(BigInt::from(if is_p {
+            1
+        } else {
+            0
+        }))))
     } else {
         Err("number too large for primality test".to_string())
     }
@@ -382,7 +386,10 @@ fn f_factor(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("factor", a, 1)?;
     let n = int(a, 0)?.to_i64().ok_or("factor: number too large")?;
     let factors = number::factor(n)?;
-    let result_list: Vec<Value> = factors.iter().map(|f| Value::Number(Num::from_integer(f.clone()))).collect();
+    let result_list: Vec<Value> = factors
+        .iter()
+        .map(|f| Value::Number(Num::from_integer(f.clone())))
+        .collect();
     Ok(Value::List(result_list))
 }
 
@@ -505,7 +512,9 @@ fn f_log(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
     let xf = x.to_f64().ok_or("overflow")?;
     let r = xf.log10();
-    Num::from_float(r).ok_or_else(|| "non-finite".to_string()).map(Value::Number)
+    Num::from_float(r)
+        .ok_or_else(|| "non-finite".to_string())
+        .map(Value::Number)
 }
 
 // Log base 2
@@ -517,7 +526,9 @@ fn f_log2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
     let xf = x.to_f64().ok_or("overflow")?;
     let r = xf.log2();
-    Num::from_float(r).ok_or_else(|| "non-finite".to_string()).map(Value::Number)
+    Num::from_float(r)
+        .ok_or_else(|| "non-finite".to_string())
+        .map(Value::Number)
 }
 
 // Log base n
@@ -863,7 +874,9 @@ fn f_rand(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_random(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("random", a, 0)?;
     let r = number::random(&mut it.rng_seed);
-    Num::from_float(r).ok_or_else(|| "random: non-finite result".to_string()).map(Value::Number)
+    Num::from_float(r)
+        .ok_or_else(|| "random: non-finite result".to_string())
+        .map(Value::Number)
 }
 
 // Random bit
@@ -905,7 +918,10 @@ fn f_randperm(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("randperm", a, 1)?;
     let n = int(a, 0)?.to_i64().ok_or("randperm: n out of range")?;
     let perm = number::randperm(n, &mut it.rng_seed)?;
-    let result_list: Vec<Value> = perm.iter().map(|x| Value::Number(Num::from_integer(x.clone()))).collect();
+    let result_list: Vec<Value> = perm
+        .iter()
+        .map(|x| Value::Number(Num::from_integer(x.clone())))
+        .collect();
     Ok(Value::List(result_list))
 }
 
@@ -932,7 +948,9 @@ fn f_ctime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
 fn f_sleep(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("sleep", a, 1)?;
-    let seconds = n(a, 0)?.to_f64().ok_or("sleep: seconds must be convertible to float")?;
+    let seconds = n(a, 0)?
+        .to_f64()
+        .ok_or("sleep: seconds must be convertible to float")?;
     number::sleep_fn(seconds)?;
     Ok(Value::Number(Num::from_integer(BigInt::from(0))))
 }
@@ -974,7 +992,9 @@ fn f_system(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_usertime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("usertime", a, 0)?;
     let elapsed = number::usertime()?;
-    Ok(Value::Number(Num::from_float(elapsed).ok_or("usertime: overflow")?))
+    Ok(Value::Number(
+        Num::from_float(elapsed).ok_or("usertime: overflow")?,
+    ))
 }
 
 // Phase 5.1: Character Classification Functions
@@ -985,7 +1005,9 @@ fn f_isalnum(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("isalnum: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::isalnum(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::isalnum(&s),
+    ))))
 }
 
 fn f_isupper(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -994,7 +1016,9 @@ fn f_isupper(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("isupper: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::isupper(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::isupper(&s),
+    ))))
 }
 
 fn f_islower(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1003,7 +1027,9 @@ fn f_islower(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("islower: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::islower(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::islower(&s),
+    ))))
 }
 
 fn f_isprint(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1012,7 +1038,9 @@ fn f_isprint(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("isprint: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::isprint(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::isprint(&s),
+    ))))
 }
 
 fn f_isgraph(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1021,7 +1049,9 @@ fn f_isgraph(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("isgraph: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::isgraph(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::isgraph(&s),
+    ))))
 }
 
 fn f_iscntrl(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1030,7 +1060,9 @@ fn f_iscntrl(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("iscntrl: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::iscntrl(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::iscntrl(&s),
+    ))))
 }
 
 fn f_ispunct(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1039,7 +1071,9 @@ fn f_ispunct(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("ispunct: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::ispunct(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::ispunct(&s),
+    ))))
 }
 
 fn f_isxdigit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1048,7 +1082,9 @@ fn f_isxdigit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("isxdigit: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::isxdigit(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::isxdigit(&s),
+    ))))
 }
 
 fn f_isascii(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1057,7 +1093,9 @@ fn f_isascii(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Str(s) => s.clone(),
         _ => return Err("isascii: argument must be a string".to_string()),
     };
-    Ok(Value::Number(Num::from_integer(BigInt::from(number::isascii(&s)))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        number::isascii(&s),
+    ))))
 }
 
 fn f_toupper(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1102,7 +1140,10 @@ fn f_quomod(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let x = n(a, 0)?;
     let y = n(a, 1)?;
     let (quotient, remainder) = number::quomod(x, y)?;
-    Ok(Value::List(vec![Value::Number(quotient), Value::Number(remainder)]))
+    Ok(Value::List(vec![
+        Value::Number(quotient),
+        Value::Number(remainder),
+    ]))
 }
 
 fn f_quo(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1194,14 +1235,20 @@ fn f_matdim(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     match &a[0] {
         Value::List(rows) => {
             if rows.is_empty() {
-                return Ok(Value::List(vec![Value::Number(Num::from_integer(BigInt::from(0))), Value::Number(Num::from_integer(BigInt::from(0)))]));
+                return Ok(Value::List(vec![
+                    Value::Number(Num::from_integer(BigInt::from(0))),
+                    Value::Number(Num::from_integer(BigInt::from(0))),
+                ]));
             }
             let m = rows.len() as i64;
             let n = match &rows[0] {
                 Value::List(row) => row.len() as i64,
                 _ => return Err("matdim: matrix rows must be lists".to_string()),
             };
-            Ok(Value::List(vec![Value::Number(Num::from_integer(BigInt::from(m))), Value::Number(Num::from_integer(BigInt::from(n)))]))
+            Ok(Value::List(vec![
+                Value::Number(Num::from_integer(BigInt::from(m))),
+                Value::Number(Num::from_integer(BigInt::from(n))),
+            ]))
         }
         _ => Err("matdim: argument must be a list (matrix)".to_string()),
     }
@@ -1219,7 +1266,11 @@ fn f_mattrans(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                         for col in cols {
                             match col {
                                 Value::Number(n) => row_nums.push(n.clone()),
-                                _ => return Err("mattrans: matrix elements must be numbers".to_string()),
+                                _ => {
+                                    return Err(
+                                        "mattrans: matrix elements must be numbers".to_string()
+                                    )
+                                }
                             }
                         }
                         matrix.push(row_nums);
@@ -1228,9 +1279,10 @@ fn f_mattrans(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                 }
             }
             let transposed = number::mattrans(&matrix)?;
-            let result = transposed.into_iter().map(|row| {
-                Value::List(row.into_iter().map(Value::Number).collect())
-            }).collect();
+            let result = transposed
+                .into_iter()
+                .map(|row| Value::List(row.into_iter().map(Value::Number).collect()))
+                .collect();
             Ok(Value::List(result))
         }
         _ => Err("mattrans: argument must be a list (matrix)".to_string()),
@@ -1249,7 +1301,11 @@ fn f_mattrace(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                         for col in cols {
                             match col {
                                 Value::Number(n) => row_nums.push(n.clone()),
-                                _ => return Err("mattrace: matrix elements must be numbers".to_string()),
+                                _ => {
+                                    return Err(
+                                        "mattrace: matrix elements must be numbers".to_string()
+                                    )
+                                }
                             }
                         }
                         matrix.push(row_nums);
@@ -1303,7 +1359,11 @@ fn f_inverse(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                         for col in cols {
                             match col {
                                 Value::Number(n) => row_nums.push(n.clone()),
-                                _ => return Err("inverse: matrix elements must be numbers".to_string()),
+                                _ => {
+                                    return Err(
+                                        "inverse: matrix elements must be numbers".to_string()
+                                    )
+                                }
                             }
                         }
                         matrix.push(row_nums);
@@ -1312,9 +1372,10 @@ fn f_inverse(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                 }
             }
             let inv = number::inverse(&matrix)?;
-            let result = inv.into_iter().map(|row| {
-                Value::List(row.into_iter().map(Value::Number).collect())
-            }).collect();
+            let result = inv
+                .into_iter()
+                .map(|row| Value::List(row.into_iter().map(Value::Number).collect()))
+                .collect();
             Ok(Value::List(result))
         }
         _ => Err("inverse: argument must be a list (matrix)".to_string()),
@@ -1333,7 +1394,11 @@ fn f_matsum(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                         for col in cols {
                             match col {
                                 Value::Number(n) => row_nums.push(n.clone()),
-                                _ => return Err("matsum: matrix elements must be numbers".to_string()),
+                                _ => {
+                                    return Err(
+                                        "matsum: matrix elements must be numbers".to_string()
+                                    )
+                                }
                             }
                         }
                         matrix.push(row_nums);
@@ -1360,7 +1425,11 @@ fn f_matmin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                         for col in cols {
                             match col {
                                 Value::Number(n) => row_nums.push(n.clone()),
-                                _ => return Err("matmin: matrix elements must be numbers".to_string()),
+                                _ => {
+                                    return Err(
+                                        "matmin: matrix elements must be numbers".to_string()
+                                    )
+                                }
                             }
                         }
                         matrix.push(row_nums);
@@ -1387,7 +1456,11 @@ fn f_matmax(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                         for col in cols {
                             match col {
                                 Value::Number(n) => row_nums.push(n.clone()),
-                                _ => return Err("matmax: matrix elements must be numbers".to_string()),
+                                _ => {
+                                    return Err(
+                                        "matmax: matrix elements must be numbers".to_string()
+                                    )
+                                }
                             }
                         }
                         matrix.push(row_nums);
@@ -1410,9 +1483,10 @@ fn f_matfill(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let cols = int(a, 1)?.to_i64().ok_or("matfill: cols out of range")?;
     let val = n(a, 2)?;
     let matrix = number::matfill(rows, cols, val)?;
-    let result = matrix.into_iter().map(|row| {
-        Value::List(row.into_iter().map(Value::Number).collect())
-    }).collect();
+    let result = matrix
+        .into_iter()
+        .map(|row| Value::List(row.into_iter().map(Value::Number).collect()))
+        .collect();
     Ok(Value::List(result))
 }
 
@@ -1445,9 +1519,7 @@ fn f_indices(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Value::Hash(map) => {
             let mut keys: Vec<String> = map.keys().cloned().collect();
             keys.sort();
-            let items = keys.into_iter()
-                .map(Value::Str)
-                .collect();
+            let items = keys.into_iter().map(Value::Str).collect();
             Ok(Value::List(items))
         }
         _ => Err("indices: argument must be a hash".to_string()),
@@ -1494,9 +1566,9 @@ fn f_count(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     if a.len() == 1 {
         // Hash count: count(hash) - counts key-value pairs
         match &a[0] {
-            Value::Hash(map) => {
-                Ok(Value::Number(Num::from_integer(BigInt::from(map.len() as i64))))
-            }
+            Value::Hash(map) => Ok(Value::Number(Num::from_integer(BigInt::from(
+                map.len() as i64
+            )))),
             _ => Err("count: argument must be a hash or list".to_string()),
         }
     } else if a.len() == 2 {
@@ -1545,7 +1617,9 @@ fn f_join(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Get error count
 fn f_errcount(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("errcount", a, 0)?;
-    Ok(Value::Number(Num::from_integer(BigInt::from(it.error_count))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        it.error_count,
+    ))))
 }
 
 // Set maximum number of errors before stopping
@@ -1560,7 +1634,9 @@ fn f_errmax(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Get last error code
 fn f_errno(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("errno", a, 0)?;
-    Ok(Value::Number(Num::from_integer(BigInt::from(it.last_errno))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        it.last_errno,
+    ))))
 }
 
 // Get error message for error code
@@ -1627,7 +1703,7 @@ fn f_warn(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Phase 6.1: File I/O
 
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Write};
 
 // Open a file
 fn f_fopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -1643,10 +1719,19 @@ fn f_fopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     // Validate the file can be opened
     let _f = match mode.as_str() {
-        "r" => File::open(&filename).map_err(|e| format!("fopen: cannot open {}: {}", filename, e))?,
-        "w" => OpenOptions::new().write(true).create(true).truncate(true).open(&filename)
+        "r" => {
+            File::open(&filename).map_err(|e| format!("fopen: cannot open {}: {}", filename, e))?
+        }
+        "w" => OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&filename)
             .map_err(|e| format!("fopen: cannot create {}: {}", filename, e))?,
-        "a" => OpenOptions::new().create(true).append(true).open(&filename)
+        "a" => OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&filename)
             .map_err(|e| format!("fopen: cannot open {}: {}", filename, e))?,
         _ => return Err("fopen: mode must be 'r', 'w', or 'a'".to_string()),
     };
@@ -1692,8 +1777,7 @@ fn f_fgets(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let (path, _pos) = &it.open_files[idx];
-    let mut file = File::open(path)
-        .map_err(|e| format!("fgets: cannot read {}: {}", path, e))?;
+    let mut file = File::open(path).map_err(|e| format!("fgets: cannot read {}: {}", path, e))?;
 
     // Simple approach: read entire file into memory (not ideal for large files)
     let mut contents = String::new();
@@ -1722,8 +1806,7 @@ fn f_fgetc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let (path, pos) = it.open_files[idx].clone();
-    let mut file = File::open(&path)
-        .map_err(|e| format!("fgetc: cannot read {}: {}", path, e))?;
+    let mut file = File::open(&path).map_err(|e| format!("fgetc: cannot read {}: {}", path, e))?;
 
     file.seek(SeekFrom::Start(pos))
         .map_err(|e| format!("fgetc: seek error: {}", e))?;
@@ -1732,7 +1815,9 @@ fn f_fgetc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     match file.read_exact(&mut buf) {
         Ok(_) => {
             it.open_files[idx].1 = pos + 1;
-            Ok(Value::Number(Num::from_integer(BigInt::from(buf[0] as i64))))
+            Ok(Value::Number(Num::from_integer(BigInt::from(
+                buf[0] as i64,
+            ))))
         }
         Err(_) => Ok(Value::Number(Num::from_integer(BigInt::from(-1)))),
     }
@@ -1757,13 +1842,17 @@ fn f_fputs(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let path = it.open_files[idx].0.clone();
-    let mut file = OpenOptions::new().append(true).open(&path)
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(&path)
         .map_err(|e| format!("fputs: cannot write to {}: {}", path, e))?;
 
     file.write_all(text.as_bytes())
         .map_err(|e| format!("fputs: write error: {}", e))?;
 
-    Ok(Value::Number(Num::from_integer(BigInt::from(text.len() as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        text.len() as i64
+    ))))
 }
 
 // Write character to a file
@@ -1782,7 +1871,9 @@ fn f_fputc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let path = it.open_files[idx].0.clone();
-    let mut file = OpenOptions::new().append(true).open(&path)
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(&path)
         .map_err(|e| format!("fputc: cannot write to {}: {}", path, e))?;
 
     let byte = (ch & 0xFF) as u8;
@@ -1849,11 +1940,15 @@ fn f_eof(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     let (path, pos) = &it.open_files[idx];
 
-    let metadata = std::fs::metadata(path)
-        .map_err(|e| format!("eof: cannot stat {}: {}", path, e))?;
+    let metadata =
+        std::fs::metadata(path).map_err(|e| format!("eof: cannot stat {}: {}", path, e))?;
 
     let at_eof = *pos >= metadata.len();
-    Ok(Value::Number(Num::from_integer(BigInt::from(if at_eof { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(if at_eof {
+        1
+    } else {
+        0
+    }))))
 }
 
 // Remove (delete) a file
@@ -1942,8 +2037,7 @@ fn f_fread(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let (path, pos) = it.open_files[idx].clone();
-    let mut file = File::open(&path)
-        .map_err(|e| format!("fread: cannot read {}: {}", path, e))?;
+    let mut file = File::open(&path).map_err(|e| format!("fread: cannot read {}: {}", path, e))?;
 
     file.seek(SeekFrom::Start(pos))
         .map_err(|e| format!("fread: seek error: {}", e))?;
@@ -1979,11 +2073,15 @@ fn f_fwrite(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let path = it.open_files[idx].0.clone();
-    let mut file = OpenOptions::new().append(true).open(&path)
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(&path)
         .map_err(|e| format!("fwrite: cannot write to {}: {}", path, e))?;
 
     match file.write_all(data.as_bytes()) {
-        Ok(_) => Ok(Value::Number(Num::from_integer(BigInt::from(data.len() as i64)))),
+        Ok(_) => Ok(Value::Number(Num::from_integer(BigInt::from(
+            data.len() as i64
+        )))),
         Err(e) => Err(format!("fwrite: write error: {}", e)),
     }
 }
@@ -2005,17 +2103,18 @@ fn f_fseek(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let (path, _) = &it.open_files[idx];
-    let _file = File::open(path)
-        .map_err(|e| format!("fseek: cannot open {}: {}", path, e))?;
+    let _file = File::open(path).map_err(|e| format!("fseek: cannot open {}: {}", path, e))?;
 
     let new_pos = match whence {
-        0 => { // SEEK_SET
+        0 => {
+            // SEEK_SET
             if offset < 0 {
                 return Err("fseek: offset cannot be negative with SEEK_SET".to_string());
             }
             offset as u64
         }
-        1 => { // SEEK_CUR
+        1 => {
+            // SEEK_CUR
             let current = it.open_files[idx].1 as i64;
             let new = current + offset;
             if new < 0 {
@@ -2023,7 +2122,8 @@ fn f_fseek(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             }
             new as u64
         }
-        2 => { // SEEK_END
+        2 => {
+            // SEEK_END
             let metadata = std::fs::metadata(path)
                 .map_err(|e| format!("fseek: cannot stat {}: {}", path, e))?;
             let end = metadata.len() as i64;
@@ -2033,11 +2133,17 @@ fn f_fseek(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             }
             new as u64
         }
-        _ => return Err("fseek: whence must be 0 (SEEK_SET), 1 (SEEK_CUR), or 2 (SEEK_END)".to_string()),
+        _ => {
+            return Err(
+                "fseek: whence must be 0 (SEEK_SET), 1 (SEEK_CUR), or 2 (SEEK_END)".to_string(),
+            )
+        }
     };
 
     it.open_files[idx].1 = new_pos;
-    Ok(Value::Number(Num::from_integer(BigInt::from(new_pos as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        new_pos as i64,
+    ))))
 }
 
 // Write formatted string to file (simplified - just writes the value as string)
@@ -2068,13 +2174,17 @@ fn f_fprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let path = it.open_files[idx].0.clone();
-    let mut file = OpenOptions::new().append(true).open(&path)
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(&path)
         .map_err(|e| format!("fprintf: cannot write to {}: {}", path, e))?;
 
     file.write_all(output.as_bytes())
         .map_err(|e| format!("fprintf: write error: {}", e))?;
 
-    Ok(Value::Number(Num::from_integer(BigInt::from(output.len() as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        output.len() as i64
+    ))))
 }
 
 // Read formatted data from file (simplified scanf)
@@ -2118,7 +2228,9 @@ fn f_fscan(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             let spec = fmt_bytes[fmt_idx] as char;
 
             // Skip whitespace in input
-            while input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char).is_whitespace() {
+            while input_idx < remaining_bytes.len()
+                && (remaining_bytes[input_idx] as char).is_whitespace()
+            {
                 input_idx += 1;
             }
 
@@ -2206,7 +2318,9 @@ fn f_fscan(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             fmt_idx += 1;
         } else if (fmt_bytes[fmt_idx] as char).is_whitespace() {
             // Skip whitespace in format string
-            while input_idx < remaining_bytes.len() && (remaining_bytes[input_idx] as char).is_whitespace() {
+            while input_idx < remaining_bytes.len()
+                && (remaining_bytes[input_idx] as char).is_whitespace()
+            {
                 input_idx += 1;
             }
             while fmt_idx < fmt_bytes.len() && (fmt_bytes[fmt_idx] as char).is_whitespace() {
@@ -2253,9 +2367,9 @@ fn f_fsize(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     };
 
     match std::fs::metadata(&filename) {
-        Ok(metadata) => {
-            Ok(Value::Number(Num::from_integer(BigInt::from(metadata.len() as i64))))
-        }
+        Ok(metadata) => Ok(Value::Number(Num::from_integer(BigInt::from(
+            metadata.len() as i64,
+        )))),
         Err(e) => Err(format!("fsize: cannot stat {}: {}", filename, e)),
     }
 }
@@ -2269,7 +2383,11 @@ fn f_exists(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     };
 
     let exists = std::path::Path::new(&filename).exists();
-    Ok(Value::Number(Num::from_integer(BigInt::from(if exists { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(if exists {
+        1
+    } else {
+        0
+    }))))
 }
 
 // Check if path is a directory
@@ -2281,9 +2399,9 @@ fn f_isdir(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     };
 
     match std::fs::metadata(&path) {
-        Ok(metadata) => {
-            Ok(Value::Number(Num::from_integer(BigInt::from(if metadata.is_dir() { 1 } else { 0 }))))
-        }
+        Ok(metadata) => Ok(Value::Number(Num::from_integer(BigInt::from(
+            if metadata.is_dir() { 1 } else { 0 },
+        )))),
         Err(_) => Ok(Value::Number(Num::zero())), // Path doesn't exist or can't be read
     }
 }
@@ -2331,7 +2449,9 @@ fn f_blkcpy(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let src_id = int(a, 1)?.to_i64().ok_or("blkcpy: src out of range")?;
     let size = int(a, 2)?.to_usize().ok_or("blkcpy: size out of range")?;
 
-    let src = it.memory_blocks.get(&src_id)
+    let src = it
+        .memory_blocks
+        .get(&src_id)
         .ok_or("blkcpy: source block not found")?
         .clone();
 
@@ -2339,7 +2459,9 @@ fn f_blkcpy(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         return Err("blkcpy: size exceeds source block".to_string());
     }
 
-    let dest = it.memory_blocks.get_mut(&dest_id)
+    let dest = it
+        .memory_blocks
+        .get_mut(&dest_id)
         .ok_or("blkcpy: destination block not found")?;
 
     if size > dest.len() {
@@ -2354,7 +2476,9 @@ fn f_blkcpy(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Free memory block
 fn f_blkfree(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("blkfree", a, 1)?;
-    let block_id = int(a, 0)?.to_i64().ok_or("blkfree: block_id out of range")?;
+    let block_id = int(a, 0)?
+        .to_i64()
+        .ok_or("blkfree: block_id out of range")?;
 
     match it.memory_blocks.remove(&block_id) {
         Some(_) => Ok(Value::Number(Num::zero())),
@@ -2365,7 +2489,9 @@ fn f_blkfree(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Get number of allocated blocks
 fn f_blocks(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("blocks", a, 0)?;
-    Ok(Value::Number(Num::from_integer(BigInt::from(it.memory_blocks.len() as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        it.memory_blocks.len() as i64,
+    ))))
 }
 
 // Free all memory (clears all blocks)
@@ -2388,7 +2514,9 @@ fn f_freeglobals(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_push(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("push", a, 1)?;
     it.eval_stack.push(a[0].clone());
-    Ok(Value::Number(Num::from_integer(BigInt::from(it.eval_stack.len() as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        it.eval_stack.len() as i64,
+    ))))
 }
 
 // Pop value from evaluation stack
@@ -2403,7 +2531,9 @@ fn f_pop(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Get evaluation stack depth
 fn f_depth(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("depth", a, 0)?;
-    Ok(Value::Number(Num::from_integer(BigInt::from(it.eval_stack.len() as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        it.eval_stack.len() as i64,
+    ))))
 }
 
 // Additional Memory Management Functions (Phase 6.2 extended - memory address functions)
@@ -2411,10 +2541,14 @@ fn f_depth(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Get size of allocated memory block
 fn f_blksize(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("blksize", a, 1)?;
-    let block_id = int(a, 0)?.to_i64().ok_or("blksize: block id out of range")?;
+    let block_id = int(a, 0)?
+        .to_i64()
+        .ok_or("blksize: block id out of range")?;
 
     if let Some(block) = it.memory_blocks.get(&block_id) {
-        Ok(Value::Number(Num::from_integer(BigInt::from(block.len() as i64))))
+        Ok(Value::Number(Num::from_integer(BigInt::from(
+            block.len() as i64
+        ))))
     } else {
         Err(format!("blksize: block {} not allocated", block_id))
     }
@@ -2428,9 +2562,14 @@ fn f_peek(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     if let Some(block) = it.memory_blocks.get(&block_id) {
         if offset < block.len() {
-            Ok(Value::Number(Num::from_integer(BigInt::from(block[offset] as i64))))
+            Ok(Value::Number(Num::from_integer(BigInt::from(
+                block[offset] as i64,
+            ))))
         } else {
-            Err(format!("peek: offset {} out of bounds for block {}", offset, block_id))
+            Err(format!(
+                "peek: offset {} out of bounds for block {}",
+                offset, block_id
+            ))
         }
     } else {
         Err(format!("peek: block {} not allocated", block_id))
@@ -2449,7 +2588,10 @@ fn f_poke(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             block[offset] = value;
             Ok(Value::Number(Num::zero()))
         } else {
-            Err(format!("poke: offset {} out of bounds for block {}", offset, block_id))
+            Err(format!(
+                "poke: offset {} out of bounds for block {}",
+                offset, block_id
+            ))
         }
     } else {
         Err(format!("poke: block {} not allocated", block_id))
@@ -2459,8 +2601,12 @@ fn f_poke(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Read multiple bytes from memory block (returns as string)
 fn f_memread(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("memread", a, 3)?;
-    let block_id = int(a, 0)?.to_i64().ok_or("memread: block id out of range")?;
-    let offset = int(a, 1)?.to_usize().ok_or("memread: offset out of range")?;
+    let block_id = int(a, 0)?
+        .to_i64()
+        .ok_or("memread: block id out of range")?;
+    let offset = int(a, 1)?
+        .to_usize()
+        .ok_or("memread: offset out of range")?;
     let size = int(a, 2)?.to_usize().ok_or("memread: size out of range")?;
 
     if let Some(block) = it.memory_blocks.get(&block_id) {
@@ -2469,7 +2615,10 @@ fn f_memread(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             let result = String::from_utf8_lossy(data).to_string();
             Ok(Value::Str(result))
         } else {
-            Err(format!("memread: read extends beyond block {} bounds", block_id))
+            Err(format!(
+                "memread: read extends beyond block {} bounds",
+                block_id
+            ))
         }
     } else {
         Err(format!("memread: block {} not allocated", block_id))
@@ -2523,8 +2672,7 @@ fn f_eval(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     };
 
     // Parse the string as an expression
-    let exprs = crate::parser::parse(&expr_str)
-        .map_err(|e| format!("eval: parse error: {}", e))?;
+    let exprs = crate::parser::parse(&expr_str).map_err(|e| format!("eval: parse error: {}", e))?;
 
     // Evaluate all expressions and return the last result
     let mut result = Value::Null;
@@ -2541,7 +2689,8 @@ fn f_haversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("haversin", a, 1)?;
     let x = n(a, 0)?;
     let cos_x = number::cos(x, &it.cfg.epsilon)?;
-    let result = (&Num::from_integer(BigInt::from(1)) - &cos_x) / &Num::from_integer(BigInt::from(2));
+    let result =
+        (&Num::from_integer(BigInt::from(1)) - &cos_x) / &Num::from_integer(BigInt::from(2));
     Ok(Value::Number(result))
 }
 
@@ -2597,7 +2746,8 @@ fn f_hacoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("hacoversin", a, 1)?;
     let x = n(a, 0)?;
     let cos_x = number::cos(x, &it.cfg.epsilon)?;
-    let result = (&Num::from_integer(BigInt::from(1)) + &cos_x) / &Num::from_integer(BigInt::from(2));
+    let result =
+        (&Num::from_integer(BigInt::from(1)) + &cos_x) / &Num::from_integer(BigInt::from(2));
     Ok(Value::Number(result))
 }
 
@@ -2615,9 +2765,9 @@ fn f_exsec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
 // Phase 6.6: Cryptographic & Hashing
 
-use sha1::{Sha1, Digest};
-use md5;
 use crc::{Crc, CRC_32_CKSUM};
+use md5;
+use sha1::{Digest, Sha1};
 
 // SHA-1 hash
 fn f_sha1(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -2664,7 +2814,9 @@ fn f_crc32(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     digest.update(data.as_bytes());
     let checksum = digest.finalize();
 
-    Ok(Value::Number(Num::from_integer(BigInt::from(checksum as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        checksum as i64,
+    ))))
 }
 
 // Phase 6.7: Residue Class & Modular Operations
@@ -2790,7 +2942,11 @@ fn f_rceq(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let a_norm = normalize_mod(&a_val, &m);
     let b_norm = normalize_mod(&b_val, &m);
     let result = a_norm == b_norm;
-    Ok(Value::Number(Num::from_integer(BigInt::from(if result { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(if result {
+        1
+    } else {
+        0
+    }))))
 }
 
 // Negate in residue class: (-a) mod m
@@ -3053,7 +3209,11 @@ fn f_bit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let n = int(a, 1)?;
     let n_u32 = n.to_u32().ok_or("bit position too large")?;
     let is_set = (&x >> n_u32) & BigInt::from(1) != BigInt::from(0);
-    Ok(Value::Number(Num::from_integer(BigInt::from(if is_set { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(if is_set {
+        1
+    } else {
+        0
+    }))))
 }
 
 // Position of highest set bit (most significant bit)
@@ -3067,7 +3227,9 @@ fn f_highbit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         x = -x - BigInt::from(1);
     }
     let bits = x.bits();
-    Ok(Value::Number(Num::from_integer(BigInt::from(bits as i64 - 1))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        bits as i64 - 1,
+    ))))
 }
 
 // Position of lowest set bit (least significant bit)
@@ -3139,9 +3301,7 @@ fn f_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_size(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("size", a, 1)?;
     match &a[0] {
-        Value::List(items) => {
-            Ok(Value::Number(Num::from_integer(BigInt::from(items.len()))))
-        }
+        Value::List(items) => Ok(Value::Number(Num::from_integer(BigInt::from(items.len())))),
         _ => Err("size() requires a list".to_string()),
     }
 }
@@ -3164,11 +3324,7 @@ fn f_append(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_first(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("first", a, 1)?;
     match &a[0] {
-        Value::List(items) => {
-            items.first()
-                .cloned()
-                .ok_or("list is empty".to_string())
-        }
+        Value::List(items) => items.first().cloned().ok_or("list is empty".to_string()),
         _ => Err("first() requires a list".to_string()),
     }
 }
@@ -3177,11 +3333,7 @@ fn f_first(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_last(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("last", a, 1)?;
     match &a[0] {
-        Value::List(items) => {
-            items.last()
-                .cloned()
-                .ok_or("list is empty".to_string())
-        }
+        Value::List(items) => items.last().cloned().ok_or("list is empty".to_string()),
         _ => Err("last() requires a list".to_string()),
     }
 }
@@ -3219,7 +3371,8 @@ fn f_slice(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                 items.len()
             };
 
-            let result: Vec<Value> = items.iter()
+            let result: Vec<Value> = items
+                .iter()
                 .skip(start_idx)
                 .take(end_idx.saturating_sub(start_idx))
                 .cloned()
@@ -3260,7 +3413,11 @@ fn f_str(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let s = match &a[0] {
         Value::Str(s) => s.clone(),
         Value::Number(n) => number::to_decimal_string(n, 15),
-        Value::Complex(r, i) => format!("{}+{}i", number::to_decimal_string(r, 15), number::to_decimal_string(i, 15)),
+        Value::Complex(r, i) => format!(
+            "{}+{}i",
+            number::to_decimal_string(r, 15),
+            number::to_decimal_string(i, 15)
+        ),
         Value::List(_) => format!("{:?}", a[0]),
         Value::Null => "null".to_string(),
         _ => format!("{:?}", a[0]),
@@ -3361,7 +3518,9 @@ fn f_startswith(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         _ => return Err("startswith: prefix must be string".to_string()),
     };
 
-    Ok(Value::Number(Num::from_integer(BigInt::from(if s.starts_with(&prefix) { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        if s.starts_with(&prefix) { 1 } else { 0 },
+    ))))
 }
 
 // Check if string ends with suffix
@@ -3376,7 +3535,9 @@ fn f_endswith(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         _ => return Err("endswith: suffix must be string".to_string()),
     };
 
-    Ok(Value::Number(Num::from_integer(BigInt::from(if s.ends_with(&suffix) { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        if s.ends_with(&suffix) { 1 } else { 0 },
+    ))))
 }
 
 // Left pad string to width
@@ -3389,7 +3550,13 @@ fn f_lpad(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let width = int(a, 1)?.to_usize().ok_or("lpad: width out of range")?;
     let fill = if a.len() > 2 {
         match &a[2] {
-            Value::Str(s) => if s.is_empty() { ' ' } else { s.chars().next().unwrap() },
+            Value::Str(s) => {
+                if s.is_empty() {
+                    ' '
+                } else {
+                    s.chars().next().unwrap()
+                }
+            }
             _ => return Err("lpad: fill must be string".to_string()),
         }
     } else {
@@ -3414,7 +3581,13 @@ fn f_rpad(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let width = int(a, 1)?.to_usize().ok_or("rpad: width out of range")?;
     let fill = if a.len() > 2 {
         match &a[2] {
-            Value::Str(s) => if s.is_empty() { ' ' } else { s.chars().next().unwrap() },
+            Value::Str(s) => {
+                if s.is_empty() {
+                    ' '
+                } else {
+                    s.chars().next().unwrap()
+                }
+            }
             _ => return Err("rpad: fill must be string".to_string()),
         }
     } else {
@@ -3464,13 +3637,16 @@ fn f_swapcase(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         _ => return Err("swapcase: argument must be string".to_string()),
     };
 
-    let swapped = s.chars().map(|c| {
-        if c.is_uppercase() {
-            c.to_lowercase().to_string()
-        } else {
-            c.to_uppercase().to_string()
-        }
-    }).collect::<String>();
+    let swapped = s
+        .chars()
+        .map(|c| {
+            if c.is_uppercase() {
+                c.to_lowercase().to_string()
+            } else {
+                c.to_uppercase().to_string()
+            }
+        })
+        .collect::<String>();
     Ok(Value::Str(swapped))
 }
 
@@ -3508,12 +3684,10 @@ fn f_sort(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         _ => return Err("sort: argument must be list".to_string()),
     };
 
-    items.sort_by(|a, b| {
-        match (a, b) {
-            (Value::Number(n1), Value::Number(n2)) => n1.cmp(n2),
-            (Value::Str(s1), Value::Str(s2)) => s1.cmp(s2),
-            _ => std::cmp::Ordering::Equal,
-        }
+    items.sort_by(|a, b| match (a, b) {
+        (Value::Number(n1), Value::Number(n2)) => n1.cmp(n2),
+        (Value::Str(s1), Value::Str(s2)) => s1.cmp(s2),
+        _ => std::cmp::Ordering::Equal,
     });
     Ok(Value::List(items))
 }
@@ -3526,12 +3700,10 @@ fn f_rsort(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         _ => return Err("rsort: argument must be list".to_string()),
     };
 
-    items.sort_by(|a, b| {
-        match (a, b) {
-            (Value::Number(n1), Value::Number(n2)) => n2.cmp(n1),
-            (Value::Str(s1), Value::Str(s2)) => s2.cmp(s1),
-            _ => std::cmp::Ordering::Equal,
-        }
+    items.sort_by(|a, b| match (a, b) {
+        (Value::Number(n1), Value::Number(n2)) => n2.cmp(n1),
+        (Value::Str(s1), Value::Str(s2)) => s2.cmp(s1),
+        _ => std::cmp::Ordering::Equal,
     });
     Ok(Value::List(items))
 }
@@ -3672,7 +3844,11 @@ fn f_contains_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let search_val = &a[1];
 
     let found = items.iter().any(|item| item == search_val);
-    Ok(Value::Number(Num::from_integer(BigInt::from(if found { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(if found {
+        1
+    } else {
+        0
+    }))))
 }
 
 // Count occurrences of value in list
@@ -3747,7 +3923,6 @@ fn f_range(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::List(result))
 }
 
-
 // Phase 9: Variable/Scope Management
 
 // List all global variables
@@ -3757,11 +3932,9 @@ fn f_vars(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     for key in it.global_vars.keys() {
         names.push(Value::Str(key.clone()));
     }
-    names.sort_by(|a, b| {
-        match (a, b) {
-            (Value::Str(s1), Value::Str(s2)) => s1.cmp(s2),
-            _ => std::cmp::Ordering::Equal,
-        }
+    names.sort_by(|a, b| match (a, b) {
+        (Value::Str(s1), Value::Str(s2)) => s1.cmp(s2),
+        _ => std::cmp::Ordering::Equal,
     });
     Ok(Value::List(names))
 }
@@ -3774,9 +3947,17 @@ fn f_defined(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         _ => return Err("defined: argument must be string".to_string()),
     };
 
-    let exists = it.global_vars.contains_key(&name) ||
-                 it.scope_stack.iter().rev().any(|scope| scope.contains_key(&name));
-    Ok(Value::Number(Num::from_integer(BigInt::from(if exists { 1 } else { 0 }))))
+    let exists = it.global_vars.contains_key(&name)
+        || it
+            .scope_stack
+            .iter()
+            .rev()
+            .any(|scope| scope.contains_key(&name));
+    Ok(Value::Number(Num::from_integer(BigInt::from(if exists {
+        1
+    } else {
+        0
+    }))))
 }
 
 // Delete/undefine a variable
@@ -3841,10 +4022,7 @@ fn f_env(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("env", a, 0)?;
     let mut env_list = Vec::new();
     for (key, val) in std::env::vars() {
-        let entry = Value::List(vec![
-            Value::Str(key),
-            Value::Str(val),
-        ]);
+        let entry = Value::List(vec![Value::Str(key), Value::Str(val)]);
         env_list.push(entry);
     }
     Ok(Value::List(env_list))
@@ -3875,7 +4053,6 @@ fn f_dump(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Str(output))
 }
 
-
 // Phase 10: I/O & Formatting
 
 // Print with newline
@@ -3885,7 +4062,7 @@ fn f_println(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         match arg {
             Value::Str(s) => output.push(s.clone()),
             Value::Number(n) => output.push(number::to_decimal_string(n, it.cfg.display)),
-            Value::Null => {},
+            Value::Null => {}
             _ => output.push(format!("{:?}", arg)),
         }
     }
@@ -3902,7 +4079,9 @@ fn f_puts(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         _ => return Err("puts: argument must be string".to_string()),
     };
     println!("{}", s);
-    Ok(Value::Number(Num::from_integer(BigInt::from(s.len() as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        s.len() as i64
+    ))))
 }
 
 // Read line from stdin
@@ -3973,14 +4152,16 @@ fn f_printf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         };
         // Replace first %s or %d with the argument
         if let Some(pos) = output.find("%s").or_else(|| output.find("%d")) {
-            output.replace_range(pos..pos+2, &replacement);
+            output.replace_range(pos..pos + 2, &replacement);
         }
     }
 
     print!("{}", output);
     use std::io::Write;
     std::io::stdout().flush().ok();
-    Ok(Value::Number(Num::from_integer(BigInt::from(output.len() as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        output.len() as i64
+    ))))
 }
 
 // Formatted string (basic version)
@@ -4003,7 +4184,7 @@ fn f_sprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         };
         // Replace first %s or %d with the argument
         if let Some(pos) = output.find("%s").or_else(|| output.find("%d")) {
-            output.replace_range(pos..pos+2, &replacement);
+            output.replace_range(pos..pos + 2, &replacement);
         }
     }
 
@@ -4030,7 +4211,7 @@ fn f_format(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         };
         // Replace next placeholder with the argument
         if let Some(pos) = output.find("{}") {
-            output.replace_range(pos..pos+2, &replacement);
+            output.replace_range(pos..pos + 2, &replacement);
         }
     }
 
@@ -4069,7 +4250,6 @@ fn f_bin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Str(bin_str))
 }
 
-
 // Phase 11: Math Extensions
 
 // Calculate mean (average) of list
@@ -4097,7 +4277,9 @@ fn f_mean(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         return Ok(Value::Null);
     }
 
-    Ok(Value::Number(&sum / &Num::from_integer(BigInt::from(count))))
+    Ok(Value::Number(
+        &sum / &Num::from_integer(BigInt::from(count)),
+    ))
 }
 
 // Calculate median of list
@@ -4132,7 +4314,9 @@ fn f_median(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     } else {
         let mid1 = &numbers[len / 2 - 1];
         let mid2 = &numbers[len / 2];
-        Ok(Value::Number((mid1 + mid2) / &Num::from_integer(BigInt::from(2))))
+        Ok(Value::Number(
+            (mid1 + mid2) / &Num::from_integer(BigInt::from(2)),
+        ))
     }
 }
 
@@ -4172,7 +4356,9 @@ fn f_variance(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         var_sum = &var_sum + &(&diff * &diff);
     }
 
-    Ok(Value::Number(&var_sum / &Num::from_integer(BigInt::from(count))))
+    Ok(Value::Number(
+        &var_sum / &Num::from_integer(BigInt::from(count)),
+    ))
 }
 
 // Calculate standard deviation of list
@@ -4201,7 +4387,9 @@ fn f_clz(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let bits = n.bits();
     let leading_zeros = 64 - bits;
 
-    Ok(Value::Number(Num::from_integer(BigInt::from(leading_zeros as i64))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        leading_zeros as i64,
+    ))))
 }
 
 // Count trailing zeros in binary representation
@@ -4266,7 +4454,11 @@ fn f_ispow2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let n_minus_1 = &n - &BigInt::from(1);
     let is_pow2 = (&n & &n_minus_1) == BigInt::from(0);
 
-    Ok(Value::Number(Num::from_integer(BigInt::from(if is_pow2 { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(if is_pow2 {
+        1
+    } else {
+        0
+    }))))
 }
 
 // Hamming distance between two numbers (count differing bits)
@@ -4428,7 +4620,6 @@ fn f_hmean(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(n_over_sum))
 }
 
-
 // Phase 12: System & Utility Functions
 
 // Get version string
@@ -4449,12 +4640,10 @@ fn f_hostname(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("hostname", a, 0)?;
     match std::env::var("HOSTNAME") {
         Ok(host) => Ok(Value::Str(host)),
-        Err(_) => {
-            match std::env::var("COMPUTERNAME") {
-                Ok(host) => Ok(Value::Str(host)),
-                Err(_) => Ok(Value::Str("unknown".to_string())),
-            }
-        }
+        Err(_) => match std::env::var("COMPUTERNAME") {
+            Ok(host) => Ok(Value::Str(host)),
+            Err(_) => Ok(Value::Str("unknown".to_string())),
+        },
     }
 }
 
@@ -4470,12 +4659,10 @@ fn f_username(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("username", a, 0)?;
     match std::env::var("USER") {
         Ok(user) => Ok(Value::Str(user)),
-        Err(_) => {
-            match std::env::var("USERNAME") {
-                Ok(user) => Ok(Value::Str(user)),
-                Err(_) => Ok(Value::Str("unknown".to_string())),
-            }
-        }
+        Err(_) => match std::env::var("USERNAME") {
+            Ok(user) => Ok(Value::Str(user)),
+            Err(_) => Ok(Value::Str("unknown".to_string())),
+        },
     }
 }
 
@@ -4508,12 +4695,10 @@ fn f_tmpdir(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_pwd(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("pwd", a, 0)?;
     match std::env::current_dir() {
-        Ok(dir) => {
-            match dir.to_str() {
-                Some(s) => Ok(Value::Str(s.to_string())),
-                None => Err("pwd: path contains invalid UTF-8".to_string()),
-            }
-        }
+        Ok(dir) => match dir.to_str() {
+            Some(s) => Ok(Value::Str(s.to_string())),
+            None => Err("pwd: path contains invalid UTF-8".to_string()),
+        },
         Err(e) => Err(format!("pwd: {}", e)),
     }
 }
@@ -4567,7 +4752,6 @@ fn f_uname(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let info = format!("{}-{}", os, arch);
     Ok(Value::Str(info))
 }
-
 
 // Phase 13: Advanced Operations
 
@@ -4830,7 +5014,9 @@ fn f_subset(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     };
 
     let is_subset = set1.iter().all(|item| set2.iter().any(|x| x == item));
-    Ok(Value::Number(Num::from_integer(BigInt::from(if is_subset { 1 } else { 0 }))))
+    Ok(Value::Number(Num::from_integer(BigInt::from(
+        if is_subset { 1 } else { 0 },
+    ))))
 }
 
 // Linear interpolation
@@ -4970,7 +5156,6 @@ fn f_mode(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(mode_val)
 }
 
-
 // Final 5 Functions to reach 100% coverage
 
 // Truncate to integer (remove fractional part)
@@ -5033,7 +5218,8 @@ fn f_expm1(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     // For small x, use Taylor series: expm1(x) = x + x^2/2 + x^3/6 + ...
     // For larger x, compute exp(x) - 1 directly
-    let threshold = Num::from_float(0.1).unwrap_or(Num::from_integer(BigInt::from(1)) / &Num::from_integer(BigInt::from(10)));
+    let threshold = Num::from_float(0.1)
+        .unwrap_or(Num::from_integer(BigInt::from(1)) / &Num::from_integer(BigInt::from(10)));
 
     if x.abs() < threshold {
         // Use Taylor series for small x
@@ -5068,7 +5254,8 @@ fn f_log1p(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     // For small x, use Taylor series: log1p(x) = x - x^2/2 + x^3/3 - x^4/4 + ...
     // For larger x, compute log(1 + x) directly
-    let threshold = Num::from_float(0.1).unwrap_or(Num::from_integer(BigInt::from(1)) / &Num::from_integer(BigInt::from(10)));
+    let threshold = Num::from_float(0.1)
+        .unwrap_or(Num::from_integer(BigInt::from(1)) / &Num::from_integer(BigInt::from(10)));
 
     if x.abs() < threshold {
         // Use Taylor series for small x
@@ -5093,7 +5280,6 @@ fn f_log1p(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         Ok(Value::Number(result))
     }
 }
-
 
 pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::BuiltinFn>) {
     builtins.insert("abs".to_string(), f_abs as BuiltinFn);
@@ -5483,7 +5669,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("gcd", "gcd(x,y)", "greatest common divisor"),
         ("lcm", "lcm(x,y)", "least common multiple"),
         ("mod", "mod(x,y)", "modulus"),
-        ("sqrt", "sqrt(x)", "square root (returns complex for negative x)"),
+        (
+            "sqrt",
+            "sqrt(x)",
+            "square root (returns complex for negative x)",
+        ),
         ("root", "root(x,n)", "nth root"),
         ("cbrt", "cbrt(x)", "cube root"),
         ("isqrt", "isqrt(x)", "integer square root"),
@@ -5508,7 +5698,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("den", "den(x)", "denominator"),
         ("pi", "pi()", "π constant (60 digits)"),
         ("e", "e()", "e constant (60 digits)"),
-        ("base", "base([ibase[,obase]])", "get/set input and output base (2-36)"),
+        (
+            "base",
+            "base([ibase[,obase]])",
+            "get/set input and output base (2-36)",
+        ),
         ("exp", "exp(x)", "e^x"),
         ("ln", "ln(x)", "natural logarithm"),
         ("log", "log(x)", "base-10 logarithm"),
@@ -5556,9 +5750,17 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("j1", "j1(x)", "Bessel function J1"),
         ("y0", "y0(x)", "Bessel function Y0 (second kind)"),
         ("y1", "y1(x)", "Bessel function Y1 (second kind)"),
-        ("gamma", "gamma(x)", "gamma function (generalized factorial)"),
+        (
+            "gamma",
+            "gamma(x)",
+            "gamma function (generalized factorial)",
+        ),
         ("lgamma", "lgamma(x)", "log-gamma function"),
-        ("polygamma", "polygamma(n,x)", "polygamma function (nth derivative of log-gamma)"),
+        (
+            "polygamma",
+            "polygamma(n,x)",
+            "polygamma function (nth derivative of log-gamma)",
+        ),
         ("zeta", "zeta(s)", "Riemann zeta function"),
         ("rand", "rand()", "random 32-bit integer"),
         ("random", "random()", "random float [0,1)"),
@@ -5567,14 +5769,26 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("srand", "srand(s)", "set random seed (alias)"),
         ("srandom", "srandom(s)", "set random seed (alias)"),
         ("randint", "randint(a,b)", "random integer in [a,b]"),
-        ("randperm", "randperm(n)", "random permutation of 0..n-1 (returns list)"),
-        ("time", "time()", "current Unix timestamp (seconds since epoch)"),
+        (
+            "randperm",
+            "randperm(n)",
+            "random permutation of 0..n-1 (returns list)",
+        ),
+        (
+            "time",
+            "time()",
+            "current Unix timestamp (seconds since epoch)",
+        ),
         ("systime", "systime()", "system time (alias for time)"),
         ("ctime", "ctime(t)", "convert Unix timestamp to string"),
         ("sleep", "sleep(s)", "sleep for s seconds"),
         ("getenv", "getenv(name)", "get environment variable"),
         ("putenv", "putenv(name,value)", "set environment variable"),
-        ("system", "system(cmd)", "execute shell command (returns exit code)"),
+        (
+            "system",
+            "system(cmd)",
+            "execute shell command (returns exit code)",
+        ),
         ("usertime", "usertime()", "user/system time in seconds"),
         ("isalnum", "isalnum(s)", "is alphanumeric (1 or 0)"),
         ("isupper", "isupper(s)", "is uppercase letter (1 or 0)"),
@@ -5589,13 +5803,29 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("tolower", "tolower(s)", "convert to lowercase"),
         ("strrev", "strrev(s)", "reverse string"),
         ("pmod", "pmod(x,y)", "positive modulus (result in [0,y))"),
-        ("quomod", "quomod(x,y)", "quotient and modulus (returns [q,r])"),
+        (
+            "quomod",
+            "quomod(x,y)",
+            "quotient and modulus (returns [q,r])",
+        ),
         ("quo", "quo(x,y)", "quotient (floor(x/y))"),
         ("rem", "rem(x,y)", "remainder (x - y*floor(x/y))"),
         ("hnrmod", "hnrmod(x,y)", "Hensel modular"),
-        ("appr", "appr(x[,eps])", "rational approximation within epsilon"),
-        ("cfappr", "cfappr(x[,maxd])", "continued fraction approximation"),
-        ("cfsim", "cfsim(x[,maxd])", "continued fraction simplification"),
+        (
+            "appr",
+            "appr(x[,eps])",
+            "rational approximation within epsilon",
+        ),
+        (
+            "cfappr",
+            "cfappr(x[,maxd])",
+            "continued fraction approximation",
+        ),
+        (
+            "cfsim",
+            "cfsim(x[,maxd])",
+            "continued fraction simplification",
+        ),
         ("scale", "scale(x[,places])", "scale to decimal places"),
         ("matdim", "matdim(m)", "matrix dimensions [rows, cols]"),
         ("mattrans", "mattrans(m)", "matrix transpose"),
@@ -5605,7 +5835,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("matsum", "matsum(m)", "sum of all matrix elements"),
         ("matmin", "matmin(m)", "minimum matrix element"),
         ("matmax", "matmax(m)", "maximum matrix element"),
-        ("matfill", "matfill(r,c,v)", "create matrix filled with value"),
+        (
+            "matfill",
+            "matfill(r,c,v)",
+            "create matrix filled with value",
+        ),
         ("catalan", "catalan(n)", "Catalan number"),
         ("and", "and(x,y)", "bitwise AND"),
         ("or", "or(x,y)", "bitwise OR"),
@@ -5617,19 +5851,43 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("highbit", "highbit(x)", "position of highest set bit"),
         ("lowbit", "lowbit(x)", "position of lowest set bit"),
         ("fcnt", "fcnt(x)", "count of set bits"),
-        ("digits", "digits(x[,base])", "number of digits (base 10 or specified)"),
+        (
+            "digits",
+            "digits(x[,base])",
+            "number of digits (base 10 or specified)",
+        ),
         ("list", "list(x,...)", "create a list from items"),
         ("size", "size(list)", "number of items in list"),
         ("append", "append(list,x,...)", "append items to list"),
         ("first", "first(list)", "get first item"),
         ("last", "last(list)", "get last item"),
-        ("slice", "slice(list,start[,end])", "get sublist from start to end"),
+        (
+            "slice",
+            "slice(list,start[,end])",
+            "get sublist from start to end",
+        ),
         ("strlen", "strlen(s)", "length of string"),
-        ("index", "index(haystack,needle)", "find substring position (-1 if not found)"),
-        ("isalpha", "isalpha(s)", "is string all alphabetic? (1 or 0)"),
+        (
+            "index",
+            "index(haystack,needle)",
+            "find substring position (-1 if not found)",
+        ),
+        (
+            "isalpha",
+            "isalpha(s)",
+            "is string all alphabetic? (1 or 0)",
+        ),
         ("isdigit", "isdigit(s)", "is string all digits? (1 or 0)"),
-        ("isspace", "isspace(s)", "is string all whitespace? (1 or 0)"),
-        ("typeof", "typeof(x)", "get type of value (number, complex, string, list, function, null)"),
+        (
+            "isspace",
+            "isspace(s)",
+            "is string all whitespace? (1 or 0)",
+        ),
+        (
+            "typeof",
+            "typeof(x)",
+            "get type of value (number, complex, string, list, function, null)",
+        ),
         ("isnan", "isnan(x)", "is NaN? (always 0 for rationals)"),
         ("isinf", "isinf(x)", "is infinite? (always 0 for rationals)"),
         ("d2r", "d2r(x)", "degrees to radians"),
@@ -5638,22 +5896,46 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("g2r", "g2r(x)", "gradians to radians"),
         ("g2d", "g2d(x)", "gradians to degrees"),
         // Hash & associative arrays (Phase 5.5)
-        ("assoc", "assoc(k1,v1,...)", "create associative array from key-value pairs"),
+        (
+            "assoc",
+            "assoc(k1,v1,...)",
+            "create associative array from key-value pairs",
+        ),
         ("indices", "indices(h)", "get all keys from hash as list"),
-        ("insert", "insert(h,key,val)", "insert/update key-value pair in hash"),
+        (
+            "insert",
+            "insert(h,key,val)",
+            "insert/update key-value pair in hash",
+        ),
         ("delete", "delete(h,key)", "delete key from hash"),
         ("count", "count(h)", "count key-value pairs in hash"),
         ("join", "join(h,sep)", "join hash values with separator"),
         // Error & exception handling (Phase 6.3)
         ("errcount", "errcount()", "number of errors occurred"),
-        ("errmax", "errmax(n)", "set max errors before stopping (0=unlimited)"),
+        (
+            "errmax",
+            "errmax(n)",
+            "set max errors before stopping (0=unlimited)",
+        ),
         ("errno", "errno()", "last error code"),
         ("errsym", "errsym(code)", "error message for error code"),
         ("error", "error(msg)", "raise an error with message"),
-        ("newerror", "newerror(code,msg)", "register a new error type"),
-        ("warn", "warn(msg)", "issue a warning (not counted as error)"),
+        (
+            "newerror",
+            "newerror(code,msg)",
+            "register a new error type",
+        ),
+        (
+            "warn",
+            "warn(msg)",
+            "issue a warning (not counted as error)",
+        ),
         // File I/O (Phase 6.1)
-        ("fopen", "fopen(filename,mode)", "open file (mode: 'r', 'w', 'a')"),
+        (
+            "fopen",
+            "fopen(filename,mode)",
+            "open file (mode: 'r', 'w', 'a')",
+        ),
         ("fclose", "fclose(fd)", "close file"),
         ("fgets", "fgets(fd)", "read line from file"),
         ("fgetc", "fgetc(fd)", "read character from file"),
@@ -5669,14 +5951,38 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("fileno", "fileno(fd)", "get file descriptor number"),
         ("fread", "fread(fd,size)", "read bytes from file"),
         ("fwrite", "fwrite(fd,data)", "write bytes to file"),
-        ("fseek", "fseek(fd,offset,whence)", "seek with whence (0=SET, 1=CUR, 2=END)"),
+        (
+            "fseek",
+            "fseek(fd,offset,whence)",
+            "seek with whence (0=SET, 1=CUR, 2=END)",
+        ),
         ("fprintf", "fprintf(fd,...)", "formatted write to file"),
-        ("fscan", "fscan(fd,fmt)", "read formatted data from file (returns list)"),
-        ("fscanf", "fscanf(fd,fmt,...)", "read formatted data with arguments (returns list)"),
+        (
+            "fscan",
+            "fscan(fd,fmt)",
+            "read formatted data from file (returns list)",
+        ),
+        (
+            "fscanf",
+            "fscanf(fd,fmt,...)",
+            "read formatted data with arguments (returns list)",
+        ),
         ("fsize", "fsize(filename)", "get file size in bytes"),
-        ("exists", "exists(filename)", "check if file exists (returns 1 or 0)"),
-        ("isdir", "isdir(path)", "check if path is directory (returns 1 or 0)"),
-        ("mkdir", "mkdir(path)", "create directory (returns 0 on success)"),
+        (
+            "exists",
+            "exists(filename)",
+            "check if file exists (returns 1 or 0)",
+        ),
+        (
+            "isdir",
+            "isdir(path)",
+            "check if path is directory (returns 1 or 0)",
+        ),
+        (
+            "mkdir",
+            "mkdir(path)",
+            "create directory (returns 0 on success)",
+        ),
         // Memory & stack management (Phase 6.2)
         ("blk", "blk(size)", "allocate memory block"),
         ("blkcpy", "blkcpy(dest,src,size)", "copy memory block"),
@@ -5688,9 +5994,21 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("pop", "pop()", "pop value from evaluation stack"),
         ("depth", "depth()", "get evaluation stack depth"),
         ("blksize", "blksize(id)", "get size of memory block"),
-        ("peek", "peek(id,offset)", "read byte from memory block at offset"),
-        ("poke", "poke(id,offset,val)", "write byte to memory block at offset"),
-        ("memread", "memread(id,offset,size)", "read bytes from block as string"),
+        (
+            "peek",
+            "peek(id,offset)",
+            "read byte from memory block at offset",
+        ),
+        (
+            "poke",
+            "poke(id,offset,val)",
+            "write byte to memory block at offset",
+        ),
+        (
+            "memread",
+            "memread(id,offset,size)",
+            "read bytes from block as string",
+        ),
         // Command & script functions (Phase 6.4)
         ("argv", "argv(n)", "get nth command-line argument"),
         ("cmdbuf", "cmdbuf()", "get current command buffer"),
@@ -5702,8 +6020,16 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("coversin", "coversin(x)", "coversine: 1 - sin(x)"),
         ("exsecant", "exsecant(x)", "exsecant: sec(x) - 1"),
         ("chord", "chord(x)", "chord: 2 * sin(x/2)"),
-        ("semiversin", "semiversin(x)", "semiversine: alias for haversin"),
-        ("hacoversin", "hacoversin(x)", "havercosine: (1 + cos(x)) / 2"),
+        (
+            "semiversin",
+            "semiversin(x)",
+            "semiversine: alias for haversin",
+        ),
+        (
+            "hacoversin",
+            "hacoversin(x)",
+            "havercosine: (1 + cos(x)) / 2",
+        ),
         ("vers", "vers(x)", "versed sine: alias for versin"),
         ("exsec", "exsec(x)", "exsecant: alias for exsecant"),
         // Cryptographic & hashing (Phase 6.6)
@@ -5714,22 +6040,50 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("rc", "rc(n,m)", "residue class: reduce n modulo m"),
         ("rcadd", "rcadd(a,b,m)", "residue addition: (a+b) mod m"),
         ("rcsub", "rcsub(a,b,m)", "residue subtraction: (a-b) mod m"),
-        ("rcmul", "rcmul(a,b,m)", "residue multiplication: (a*b) mod m"),
+        (
+            "rcmul",
+            "rcmul(a,b,m)",
+            "residue multiplication: (a*b) mod m",
+        ),
         ("rcdiv", "rcdiv(a,b,m)", "residue division: (a/b) mod m"),
         ("rcinv", "rcinv(a,m)", "modular inverse of a mod m"),
-        ("rceq", "rceq(a,b,m)", "residue equality: check if a≡b (mod m)"),
+        (
+            "rceq",
+            "rceq(a,b,m)",
+            "residue equality: check if a≡b (mod m)",
+        ),
         ("rcneg", "rcneg(a,m)", "residue negation: (-a) mod m"),
         // String operations (Phase 7)
-        ("substr", "substr(s,start[,len])", "extract substring from position"),
+        (
+            "substr",
+            "substr(s,start[,len])",
+            "extract substring from position",
+        ),
         ("str", "str(x)", "convert value to string"),
-        ("replace", "replace(s,old,new)", "replace all occurrences in string"),
-        ("split", "split(s,sep)", "split string by separator into list"),
+        (
+            "replace",
+            "replace(s,old,new)",
+            "replace all occurrences in string",
+        ),
+        (
+            "split",
+            "split(s,sep)",
+            "split string by separator into list",
+        ),
         ("ltrim", "ltrim(s)", "trim whitespace from left"),
         ("rtrim", "rtrim(s)", "trim whitespace from right"),
         ("trim", "trim(s)", "trim whitespace from both sides"),
         ("repeat", "repeat(s,n)", "repeat string n times"),
-        ("startswith", "startswith(s,prefix)", "check if string starts with prefix"),
-        ("endswith", "endswith(s,suffix)", "check if string ends with suffix"),
+        (
+            "startswith",
+            "startswith(s,prefix)",
+            "check if string starts with prefix",
+        ),
+        (
+            "endswith",
+            "endswith(s,suffix)",
+            "check if string ends with suffix",
+        ),
         ("lpad", "lpad(s,width[,fill])", "left pad string to width"),
         ("rpad", "rpad(s,width[,fill])", "right pad string to width"),
         ("ord", "ord(c)", "get ASCII code of character"),
@@ -5745,8 +6099,16 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("max", "max(list)", "find maximum value in list"),
         ("sum", "sum(list)", "sum all numeric elements"),
         ("product", "product(list)", "multiply all numeric elements"),
-        ("find", "find(list,value)", "find index of value (-1 if not found)"),
-        ("contains", "contains(list,value)", "check if list contains value"),
+        (
+            "find",
+            "find(list,value)",
+            "find index of value (-1 if not found)",
+        ),
+        (
+            "contains",
+            "contains(list,value)",
+            "check if list contains value",
+        ),
         ("count", "count(list,value)", "count occurrences of value"),
         ("flatten", "flatten(list)", "flatten nested lists"),
         ("zip", "zip(list1,list2)", "combine two lists into pairs"),
@@ -5758,8 +6120,16 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("del", "del(name)", "alias for undefine"),
         ("type", "type(x)", "get type name of value"),
         ("sizeof", "sizeof(x)", "get approximate size in bytes"),
-        ("env", "env()", "list environment variables as [name,value] pairs"),
-        ("dump", "dump()", "dump all state (variables, config, stats)"),
+        (
+            "env",
+            "env()",
+            "list environment variables as [name,value] pairs",
+        ),
+        (
+            "dump",
+            "dump()",
+            "dump all state (variables, config, stats)",
+        ),
         // Phase 10: I/O & Formatting
         ("println", "println(x,...)", "print with newline"),
         ("puts", "puts(s)", "put string with newline"),
@@ -5782,7 +6152,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("nextpow2", "nextpow2(x)", "next power of 2"),
         ("prevpow2", "prevpow2(x)", "previous power of 2"),
         ("ispow2", "ispow2(x)", "check if power of 2"),
-        ("hammingdist", "hammingdist(x,y)", "Hamming distance between two numbers"),
+        (
+            "hammingdist",
+            "hammingdist(x,y)",
+            "Hamming distance between two numbers",
+        ),
         ("gray", "gray(x)", "convert to Gray code"),
         ("igray", "igray(x)", "convert from Gray code"),
         ("popcount", "popcount(x)", "population count (set bits)"),
@@ -5809,7 +6183,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("norm", "norm(v)", "vector norm (magnitude)"),
         ("polyderiv", "polyderiv(coeffs)", "polynomial derivative"),
         ("union", "union(set1,set2)", "set union"),
-        ("intersection", "intersection(set1,set2)", "set intersection"),
+        (
+            "intersection",
+            "intersection(set1,set2)",
+            "set intersection",
+        ),
         ("difference", "difference(set1,set2)", "set difference"),
         ("subset", "subset(set1,set2)", "check if subset"),
         ("interp", "interp(xs,ys,x)", "linear interpolation"),
