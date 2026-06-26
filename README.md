@@ -208,3 +208,5 @@ The architecture is stable; adding more functions is straightforward.
 ## License
 
 LGPL-2.1, matching calc upstream.
+
+# Test CI workflow
