@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 description = "A Rust port of calc (lcn2/calc): exact-rational calculator usable as the `rcalc` CLI and as an MCP (JSON-RPC 2.0) server."
 license = "LGPL-2.1"
+authors = ["Eliseo Jimenez"]
+repository = "https://github.com/carlomagnoglobal/toRustCalcMCP"
+homepage = "https://github.com/carlomagnoglobal/toRustCalcMCP"
+readme = "README.md"
+keywords = ["calculator", "arbitrary-precision", "mcp", "math"]
+categories = ["mathematics", "command-line-utilities"]
 
 # One codebase, two front-ends. `toRustCalcMCP` auto-detects MCP vs CLI;
 # `rcalc` is a convenience binary that is always the calculator CLI.
