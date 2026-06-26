@@ -180,11 +180,7 @@ fn repl(interp: &mut Interp, quiet: bool) -> Result<(), String> {
                 if trimmed.starts_with("help") {
                     let filter = if trimmed == "help" {
                         None
-                    } else if trimmed.starts_with("help ") {
-                        Some(trimmed[5..].trim())
-                    } else {
-                        None
-                    };
+                    } else { trimmed.strip_prefix("help ").map(|topic| topic.trim()) };
                     print_function_help(filter);
                     continue;
                 }
@@ -240,7 +236,7 @@ fn print_function_help(filter: Option<&str>) {
         println!("  help <topic>  — show topic documentation (e.g. help intro)");
         println!("  help <name>   — search functions by name (e.g. help sin)");
         println!("\nAvailable functions (351 total):\n");
-        println!("{:<20} {:<40} {}", "Function", "Signature", "Description");
+        println!("{:<20} {:<40} Description", "Function", "Signature");
         println!("{}", "─".repeat(100));
         for (name, sig, desc) in crate::builtins::catalog() {
             println!("{:<20} {:<40} {}", name, sig, desc);
@@ -280,7 +276,7 @@ fn print_function_help(filter: Option<&str>) {
 
     let title = format!("📚 Functions matching '{}' ({} found)", f, matches.len());
     println!("\n{}\n", title);
-    println!("{:<20} {:<40} {}", "Function", "Signature", "Description");
+    println!("{:<20} {:<40} Description", "Function", "Signature");
     println!("{}", "─".repeat(100));
 
     for (name, sig, desc) in &matches {

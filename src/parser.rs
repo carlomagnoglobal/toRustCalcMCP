@@ -148,9 +148,7 @@ impl Parser {
         self.expect(Tok::Equal)?;
         let start = Box::new(self.parse_assignment()?);
         // Expect a comma or 'to' keyword
-        if self.peek() == Some(&Tok::Comma) {
-            self.advance();
-        } else if self.peek().map(|t| matches!(t, Tok::Ident(s) if s == "to")).unwrap_or(false) {
+        if self.peek() == Some(&Tok::Comma) || self.peek().map(|t| matches!(t, Tok::Ident(s) if s == "to")).unwrap_or(false) {
             self.advance();
         } else {
             return Err("expected ',' or 'to' in for loop".to_string());

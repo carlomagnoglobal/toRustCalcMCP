@@ -456,7 +456,7 @@ fn f_base(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         // One argument: set both ibase and obase
         let base_val = int(a, 0)?;
         let base_u32 = base_val.to_u32().ok_or("base out of range")?;
-        if base_u32 < 2 || base_u32 > 36 {
+        if !(2..=36).contains(&base_u32) {
             return Err("base must be between 2 and 36".to_string());
         }
         it.cfg.ibase = base_u32;
@@ -468,10 +468,10 @@ fn f_base(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         let obase_val = int(a, 1)?;
         let ibase_u32 = ibase_val.to_u32().ok_or("ibase out of range")?;
         let obase_u32 = obase_val.to_u32().ok_or("obase out of range")?;
-        if ibase_u32 < 2 || ibase_u32 > 36 {
+        if !(2..=36).contains(&ibase_u32) {
             return Err("ibase must be between 2 and 36".to_string());
         }
-        if obase_u32 < 2 || obase_u32 > 36 {
+        if !(2..=36).contains(&obase_u32) {
             return Err("obase must be between 2 and 36".to_string());
         }
         it.cfg.ibase = ibase_u32;
@@ -1229,7 +1229,7 @@ fn f_mattrans(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             }
             let transposed = number::mattrans(&matrix)?;
             let result = transposed.into_iter().map(|row| {
-                Value::List(row.into_iter().map(|n| Value::Number(n)).collect())
+                Value::List(row.into_iter().map(Value::Number).collect())
             }).collect();
             Ok(Value::List(result))
         }
@@ -1313,7 +1313,7 @@ fn f_inverse(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             }
             let inv = number::inverse(&matrix)?;
             let result = inv.into_iter().map(|row| {
-                Value::List(row.into_iter().map(|n| Value::Number(n)).collect())
+                Value::List(row.into_iter().map(Value::Number).collect())
             }).collect();
             Ok(Value::List(result))
         }
@@ -1411,7 +1411,7 @@ fn f_matfill(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let val = n(a, 2)?;
     let matrix = number::matfill(rows, cols, val)?;
     let result = matrix.into_iter().map(|row| {
-        Value::List(row.into_iter().map(|n| Value::Number(n)).collect())
+        Value::List(row.into_iter().map(Value::Number).collect())
     }).collect();
     Ok(Value::List(result))
 }
@@ -1423,7 +1423,7 @@ fn f_assoc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     if a.is_empty() {
         return Ok(Value::Hash(std::collections::HashMap::new()));
     }
-    if a.len() % 2 != 0 {
+    if !a.len().is_multiple_of(2) {
         return Err("assoc: expects even number of arguments (key-value pairs)".to_string());
     }
     let mut map = std::collections::HashMap::new();
@@ -1446,7 +1446,7 @@ fn f_indices(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
             let mut keys: Vec<String> = map.keys().cloned().collect();
             keys.sort();
             let items = keys.into_iter()
-                .map(|k| Value::Str(k))
+                .map(Value::Str)
                 .collect();
             Ok(Value::List(items))
         }
@@ -1646,7 +1646,7 @@ fn f_fopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         "r" => File::open(&filename).map_err(|e| format!("fopen: cannot open {}: {}", filename, e))?,
         "w" => OpenOptions::new().write(true).create(true).truncate(true).open(&filename)
             .map_err(|e| format!("fopen: cannot create {}: {}", filename, e))?,
-        "a" => OpenOptions::new().write(true).create(true).append(true).open(&filename)
+        "a" => OpenOptions::new().create(true).append(true).open(&filename)
             .map_err(|e| format!("fopen: cannot open {}: {}", filename, e))?,
         _ => return Err("fopen: mode must be 'r', 'w', or 'a'".to_string()),
     };
@@ -1757,7 +1757,7 @@ fn f_fputs(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let path = it.open_files[idx].0.clone();
-    let mut file = OpenOptions::new().write(true).append(true).open(&path)
+    let mut file = OpenOptions::new().append(true).open(&path)
         .map_err(|e| format!("fputs: cannot write to {}: {}", path, e))?;
 
     file.write_all(text.as_bytes())
@@ -1782,7 +1782,7 @@ fn f_fputc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let path = it.open_files[idx].0.clone();
-    let mut file = OpenOptions::new().write(true).append(true).open(&path)
+    let mut file = OpenOptions::new().append(true).open(&path)
         .map_err(|e| format!("fputc: cannot write to {}: {}", path, e))?;
 
     let byte = (ch & 0xFF) as u8;
@@ -1979,7 +1979,7 @@ fn f_fwrite(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let path = it.open_files[idx].0.clone();
-    let mut file = OpenOptions::new().write(true).append(true).open(&path)
+    let mut file = OpenOptions::new().append(true).open(&path)
         .map_err(|e| format!("fwrite: cannot write to {}: {}", path, e))?;
 
     match file.write_all(data.as_bytes()) {
@@ -2068,7 +2068,7 @@ fn f_fprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let path = it.open_files[idx].0.clone();
-    let mut file = OpenOptions::new().write(true).append(true).open(&path)
+    let mut file = OpenOptions::new().append(true).open(&path)
         .map_err(|e| format!("fprintf: cannot write to {}: {}", path, e))?;
 
     file.write_all(output.as_bytes())
@@ -2194,14 +2194,13 @@ fn f_fscan(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
                         results.push(Value::Str(str_val));
                     }
                 }
-                'c' => {
+                'c'
                     // Read single character
-                    if input_idx < remaining_bytes.len() {
+                    if input_idx < remaining_bytes.len() => {
                         let ch = (remaining_bytes[input_idx] as char).to_string();
                         results.push(Value::Str(ch));
                         input_idx += 1;
                     }
-                }
                 _ => {}
             }
             fmt_idx += 1;
@@ -2541,7 +2540,7 @@ fn f_eval(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_haversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("haversin", a, 1)?;
     let x = n(a, 0)?;
-    let cos_x = number::cos(&x, &it.cfg.epsilon)?;
+    let cos_x = number::cos(x, &it.cfg.epsilon)?;
     let result = (&Num::from_integer(BigInt::from(1)) - &cos_x) / &Num::from_integer(BigInt::from(2));
     Ok(Value::Number(result))
 }
@@ -2550,7 +2549,7 @@ fn f_haversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_versin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("versin", a, 1)?;
     let x = n(a, 0)?;
-    let cos_x = number::cos(&x, &it.cfg.epsilon)?;
+    let cos_x = number::cos(x, &it.cfg.epsilon)?;
     let result = Num::from_integer(BigInt::from(1)) - &cos_x;
     Ok(Value::Number(result))
 }
@@ -2559,7 +2558,7 @@ fn f_versin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_coversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("coversin", a, 1)?;
     let x = n(a, 0)?;
-    let sin_x = number::sin(&x, &it.cfg.epsilon)?;
+    let sin_x = number::sin(x, &it.cfg.epsilon)?;
     let result = Num::from_integer(BigInt::from(1)) - &sin_x;
     Ok(Value::Number(result))
 }
@@ -2568,7 +2567,7 @@ fn f_coversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_exsecant(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("exsecant", a, 1)?;
     let x = n(a, 0)?;
-    let cos_x = number::cos(&x, &it.cfg.epsilon)?;
+    let cos_x = number::cos(x, &it.cfg.epsilon)?;
     if cos_x.is_zero() {
         return Err("exsecant: division by zero".to_string());
     }
@@ -2597,7 +2596,7 @@ fn f_semiversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_hacoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("hacoversin", a, 1)?;
     let x = n(a, 0)?;
-    let cos_x = number::cos(&x, &it.cfg.epsilon)?;
+    let cos_x = number::cos(x, &it.cfg.epsilon)?;
     let result = (&Num::from_integer(BigInt::from(1)) + &cos_x) / &Num::from_integer(BigInt::from(2));
     Ok(Value::Number(result))
 }
@@ -2987,11 +2986,11 @@ fn is_prime(n: u64) -> bool {
     if n == 2 || n == 3 {
         return true;
     }
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         return false;
     }
     for i in (3..=(n as f64).sqrt() as u64 + 1).step_by(2) {
-        if n % i == 0 {
+        if n.is_multiple_of(i) {
             return false;
         }
     }
@@ -3082,7 +3081,7 @@ fn f_lowbit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let mut pos = 0i64;
     let mut val = if x.is_negative() { -&x } else { x };
     while (&val & BigInt::from(1)).is_zero() {
-        val = val >> 1;
+        val >>= 1;
         pos += 1;
     }
     Ok(Value::Number(Num::from_integer(BigInt::from(pos))))
@@ -3101,7 +3100,7 @@ fn f_fcnt(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         if (&val & BigInt::from(1)).is_positive() {
             count += 1;
         }
-        val = val >> 1;
+        val >>= 1;
     }
     Ok(Value::Number(Num::from_integer(BigInt::from(count))))
 }
@@ -3115,7 +3114,7 @@ fn f_digits(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     } else {
         10
     };
-    if base < 2 || base > 36 {
+    if !(2..=36).contains(&base) {
         return Err("base must be between 2 and 36".to_string());
     }
     if x.is_zero() {
@@ -3125,7 +3124,7 @@ fn f_digits(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let mut val = x.abs();
     let base_bi = BigInt::from(base);
     while val.is_positive() {
-        val = val / &base_bi;
+        val /= &base_bi;
         count += 1;
     }
     Ok(Value::Number(Num::from_integer(BigInt::from(count))))
@@ -3580,13 +3579,10 @@ fn f_min_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     let mut min_val = items[0].clone();
     for item in &items[1..] {
-        match (&min_val, item) {
-            (Value::Number(n1), Value::Number(n2)) => {
-                if n2 < n1 {
-                    min_val = item.clone();
-                }
+        if let (Value::Number(n1), Value::Number(n2)) = (&min_val, item) {
+            if n2 < n1 {
+                min_val = item.clone();
             }
-            _ => {}
         }
     }
     Ok(min_val)
@@ -3606,13 +3602,10 @@ fn f_max_list(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     let mut max_val = items[0].clone();
     for item in &items[1..] {
-        match (&max_val, item) {
-            (Value::Number(n1), Value::Number(n2)) => {
-                if n2 > n1 {
-                    max_val = item.clone();
-                }
+        if let (Value::Number(n1), Value::Number(n2)) = (&max_val, item) {
+            if n2 > n1 {
+                max_val = item.clone();
             }
-            _ => {}
         }
     }
     Ok(max_val)
@@ -4875,7 +4868,7 @@ fn f_interp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     // Find interval containing x
     for i in 0..xs.len() - 1 {
-        if &x >= &xs[i] && &x <= &xs[i + 1] {
+        if x >= xs[i] && x <= xs[i + 1] {
             let x0 = &xs[i];
             let x1 = &xs[i + 1];
             let y0 = &ys[i];

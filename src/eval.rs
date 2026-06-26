@@ -205,7 +205,7 @@ impl Interp {
                 let mut current = start_num.clone();
                 let one = Num::from_integer(num_bigint::BigInt::from(1));
 
-                while &current <= &end_num {
+                while current <= end_num {
                     self.set_var(var.clone(), Value::Number(current.clone()));
                     result = self.eval(body)?;
                     current = &current + &one;
@@ -317,31 +317,31 @@ impl Interp {
             BinOp::IntDiv | BinOp::Mod => {
                 return Err(format!("{:?} not supported for complex numbers", op));
             }
-            BinOp::Eq => Value::boolean(&lr == &rr && &li == &ri),
-            BinOp::Ne => Value::boolean(&lr != &rr || &li != &ri),
+            BinOp::Eq => Value::boolean(lr == rr && li == ri),
+            BinOp::Ne => Value::boolean(lr != rr || li != ri),
             BinOp::Lt => {
                 if !li.is_zero() || !ri.is_zero() {
                     return Err("comparison not defined for complex numbers".to_string());
                 }
-                Value::boolean(&lr < &rr)
+                Value::boolean(lr < rr)
             }
             BinOp::Le => {
                 if !li.is_zero() || !ri.is_zero() {
                     return Err("comparison not defined for complex numbers".to_string());
                 }
-                Value::boolean(&lr <= &rr)
+                Value::boolean(lr <= rr)
             }
             BinOp::Gt => {
                 if !li.is_zero() || !ri.is_zero() {
                     return Err("comparison not defined for complex numbers".to_string());
                 }
-                Value::boolean(&lr > &rr)
+                Value::boolean(lr > rr)
             }
             BinOp::Ge => {
                 if !li.is_zero() || !ri.is_zero() {
                     return Err("comparison not defined for complex numbers".to_string());
                 }
-                Value::boolean(&lr >= &rr)
+                Value::boolean(lr >= rr)
             }
         };
 

@@ -178,13 +178,13 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 }
                 if let Some(i) = args.get("ibase").and_then(|v| v.as_u64()) {
                     let ib = i as u32;
-                    if ib >= 2 && ib <= 36 {
+                    if (2..=36).contains(&ib) {
                         it.cfg.ibase = ib;
                     }
                 }
                 if let Some(o) = args.get("obase").and_then(|v| v.as_u64()) {
                     let ob = o as u32;
-                    if ob >= 2 && ob <= 36 {
+                    if (2..=36).contains(&ob) {
                         it.cfg.obase = ob;
                     }
                 }

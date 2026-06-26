@@ -52,10 +52,10 @@ pub fn parse_number(s: &str) -> Option<Num> {
 
     // radix-prefixed integers
     if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
-        return BigInt::parse_bytes(hex.as_bytes(), 16).map(|i| Num::from_integer(i));
+        return BigInt::parse_bytes(hex.as_bytes(), 16).map(Num::from_integer);
     }
     if let Some(bin) = s.strip_prefix("0b").or_else(|| s.strip_prefix("0B")) {
-        return BigInt::parse_bytes(bin.as_bytes(), 2).map(|i| Num::from_integer(i));
+        return BigInt::parse_bytes(bin.as_bytes(), 2).map(Num::from_integer);
     }
 
     // scientific notation
@@ -294,7 +294,7 @@ pub fn iroot(x: &Num, k: i64) -> Result<Num, String> {
     let mut low = bi(0);
     let mut high = bi_x.clone();
 
-    while &low <= &high {
+    while low <= high {
         let mid = (&low + &high) / bi(2);
         let mut power = bi(1);
         for _ in 0..k {
@@ -331,7 +331,7 @@ pub fn exp(x: &Num, epsilon: &Num) -> Result<Num, String> {
     // If |x| >= 2, use exp(x) = exp(x/2)^2 repeatedly to reduce magnitude
     let mut reduction_count = 0;
     let mut y = x.clone();
-    while &y.abs() >= &two {
+    while y.abs() >= two {
         y = &y / &two;
         reduction_count += 1;
     }
@@ -373,11 +373,11 @@ pub fn ln(x: &Num, epsilon: &Num) -> Result<Num, String> {
     // Reduce to |x - 1| < 0.5 by multiplying/dividing by e repeatedly
     let mut reduction = 0i64;
     let mut y = x.clone();
-    while &y > &(&e_const * &two) {
+    while y > (&e_const * &two) {
         y = &y / &e_const;
         reduction += 1;
     }
-    while &y < &(&one / &two) {
+    while y < (&one / &two) {
         y = &y * &e_const;
         reduction -= 1;
     }
@@ -488,10 +488,10 @@ pub fn sin(x: &Num, epsilon: &Num) -> Result<Num, String> {
 
     // Reduce x to [-pi, pi]
     let mut y = x.clone();
-    while &y > &pi_const {
+    while y > pi_const {
         y = &y - &two_pi;
     }
-    while &y < &-&pi_const {
+    while y < -&pi_const {
         y = &y + &two_pi;
     }
 
@@ -520,10 +520,10 @@ pub fn cos(x: &Num, epsilon: &Num) -> Result<Num, String> {
 
     // Reduce x to [-pi, pi]
     let mut y = x.clone();
-    while &y > &pi_const {
+    while y > pi_const {
         y = &y - &two_pi;
     }
-    while &y < &-&pi_const {
+    while y < -&pi_const {
         y = &y + &two_pi;
     }
 
@@ -584,7 +584,7 @@ pub fn csc(x: &Num, epsilon: &Num) -> Result<Num, String> {
 
 /// Inverse sine: asin(x) via Newton's method or series, to within `epsilon`.
 pub fn asin(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    if &x.abs() > &Num::one() {
+    if x.abs() > Num::one() {
         return Err("asin: domain error (|x| > 1)".to_string());
     }
     if x.is_zero() {
@@ -608,7 +608,7 @@ pub fn asin(x: &Num, epsilon: &Num) -> Result<Num, String> {
 
 /// Inverse cosine: acos(x) = pi/2 - asin(x), to within `epsilon`.
 pub fn acos(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    if &x.abs() > &Num::one() {
+    if x.abs() > Num::one() {
         return Err("acos: domain error (|x| > 1)".to_string());
     }
     let asin_val = asin(x, epsilon)?;
@@ -622,7 +622,7 @@ pub fn atan(x: &Num, epsilon: &Num) -> Result<Num, String> {
     }
     // Use series: atan(x) = x - x^3/3 + x^5/5 - ... for |x| <= 1
     // For |x| > 1, use: atan(x) = sign(x)*pi/2 - atan(1/x)
-    let use_reciprocal = &x.abs() > &Num::one();
+    let use_reciprocal = x.abs() > Num::one();
     let y = if use_reciprocal {
         Num::one() / x
     } else {
@@ -692,7 +692,7 @@ pub fn acot(x: &Num, epsilon: &Num) -> Result<Num, String> {
 
 /// Inverse secant: asec(x) = acos(1/x) for |x| >= 1.
 pub fn asec(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    if &x.abs() < &Num::one() {
+    if x.abs() < Num::one() {
         return Err("asec: domain error (|x| < 1)".to_string());
     }
     acos(&(Num::one() / x), epsilon)
@@ -700,7 +700,7 @@ pub fn asec(x: &Num, epsilon: &Num) -> Result<Num, String> {
 
 /// Inverse cosecant: acsc(x) = asin(1/x) for |x| >= 1.
 pub fn acsc(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    if &x.abs() < &Num::one() {
+    if x.abs() < Num::one() {
         return Err("acsc: domain error (|x| < 1)".to_string());
     }
     asin(&(Num::one() / x), epsilon)
@@ -779,7 +779,7 @@ pub fn acosh(x: &Num, epsilon: &Num) -> Result<Num, String> {
 
 /// Inverse hyperbolic tangent: atanh(x) = 0.5 * ln((1+x)/(1-x)), to within `epsilon`.
 pub fn atanh(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    if &x.abs() >= &Num::one() {
+    if x.abs() >= Num::one() {
         return Err("atanh: domain error (|x| >= 1)".to_string());
     }
     let one = Num::one();
@@ -792,7 +792,7 @@ pub fn atanh(x: &Num, epsilon: &Num) -> Result<Num, String> {
 
 /// Inverse hyperbolic cotangent: acoth(x) = 0.5 * ln((x+1)/(x-1)) for |x| > 1.
 pub fn acoth(x: &Num, epsilon: &Num) -> Result<Num, String> {
-    if &x.abs() <= &Num::one() {
+    if x.abs() <= Num::one() {
         return Err("acoth: domain error (|x| <= 1)".to_string());
     }
     let one = Num::one();
@@ -1014,7 +1014,7 @@ pub fn gamma(x: &Num, epsilon: &Num) -> Result<Num, String> {
                 // Γ(n) = (n-1)!
                 let mut result = bi(1);
                 for k in 1..(n_i64) {
-                    result = result * bi(k);
+                    result *= bi(k);
                 }
                 return Ok(Num::from_integer(result));
             }
@@ -1147,8 +1147,8 @@ pub fn catalan_num(n: i64) -> Result<BigInt, String> {
     let mut numer = bi(1);
     let mut denom = bi(1);
     for k in 1..=n {
-        numer = numer * bi(n + k);
-        denom = denom * bi(k);
+        numer *= bi(n + k);
+        denom *= bi(k);
     }
     Ok(numer / denom / (n + 1))
 }
@@ -1298,7 +1298,7 @@ pub fn jacobi(a: i64, n: i64) -> Result<Num, String> {
     let mut result = 1i64;
 
     loop {
-        a = a % n;
+        a %= n;
         if a == 0 {
             return Ok(if n == 1 {
                 Num::from_integer(bi(result))
@@ -1314,9 +1314,7 @@ pub fn jacobi(a: i64, n: i64) -> Result<Num, String> {
             }
         }
 
-        let temp = a;
-        a = n;
-        n = temp;
+        std::mem::swap(&mut a, &mut n);
 
         if a % 4 == 3 && n % 4 == 3 {
             result = -result;
@@ -1350,11 +1348,11 @@ fn is_prime_check(n: u64) -> bool {
     if n == 2 || n == 3 {
         return true;
     }
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         return false;
     }
     for i in (3..=(n as f64).sqrt() as u64 + 1).step_by(2) {
-        if n % i == 0 {
+        if n.is_multiple_of(i) {
             return false;
         }
     }
@@ -1412,7 +1410,7 @@ pub fn randperm(n: i64, seed: &mut u64) -> Result<Vec<BigInt>, String> {
     let mut perm: Vec<i64> = (0..n).collect();
     // Fisher-Yates shuffle
     for i in (1..n as usize).rev() {
-        let j = (rand(seed).abs() as usize) % (i + 1);
+        let j = (rand(seed).unsigned_abs() as usize) % (i + 1);
         perm.swap(i, j);
     }
     Ok(perm.iter().map(|x| bi(*x)).collect())
@@ -1617,7 +1615,7 @@ pub fn isxdigit(s: &str) -> i32 {
 
 /// Check if string contains only ASCII characters
 pub fn isascii(s: &str) -> i32 {
-    if s.chars().all(|c| c.is_ascii()) { 1 } else { 0 }
+    if s.is_ascii() { 1 } else { 0 }
 }
 
 /// Convert string to uppercase
@@ -1766,7 +1764,7 @@ pub fn cfappr(x: &Num, maxd: i64) -> Result<Num, String> {
     let mut best_denom = k_curr.clone();
 
     for iteration in 0..30 {
-        if &k_curr > &max_denom {
+        if k_curr > max_denom {
             break;
         }
 
@@ -1787,7 +1785,7 @@ pub fn cfappr(x: &Num, maxd: i64) -> Result<Num, String> {
         let h_next = &(&int_part * &h_curr) + &h_prev;
         let k_next = &(&int_part * &k_curr) + &k_prev;
 
-        if &k_next <= &max_denom {
+        if k_next <= max_denom {
             best_num = h_next.clone();
             best_denom = k_next.clone();
         }
@@ -2078,7 +2076,7 @@ pub fn gcd_int(a: &BigInt, b: &BigInt) -> BigInt {
 
 /// Convert a BigInt to a given base (2-36). Returns the string representation.
 pub fn to_base(n: &BigInt, base: u32) -> String {
-    if base < 2 || base > 36 {
+    if !(2..=36).contains(&base) {
         return n.to_string(); // fallback to base 10
     }
     if n.is_zero() {
@@ -2111,7 +2109,7 @@ pub fn to_base(n: &BigInt, base: u32) -> String {
 
 /// Convert a rational number to a string in a given base (2-36).
 pub fn to_string_in_base(x: &Num, base: u32, digits: usize) -> String {
-    if base < 2 || base > 36 {
+    if !(2..=36).contains(&base) {
         return to_decimal_string(x, digits); // fallback
     }
 
@@ -2151,7 +2149,7 @@ pub fn to_string_in_base(x: &Num, base: u32, digits: usize) -> String {
     if !exact && frac_chars.len() > digits {
         let guard = frac_chars.pop();
         if let Some(g) = guard {
-            let guard_val = if g >= b'0' && g <= b'9' {
+            let guard_val = if g.is_ascii_digit() {
                 g - b'0'
             } else {
                 g - b'a' + 10
@@ -2163,13 +2161,9 @@ pub fn to_string_in_base(x: &Num, base: u32, digits: usize) -> String {
                 while carry && i > 0 {
                     i -= 1;
                     let c = frac_chars[i];
-                    if c == b'z' || (c >= b'0' && c <= b'9' && c == b'9') ||
-                       (c >= b'a' && c < b'z') {
-                        frac_chars[i] = if c >= b'0' && c <= b'8' {
-                            c + 1
-                        } else if c >= b'a' && c < b'z' {
-                            c + 1
-                        } else {
+                    if c == b'z' || (c.is_ascii_digit() && c == b'9') ||
+                       c.is_ascii_lowercase() {
+                        frac_chars[i] = if (b'0'..=b'8').contains(&c) || c.is_ascii_lowercase() { c + 1 } else {
                             b'0'
                         };
                         if frac_chars[i] != b'0' {
@@ -2179,12 +2173,12 @@ pub fn to_string_in_base(x: &Num, base: u32, digits: usize) -> String {
                 }
                 if carry {
                     let int_inc = &int_part + 1;
-                    return assemble_base(neg, &int_inc, &String::from_utf8_lossy(&frac_chars).to_string(), exact, base);
+                    return assemble_base(neg, &int_inc, String::from_utf8_lossy(&frac_chars).as_ref(), exact, base);
                 }
             }
         }
     }
-    assemble_base(neg, &int_part, &String::from_utf8_lossy(&frac_chars).to_string(), exact, base)
+    assemble_base(neg, &int_part, String::from_utf8_lossy(&frac_chars).as_ref(), exact, base)
 }
 
 fn assemble_base(neg: bool, int_part: &BigInt, frac: &str, exact: bool, base: u32) -> String {
