@@ -4,7 +4,7 @@ use torustcalcmcp::mcp;
 
 fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
-    let prog = args.get(0).map(|s| s.as_str()).unwrap_or("calc");
+    let prog = args.first().map(|s| s.as_str()).unwrap_or("calc");
     let is_rcalc = prog.ends_with("rcalc");
 
     let args = &args[1..];

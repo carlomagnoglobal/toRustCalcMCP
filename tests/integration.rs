@@ -1,5 +1,4 @@
 use torustcalcmcp::eval::Interp;
-use torustcalcmcp::number;
 
 #[test]
 fn test_exactness_rational() {
@@ -1123,7 +1122,7 @@ fn test_random() {
     // Should be approximately in [0, 1)
     let clean = result.trim_start_matches('~');
     let val: f64 = clean.parse().unwrap_or(-1.0);
-    assert!(val >= 0.0 && val < 1.0);
+    assert!((0.0..1.0).contains(&val));
 }
 
 #[test]
@@ -1144,7 +1143,7 @@ fn test_randint() {
     let result = it.eval_render("randint(1, 10)").unwrap();
     // Should be in [1, 10]
     let val: i64 = result.parse().unwrap_or(-1);
-    assert!(val >= 1 && val <= 10);
+    assert!((1..=10).contains(&val));
 }
 
 #[test]
@@ -1409,7 +1408,7 @@ fn test_appr() {
     // Should approximate pi to within 0.01
     let clean = result.trim_start_matches('~');
     let val: f64 = clean.parse().unwrap_or(0.0);
-    assert!((val - 3.14159265).abs() < 0.02);
+    assert!((val - std::f64::consts::PI).abs() < 0.02);
 }
 
 #[test]
@@ -1451,7 +1450,7 @@ fn test_scale() {
     let result = it.eval_render("scale(3.14159, 2)").unwrap();
     // Should round to 3.14
     let val: f64 = result.parse().unwrap_or(0.0);
-    assert!((val - 3.14).abs() < 0.001);
+    assert!((val - std::f64::consts::PI).abs() < 0.002);
 }
 
 #[test]
@@ -3008,7 +3007,7 @@ fn test_rms_basic() {
     let mut it = Interp::new();
     let result = it.eval_render("rms(list(3, 4))").unwrap();
     // RMS of 3, 4 = sqrt((9+16)/2) = sqrt(12.5) = 3.535...
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]
@@ -3024,7 +3023,7 @@ fn test_hmean_two_four() {
     let mut it = Interp::new();
     let result = it.eval_render("hmean(list(2, 4))").unwrap();
     // Harmonic mean = 2 / (1/2 + 1/4) = 2 / 0.75 = 2.666...
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 // Phase 12: System & Utility tests
@@ -3041,7 +3040,7 @@ fn test_platform_returns_string() {
     let mut it = Interp::new();
     let result = it.eval_render("platform()").unwrap();
     // Platform should be one of: linux, macos, windows, etc.
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]
@@ -3049,7 +3048,7 @@ fn test_hostname_returns_string() {
     let mut it = Interp::new();
     let result = it.eval_render("hostname()").unwrap();
     // Should return hostname or "unknown"
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]
@@ -3066,7 +3065,7 @@ fn test_username_returns_string() {
     let mut it = Interp::new();
     let result = it.eval_render("username()").unwrap();
     // Should return username or "unknown"
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]
@@ -3074,7 +3073,7 @@ fn test_homedir_returns_string() {
     let mut it = Interp::new();
     let result = it.eval_render("homedir()").unwrap();
     // Should return a path
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]
@@ -3082,7 +3081,7 @@ fn test_tmpdir_returns_string() {
     let mut it = Interp::new();
     let result = it.eval_render("tmpdir()").unwrap();
     // Should return temp directory path
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]
@@ -3090,7 +3089,7 @@ fn test_pwd_returns_string() {
     let mut it = Interp::new();
     let result = it.eval_render("pwd()").unwrap();
     // Should return current working directory
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
     assert!(result.contains("/") || result.contains("\\"));
 }
 
@@ -3124,9 +3123,9 @@ fn test_cd_and_pwd_consistent() {
     let mut it = Interp::new();
     let original = it.eval_render("pwd()").unwrap();
     // Try to cd to a common directory and back
-    let homedir = it.eval_render("homedir()").unwrap();
+    let _homedir = it.eval_render("homedir()").unwrap();
     // Just verify the operations don't crash
-    assert!(original.len() > 0);
+    assert!(!original.is_empty());
 }
 
 // Phase 13: Advanced Operations tests
@@ -3214,7 +3213,7 @@ fn test_cumsum_basic() {
     let mut it = Interp::new();
     let result = it.eval_render("cumsum(list(1, 2, 3, 4))").unwrap();
     // Should be [1, 3, 6, 10]
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]
@@ -3222,7 +3221,7 @@ fn test_diff_basic() {
     let mut it = Interp::new();
     let result = it.eval_render("diff(list(1, 3, 6, 10))").unwrap();
     // Should be [2, 3, 4]
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]
