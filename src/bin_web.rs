@@ -1,7 +1,6 @@
 //! Web-based REPL for rcalc.
 
 use serde_json::{json, Value as J};
-use std::io::Read;
 use std::sync::{Arc, Mutex};
 use tiny_http::{Request, Response, Server};
 use torustcalcmcp::eval::Interp;
