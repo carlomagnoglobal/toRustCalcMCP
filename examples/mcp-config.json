@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "calc": {
+      "command": "/Users/elisjmendez/Documents/toRustCalcMCP/target/release/toRustCalcMCP",
+      "args": ["--mcp"]
+    }
+  }
+}
