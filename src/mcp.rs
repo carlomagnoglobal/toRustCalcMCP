@@ -143,28 +143,17 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
             it.cfg = saved;
             match res {
                 Ok(text) => {
-                    let result_json = json!({
-                        "expression": expr,
-                        "result": text,
-                        "mode": it.cfg.mode.as_str()
-                    });
                     json!({
                         "content": [
-                            { "type": "text", "text": text },
-                            { "type": "application/json", "json": result_json }
+                            { "type": "text", "text": text }
                         ],
                         "isError": false
                     })
                 }
                 Err(e) => {
-                    let error_json = json!({
-                        "expression": expr,
-                        "error": e
-                    });
                     json!({
                         "content": [
-                            { "type": "text", "text": format!("error: {e}") },
-                            { "type": "application/json", "json": error_json }
+                            { "type": "text", "text": format!("error: {e}") }
                         ],
                         "isError": true
                     })
@@ -200,14 +189,6 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                     }
                 }
             }
-            // Return both text and structured JSON
-            let config_json = json!({
-                "mode": it.cfg.mode.as_str(),
-                "digits": it.cfg.display,
-                "epsilon": crate::number::to_decimal_string(&it.cfg.epsilon, 60),
-                "ibase": it.cfg.ibase,
-                "obase": it.cfg.obase
-            });
             let text = format!(
                 "mode={} digits={} epsilon={} ibase={} obase={}",
                 it.cfg.mode.as_str(),
@@ -218,8 +199,7 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
             );
             json!({
                 "content": [
-                    { "type": "text", "text": text },
-                    { "type": "application/json", "json": config_json }
+                    { "type": "text", "text": text }
                 ],
                 "isError": false
             })
@@ -249,14 +229,9 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
             } else {
                 lines.join("\n")
             };
-            let functions_json = json!({
-                "count": functions.len(),
-                "functions": functions
-            });
             json!({
                 "content": [
-                    { "type": "text", "text": text },
-                    { "type": "application/json", "json": functions_json }
+                    { "type": "text", "text": text }
                 ],
                 "isError": false
             })
@@ -267,14 +242,6 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 *it = Interp::new();
                 json!({ "content": [{ "type": "text", "text": "session reset" }], "isError": false })
             } else {
-                let state_json = json!({
-                    "variables": it.global_vars.len(),
-                    "scopes": it.scope_stack.len(),
-                    "mode": it.cfg.mode.as_str(),
-                    "ibase": it.cfg.ibase,
-                    "obase": it.cfg.obase,
-                    "epsilon": crate::number::to_decimal_string(&it.cfg.epsilon, 60)
-                });
                 let text = format!(
                     "variables={} scopes={} mode={} ibase={} obase={} epsilon={}",
                     it.global_vars.len(),
@@ -286,8 +253,7 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 );
                 json!({
                     "content": [
-                        { "type": "text", "text": text },
-                        { "type": "application/json", "json": state_json }
+                        { "type": "text", "text": text }
                     ],
                     "isError": false
                 })
