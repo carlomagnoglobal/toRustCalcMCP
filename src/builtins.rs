@@ -2059,8 +2059,8 @@ fn f_fprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     // Render all arguments as strings and concatenate
     let mut output = String::new();
-    for i in 1..a.len() {
-        match &a[i] {
+    for item in a.iter().skip(1) {
+        match item {
             Value::Str(s) => output.push_str(s),
             Value::Number(n) => output.push_str(&number::to_decimal_string(n, 15)),
             _ => output.push_str(&a[i].render(&it.cfg)),
@@ -3965,8 +3965,8 @@ fn f_printf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 
     // Simple implementation: just concatenate all arguments
     let mut output = format_str.clone();
-    for i in 1..a.len() {
-        let replacement = match &a[i] {
+    for item in a.iter().skip(1) {
+        let replacement = match item {
             Value::Str(s) => s.clone(),
             Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
             _ => format!("{:?}", a[i]),
@@ -3995,8 +3995,8 @@ fn f_sprintf(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     };
 
     let mut output = format_str.clone();
-    for i in 1..a.len() {
-        let replacement = match &a[i] {
+    for item in a.iter().skip(1) {
+        let replacement = match item {
             Value::Str(s) => s.clone(),
             Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
             _ => format!("{:?}", a[i]),
@@ -4022,8 +4022,8 @@ fn f_format(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     };
 
     let mut output = format_str.clone();
-    for i in 1..a.len() {
-        let replacement = match &a[i] {
+    for item in a.iter().skip(1) {
+        let replacement = match item {
             Value::Str(s) => s.clone(),
             Value::Number(n) => number::to_decimal_string(n, it.cfg.display),
             _ => format!("{:?}", a[i]),
@@ -4604,7 +4604,7 @@ fn f_matmul(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let mut result = Vec::new();
-    for i in 0..rows1 {
+    for (i, _) in m1.iter().take(rows1).enumerate() {
         let mut row = Vec::new();
         for j in 0..cols2 {
             let mut sum = Num::zero();
@@ -4734,8 +4734,8 @@ fn f_polyderiv(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 
     let mut deriv = Vec::new();
-    for i in 1..coeffs.len() {
-        match &coeffs[i] {
+    for (i, coeff) in coeffs.iter().enumerate().skip(1) {
+        match coeff {
             Value::Number(n) => {
                 let multiplier = Num::from_integer(BigInt::from(i as i64));
                 deriv.push(Value::Number(n * &multiplier));

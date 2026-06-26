@@ -137,21 +137,19 @@ impl Interp {
                 let argv: Vec<Value> =
                     args.iter().map(|a| self.eval(a)).collect::<Result<_, _>>()?;
                 // Check if it's a user-defined function first
-                if let Some(func_val) = self.get_var(name) {
-                    if let Value::Function(params, body) = func_val {
-                        if params.len() != argv.len() {
-                            return Err(format!("{}() expects {} args, got {}", name, params.len(), argv.len()));
-                        }
-                        // Create new scope for function call
-                        let mut local_scope = HashMap::new();
-                        for (param, arg) in params.iter().zip(argv.iter()) {
-                            local_scope.insert(param.clone(), arg.clone());
-                        }
-                        self.scope_stack.push(local_scope);
-                        let result = self.eval(&body);
-                        self.scope_stack.pop();
-                        return result;
+                if let Some(Value::Function(params, body)) = self.get_var(name) {
+                    if params.len() != argv.len() {
+                        return Err(format!("{}() expects {} args, got {}", name, params.len(), argv.len()));
                     }
+                    // Create new scope for function call
+                    let mut local_scope = HashMap::new();
+                    for (param, arg) in params.iter().zip(argv.iter()) {
+                        local_scope.insert(param.clone(), arg.clone());
+                    }
+                    self.scope_stack.push(local_scope);
+                    let result = self.eval(&body);
+                    self.scope_stack.pop();
+                    return result;
                 }
                 // Otherwise look for builtin
                 let Some(f) = self.builtins.get(name).copied() else {

@@ -1279,7 +1279,7 @@ pub fn bernoulli(n: i64) -> Result<Num, String> {
     b[0] = Num::one();
     for m in 1..=n as usize {
         let mut sum = Num::zero();
-        for k in 0..m {
+        for (k, _) in b.iter().enumerate().take(m) {
             sum = &sum + &(&Num::from_integer(binomial((m + 1) as i64, k as i64)) * &b[k]);
         }
         b[m] = -sum / Num::from_integer(binomial((m + 1) as i64, m as i64));
@@ -1853,7 +1853,7 @@ pub fn mattrace(matrix: &[Vec<Num>]) -> Result<Num, String> {
     }
     let n = std::cmp::min(matrix.len(), matrix[0].len());
     let mut sum = Num::from_integer(bi(0));
-    for i in 0..n {
+    for (i, _) in matrix.iter().enumerate().take(n) {
         sum = &sum + &matrix[i][i];
     }
     Ok(sum)
