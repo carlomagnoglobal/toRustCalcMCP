@@ -3107,7 +3107,7 @@ fn test_arch_returns_string() {
     let mut it = Interp::new();
     let result = it.eval_render("arch()").unwrap();
     // Should be one of: x86_64, aarch64, etc.
-    assert!(result.len() > 0);
+    assert!(!result.is_empty());
 }
 
 #[test]

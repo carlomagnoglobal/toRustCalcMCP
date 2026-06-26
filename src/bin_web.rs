@@ -1,7 +1,8 @@
 //! Web-based REPL for rcalc.
 
 use serde_json::{json, Value as J};
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+use std::rc::Rc;
 use tiny_http::{Request, Response, Server};
 use torustcalcmcp::eval::Interp;
 
@@ -12,15 +13,15 @@ fn main() {
     println!("rcalc web interface running at: http://localhost:{}", port);
     println!("Press Ctrl+C to stop.\n");
 
-    let interp = Arc::new(Mutex::new(Interp::new()));
+    let interp = Rc::new(RefCell::new(Interp::new()));
 
     for request in server.incoming_requests() {
-        let interp = Arc::clone(&interp);
+        let interp = Rc::clone(&interp);
         handle_request(request, &interp);
     }
 }
 
-fn handle_request(mut request: Request, interp: &Arc<Mutex<Interp>>) {
+fn handle_request(mut request: Request, interp: &Rc<RefCell<Interp>>) {
     let path = request.url();
 
     match (request.method().as_str(), path) {
@@ -55,7 +56,7 @@ fn handle_request(mut request: Request, interp: &Arc<Mutex<Interp>>) {
             if request.as_reader().read_to_string(&mut body_str).is_ok() {
                 if let Ok(body) = serde_json::from_str::<J>(&body_str) {
                     if let Some(expr) = body.get("expression").and_then(|v| v.as_str()) {
-                        let mut it = interp.lock().unwrap();
+                        let mut it = interp.borrow_mut();
                         let result = it.eval_render(expr);
 
                         let response_json = match result {
