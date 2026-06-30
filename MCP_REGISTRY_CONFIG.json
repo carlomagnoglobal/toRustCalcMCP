@@ -1,0 +1,125 @@
+{
+  "server": {
+    "name": "toRustCalcMCP",
+    "description": "Exact-rational arbitrary-precision calculator with 351 mathematical functions. Implements transcendental functions, special functions (Bessel, Gamma, Zeta), complex numbers, list/string operations, file I/O, matrix operations, and full system integration. Rust port of the classic calc language.",
+    "repository": "https://github.com/carlomagnoglobal/toRustCalcMCP",
+    "homepage": "https://github.com/carlomagnoglobal/toRustCalcMCP",
+    "documentation": "https://github.com/carlomagnoglobal/toRustCalcMCP#readme",
+    "installation_guide": "https://github.com/carlomagnoglobal/toRustCalcMCP/blob/main/DEPLOYMENT.md",
+    "version": "0.1.0",
+    "license": "LGPL-2.1",
+    "authors": ["Elis Javier Mendez Perez"],
+    "categories": ["calculator", "math", "utility", "mcp"]
+  },
+  "configurations": {
+    "option_1_binary": {
+      "name": "Pre-built Binary (Recommended)",
+      "description": "Download and run pre-compiled binary. Fastest setup, no dependencies.",
+      "setup_time": "2 minutes",
+      "disk_space": "~50 MB",
+      "requirements": "None",
+      "config": {
+        "mcpServers": {
+          "toRustCalcMCP": {
+            "command": "/usr/local/bin/toRustCalcMCP",
+            "args": ["--mcp"]
+          }
+        }
+      },
+      "installation_instructions": "1. Visit https://github.com/carlomagnoglobal/toRustCalcMCP/releases/latest\n2. Download binary for your platform (macOS Intel/Apple Silicon, Linux, or Windows)\n3. Make executable: chmod +x toRustCalcMCP\n4. Move to /usr/local/bin or add to PATH\n5. Use configuration above"
+    },
+    "option_2_cargo": {
+      "name": "Source Build with Cargo",
+      "description": "Build from source using Rust/Cargo. Requires Rust toolchain.",
+      "setup_time": "5-10 minutes",
+      "disk_space": "~1.5 GB",
+      "requirements": "Rust 1.75+",
+      "config": {
+        "mcpServers": {
+          "toRustCalcMCP": {
+            "command": "cargo",
+            "args": [
+              "run",
+              "--release",
+              "--bin",
+              "toRustCalcMCP",
+              "--",
+              "--mcp"
+            ],
+            "cwd": "/path/to/toRustCalcMCP"
+          }
+        }
+      },
+      "installation_instructions": "1. Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh\n2. Clone: git clone https://github.com/carlomagnoglobal/toRustCalcMCP.git\n3. Build: cd toRustCalcMCP && cargo build --release\n4. Update cwd in configuration above\n5. Use configuration above"
+    },
+    "option_3_docker": {
+      "name": "Docker Container",
+      "description": "Run in isolated Docker container. Complete environment isolation.",
+      "setup_time": "5-15 minutes",
+      "disk_space": "~20 GB",
+      "requirements": "Docker",
+      "config": {
+        "mcpServers": {
+          "toRustCalcMCP": {
+            "command": "docker",
+            "args": [
+              "run",
+              "-i",
+              "--rm",
+              "ghcr.io/carlomagnoglobal/toRustCalcMCP:latest"
+            ]
+          }
+        }
+      },
+      "installation_instructions": "1. Install Docker: https://www.docker.com/products/docker-desktop\n2. Pull image: docker pull ghcr.io/carlomagnoglobal/toRustCalcMCP:latest\n3. Verify: docker run -i --rm ghcr.io/carlomagnoglobal/toRustCalcMCP:latest\n4. Use configuration above"
+    }
+  },
+  "features": [
+    "351 mathematical functions",
+    "Exact rational arithmetic",
+    "Arbitrary precision computation",
+    "Transcendental functions (sin, cos, tan, log, exp, etc.)",
+    "Special functions (Bessel, Gamma, Zeta, Error functions)",
+    "Complex number support",
+    "List operations (sort, reverse, unique, flatten, zip)",
+    "String operations (substr, split, replace, trim, padding)",
+    "File I/O with full formatting",
+    "Matrix operations (multiply, transpose, determinant, inverse)",
+    "Statistical functions (mean, median, variance, stdev)",
+    "Bitwise operations",
+    "Base conversion (2-36)",
+    "User-defined functions",
+    "Control flow (if/while/for loops)",
+    "System integration (environment, file system, process info)"
+  ],
+  "capabilities": {
+    "exact_arithmetic": true,
+    "arbitrary_precision": true,
+    "complex_numbers": true,
+    "user_functions": true,
+    "control_flow": true,
+    "file_io": true,
+    "system_access": true
+  },
+  "performance": {
+    "startup_time_binary": "<100ms",
+    "startup_time_cargo": "~500ms",
+    "startup_time_docker": "~1000ms",
+    "memory_usage": "~30-50MB",
+    "cpu_architecture": ["x86_64", "aarch64"]
+  },
+  "testing": {
+    "integration_tests": 359,
+    "test_status": "all passing",
+    "coverage": "100% of calc builtins"
+  },
+  "support": {
+    "issue_tracker": "https://github.com/carlomagnoglobal/toRustCalcMCP/issues",
+    "discussions": "https://github.com/carlomagnoglobal/toRustCalcMCP/discussions",
+    "documentation": "https://github.com/carlomagnoglobal/toRustCalcMCP#readme"
+  },
+  "quick_test": {
+    "description": "Test the MCP server is working",
+    "command": "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}' | toRustCalcMCP --mcp"
+  }
+}

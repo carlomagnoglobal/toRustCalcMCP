@@ -1,0 +1,14 @@
+.git
+.gitignore
+.github
+.DS_Store
+target
+docs
+examples
+tests
+*.md
+.claude
+.env
+.env.local
+Cargo.lock
+web

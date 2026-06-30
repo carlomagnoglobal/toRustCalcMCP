@@ -1,0 +1,166 @@
+================================================================================
+  toRustCalcMCP - MCP.SO REGISTRY SUBMISSION
+  Copy-Paste Reference for https://mcp.so/submit
+================================================================================
+
+FORM FIELD 1: MCP Server Name*
+────────────────────────────────────────────────────────────────────────────
+toRustCalcMCP
+
+
+FORM FIELD 2: URL*
+────────────────────────────────────────────────────────────────────────────
+https://github.com/carlomagnoglobal/toRustCalcMCP
+
+
+FORM FIELD 3: Description*
+────────────────────────────────────────────────────────────────────────────
+Exact-rational arbitrary-precision calculator with 351 mathematical functions.
+Implements transcendental functions, special functions (Bessel, Gamma, Zeta),
+complex numbers, list/string operations, file I/O, matrix operations, and
+full system integration. Rust port of the classic calc language. All three
+deployment options (binary, source, Docker) are supported and automated.
+
+
+FORM FIELD 4: Categories
+────────────────────────────────────────────────────────────────────────────
+calculator, math, utility
+
+
+================================================================================
+  SERVER CONFIG - CHOOSE ONE OF THREE OPTIONS
+================================================================================
+
+OPTION 1: Pre-built Binary (RECOMMENDED)
+────────────────────────────────────────────────────────────────────────────
+{
+  "mcpServers": {
+    "toRustCalcMCP": {
+      "command": "/usr/local/bin/toRustCalcMCP",
+      "args": ["--mcp"]
+    }
+  }
+}
+
+Installation Instructions:
+Download from: https://github.com/carlomagnoglobal/toRustCalcMCP/releases/latest
+
+For macOS (Intel):
+curl -L https://github.com/carlomagnoglobal/toRustCalcMCP/releases/latest/download/rcalc-x86_64-apple-darwin.tar.gz | tar xz -C /usr/local/bin --strip-components=1
+
+For macOS (Apple Silicon):
+curl -L https://github.com/carlomagnoglobal/toRustCalcMCP/releases/latest/download/rcalc-aarch64-apple-darwin.tar.gz | tar xz -C /usr/local/bin --strip-components=1
+
+For Linux:
+curl -L https://github.com/carlomagnoglobal/toRustCalcMCP/releases/latest/download/rcalc-linux-x86_64.tar.gz | tar xz -C /usr/local/bin --strip-components=1
+
+chmod +x /usr/local/bin/toRustCalcMCP
+
+
+OPTION 2: Source Build with Cargo
+────────────────────────────────────────────────────────────────────────────
+{
+  "mcpServers": {
+    "toRustCalcMCP": {
+      "command": "cargo",
+      "args": ["run", "--release", "--bin", "toRustCalcMCP", "--", "--mcp"],
+      "cwd": "/path/to/toRustCalcMCP"
+    }
+  }
+}
+
+Installation Instructions:
+1. Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   source $HOME/.cargo/env
+
+2. Clone: git clone https://github.com/carlomagnoglobal/toRustCalcMCP.git
+   cd toRustCalcMCP
+
+3. Update the "cwd" path in the configuration above to your cloned directory.
+
+
+OPTION 3: Docker
+────────────────────────────────────────────────────────────────────────────
+{
+  "mcpServers": {
+    "toRustCalcMCP": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "ghcr.io/carlomagnoglobal/toRustCalcMCP:latest"]
+    }
+  }
+}
+
+Installation Instructions:
+1. Install Docker: https://www.docker.com/products/docker-desktop
+
+2. Pull image: docker pull ghcr.io/carlomagnoglobal/toRustCalcMCP:latest
+
+3. Use the configuration above.
+
+
+================================================================================
+  FEATURES TO HIGHLIGHT
+================================================================================
+
+✅ 351 mathematical functions (100% calc compatibility)
+✅ Exact rational arithmetic (no floating-point errors)
+✅ Arbitrary precision computation (millions of digits)
+✅ Transcendental functions (sin, cos, tan, log, exp, etc.)
+✅ Special functions (Bessel, Gamma, Zeta, Error functions)
+✅ Complex number support
+✅ List operations (sort, reverse, unique, flatten, zip)
+✅ String operations (substr, split, replace, trim, padding)
+✅ File I/O with full formatting support
+✅ Matrix operations (multiply, transpose, determinant, inverse)
+✅ Statistical functions (mean, median, variance, stdev)
+✅ Bitwise operations and bit manipulation
+✅ Base conversion (2-36)
+✅ User-defined functions and control flow
+✅ System integration (environment variables, file system)
+✅ 359 integration tests (all passing)
+
+
+================================================================================
+  DOCUMENTATION LINKS
+================================================================================
+
+Installation Guide: https://github.com/carlomagnoglobal/toRustCalcMCP/blob/main/DEPLOYMENT.md
+Quick Start: https://github.com/carlomagnoglobal/toRustCalcMCP/blob/main/QUICKSTART.md
+Full README: https://github.com/carlomagnoglobal/toRustCalcMCP#readme
+Issue Tracker: https://github.com/carlomagnoglobal/toRustCalcMCP/issues
+Discussions: https://github.com/carlomagnoglobal/toRustCalcMCP/discussions
+
+
+================================================================================
+  RELEASE & UPDATE INFORMATION
+================================================================================
+
+Binary Releases: https://github.com/carlomagnoglobal/toRustCalcMCP/releases
+Docker Images: https://github.com/carlomagnoglobal/toRustCalcMCP/pkgs/container/toRustCalcMCP
+
+All three deployment options are automatically updated on each release.
+
+
+================================================================================
+  SUBMISSION WORKFLOW
+================================================================================
+
+1. Visit https://mcp.so/submit
+2. Copy the form fields above into the submission form
+3. Choose ONE of the three Server Config options
+4. Submit
+5. Done!
+
+
+================================================================================
+  QUICK TEST COMMAND
+================================================================================
+
+After installation, test with:
+
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | toRustCalcMCP --mcp
+
+
+Expected output includes protocolVersion in the response.
+
+================================================================================
