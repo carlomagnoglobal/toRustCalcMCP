@@ -10,5 +10,4 @@ tests
 .claude
 .env
 .env.local
-Cargo.lock
 web
