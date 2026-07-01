@@ -10,7 +10,6 @@ COPY Cargo.toml Cargo.lock ./
 
 # Copy source code
 COPY src ./src
-COPY tests ./tests
 
 # Build the release binary
 RUN cargo build --release --bin toRustCalcMCP
