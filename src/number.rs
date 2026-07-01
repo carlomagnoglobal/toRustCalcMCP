@@ -360,6 +360,34 @@ pub fn exp(x: &Num, epsilon: &Num) -> Result<Num, String> {
 /// Natural logarithm: ln(x) to within `epsilon`, computed via series.
 /// For x near 1, use: ln(x) = 2 * sum((x-1)/(x+1))^(2n+1) / (2n+1) for n=0..∞
 /// For |x| far from 1, shift via repeated multiplication/division by e.
+// ln(y) via the fast-converging atanh series: ln(y) = 2 * atanh((y-1)/(y+1)),
+// valid for any y > 0 but only fast when y is not too far from 1.
+fn ln_series(y: &Num, epsilon: &Num) -> Num {
+    let one = Num::one();
+    let two = Num::from_integer(bi(2));
+    let num = y - &one;
+    let denom = y + &one;
+    let z = &num / &denom;
+    let z_sq = &z * &z;
+
+    let mut result = z.clone();
+    let mut z_pow = z.clone();
+    for n in 1..2000 {
+        z_pow = &z_pow * &z_sq;
+        let term = &z_pow / Num::from_integer(bi(2 * n as i64 + 1));
+        result += &term;
+        if &term.abs() < epsilon {
+            break;
+        }
+    }
+    &two * &result
+}
+
+/// ln(2), computed once via the series directly (z = 1/3, converges quickly).
+fn ln2(epsilon: &Num) -> Num {
+    ln_series(&Num::from_integer(bi(2)), epsilon)
+}
+
 pub fn ln(x: &Num, epsilon: &Num) -> Result<Num, String> {
     if x.is_negative() || x.is_zero() {
         return Err("ln of non-positive number".into());
@@ -369,38 +397,36 @@ pub fn ln(x: &Num, epsilon: &Num) -> Result<Num, String> {
     }
 
     let one = Num::one();
-    let e_const = e();
     let two = Num::from_integer(bi(2));
 
-    // Reduce to |x - 1| < 0.5 by multiplying/dividing by e repeatedly
-    let mut reduction = 0i64;
-    let mut y = x.clone();
-    while y > (&e_const * &two) {
-        y = &y / &e_const;
-        reduction += 1;
-    }
-    while y < (&one / &two) {
-        y = &y * &e_const;
-        reduction -= 1;
-    }
+    // Reduce to y in [1, 2) by shifting by a power of 2. Bit-shifting a
+    // BigRational (multiplying/dividing by 2^k) is cheap even for huge k,
+    // unlike repeated division by an arbitrary-precision constant like e,
+    // which would blow up the rational's digit count exponentially.
+    let num_bits = x.numer().bits() as i64;
+    let denom_bits = x.denom().bits() as i64;
+    let mut k = num_bits - denom_bits;
 
-    // Series: ln(y) = 2 * sum((y-1)/(y+1))^(2n+1) / (2n+1)
-    let num = &y - &one;
-    let denom = &y + &one;
-    let z = &num / &denom;
-    let z_sq = &z * &z;
-
-    let mut result = z.clone();
-    let mut z_pow = z.clone();
-    for n in 1..500 {
-        z_pow = &z_pow * &z_sq;
-        let term = &z_pow / Num::from_integer(bi(2 * n as i64 + 1));
-        result += &term;
-        if &term.abs() < epsilon {
-            break;
+    let pow2 = |k: i64| -> Num {
+        if k >= 0 {
+            Num::from_integer(BigInt::from(1) << (k as usize))
+        } else {
+            Num::new(BigInt::from(1), BigInt::from(1) << ((-k) as usize))
         }
+    };
+
+    let mut y = x / &pow2(k);
+    while y >= two {
+        y = &y / &two;
+        k += 1;
     }
-    result = &(&two * &result) + Num::from_integer(bi(reduction));
+    while y < one {
+        y = &y * &two;
+        k -= 1;
+    }
+
+    let ln_y = ln_series(&y, epsilon);
+    let result = &ln_y + Num::from_integer(bi(k)) * ln2(epsilon);
 
     Ok(round_to_epsilon(&result, epsilon))
 }
@@ -479,7 +505,25 @@ pub fn ilogn(x: &Num, n: &Num, epsilon: &Num) -> Result<Num, String> {
         return Err("ilogn: argument must be positive".to_string());
     }
     let logn_result = logn(x, n, epsilon)?;
-    Ok(logn_result.floor())
+    let mut k = logn_result.floor().to_integer();
+
+    // The floating approximation can land just below/above an integer
+    // boundary; verify and correct exactly against n^k <= x < n^(k+1).
+    loop {
+        let power = pow_int(n, &k)?;
+        if power > *x {
+            k -= 1;
+        } else {
+            let next_power = pow_int(n, &(&k + BigInt::from(1)))?;
+            if next_power <= *x {
+                k += 1;
+            } else {
+                break;
+            }
+        }
+    }
+
+    Ok(Num::from_integer(k))
 }
 
 /// Sine to within `epsilon`, computed via Taylor series with range reduction.

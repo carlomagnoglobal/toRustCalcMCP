@@ -504,31 +504,25 @@ fn f_ln(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 // Log base 10
-fn f_log(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+fn f_log(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("log", a, 1)?;
     let x = n(a, 0)?;
     if x.is_negative() || x.is_zero() {
         return Err("log of non-positive number".to_string());
     }
-    let xf = x.to_f64().ok_or("overflow")?;
-    let r = xf.log10();
-    Num::from_float(r)
-        .ok_or_else(|| "non-finite".to_string())
-        .map(Value::Number)
+    let eps = it.epsilon();
+    Ok(Value::Number(number::logn(x, &Num::from_integer(BigInt::from(10)), &eps)?))
 }
 
 // Log base 2
-fn f_log2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+fn f_log2(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("log2", a, 1)?;
     let x = n(a, 0)?;
     if x.is_negative() || x.is_zero() {
         return Err("log2 of non-positive number".to_string());
     }
-    let xf = x.to_f64().ok_or("overflow")?;
-    let r = xf.log2();
-    Num::from_float(r)
-        .ok_or_else(|| "non-finite".to_string())
-        .map(Value::Number)
+    let eps = it.epsilon();
+    Ok(Value::Number(number::logn(x, &Num::from_integer(BigInt::from(2)), &eps)?))
 }
 
 // Log base n
