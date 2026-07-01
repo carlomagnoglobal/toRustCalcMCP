@@ -1,8 +1,8 @@
 # Multi-stage Dockerfile for toRustCalcMCP
 
 # Stage 1: Builder
-# Using rust:1.85 which supports Cargo.lock v4 and edition2024
-FROM rust:1.85 AS builder
+# Using latest Rust for maximum compatibility
+FROM rust:latest AS builder
 
 WORKDIR /app
 
