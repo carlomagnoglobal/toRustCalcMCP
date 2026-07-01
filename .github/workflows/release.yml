@@ -118,7 +118,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ github.repository }}
+            ghcr.io/carlomagnoglobal/torustcalcmcp
             docker.io/carlomagnoglobal/torustcalcmcp
           tags: |
             type=semver,pattern={{version}}
@@ -134,5 +134,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
+          cache-from: type=registry,ref=ghcr.io/carlomagnoglobal/torustcalcmcp:buildcache
+          cache-to: type=registry,ref=ghcr.io/carlomagnoglobal/torustcalcmcp:buildcache,mode=max
