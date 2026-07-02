@@ -3765,3 +3765,91 @@ fn test_copy_cmp_swap_test_null() {
     assert_eq!(it.eval_render("test(\"\")").unwrap(), "0");
     assert_eq!(it.eval_render("isnull(null())").unwrap(), "1");
 }
+
+// ---- Upstream parity B7: file I/O & filesystem ----
+
+#[test]
+fn test_fgetfield_fgetstr_fgetfile() {
+    let dir = std::env::temp_dir();
+    let path = dir.join("torustcalc_b7_read.txt");
+    std::fs::write(&path, "hello world\nsecond line\n").unwrap();
+    let p = path.to_str().unwrap();
+    let mut it = Interp::new();
+    it.eval_render(&format!("fd = fopen(\"{}\", \"r\")", p))
+        .unwrap();
+    assert_eq!(it.eval_render("fgetfield(fd)").unwrap(), "hello");
+    assert_eq!(it.eval_render("fgetfield(fd)").unwrap(), "world");
+    // position is just before the newline: remainder of the current line is empty
+    assert_eq!(it.eval_render("fgetstr(fd)").unwrap(), "");
+    assert_eq!(it.eval_render("fgetstr(fd)").unwrap(), "second line");
+    assert_eq!(it.eval_render("fgetfile(fd)").unwrap(), "");
+    assert_eq!(it.eval_render("ftell(fd)").unwrap(), "24");
+    assert_eq!(it.eval_render("ferror(fd)").unwrap(), "0");
+    assert_eq!(it.eval_render("isatty(fd)").unwrap(), "0");
+    it.eval_render("fclose(fd)").unwrap();
+    std::fs::remove_file(&path).ok();
+}
+
+#[test]
+fn test_files_and_freopen() {
+    let dir = std::env::temp_dir();
+    let p1 = dir.join("torustcalc_b7_f1.txt");
+    let p2 = dir.join("torustcalc_b7_f2.txt");
+    std::fs::write(&p1, "one\n").unwrap();
+    std::fs::write(&p2, "two\n").unwrap();
+    let mut it = Interp::new();
+    it.eval_render(&format!("fd = fopen(\"{}\", \"r\")", p1.to_str().unwrap()))
+        .unwrap();
+    let name = it.eval_render("files(fd)").unwrap();
+    assert!(name.contains("torustcalc_b7_f1.txt"));
+    it.eval_render(&format!("freopen(fd, \"r\", \"{}\")", p2.to_str().unwrap()))
+        .unwrap();
+    assert_eq!(it.eval_render("fgetstr(fd)").unwrap(), "two");
+    std::fs::remove_file(&p1).ok();
+    std::fs::remove_file(&p2).ok();
+}
+
+#[test]
+fn test_ungetc_position() {
+    let dir = std::env::temp_dir();
+    let path = dir.join("torustcalc_b7_unget.txt");
+    std::fs::write(&path, "ab").unwrap();
+    let p = path.to_str().unwrap();
+    let mut it = Interp::new();
+    it.eval_render(&format!("fd = fopen(\"{}\", \"r\")", p))
+        .unwrap();
+    assert_eq!(it.eval_render("fgetc(fd)").unwrap(), "97"); // 'a'
+    it.eval_render("ungetc(fd)").unwrap();
+    assert_eq!(it.eval_render("fgetc(fd)").unwrap(), "97"); // 'a' again
+    std::fs::remove_file(&path).ok();
+}
+
+#[test]
+fn test_cp_and_rm() {
+    let dir = std::env::temp_dir();
+    let src = dir.join("torustcalc_b7_src.txt");
+    let dst = dir.join("torustcalc_b7_dst.txt");
+    std::fs::write(&src, "data").unwrap();
+    let mut it = Interp::new();
+    let bytes = it
+        .eval_render(&format!(
+            "cp(\"{}\", \"{}\")",
+            src.to_str().unwrap(),
+            dst.to_str().unwrap()
+        ))
+        .unwrap();
+    assert_eq!(bytes, "4");
+    assert_eq!(
+        it.eval_render(&format!("exists(\"{}\")", dst.to_str().unwrap()))
+            .unwrap(),
+        "1"
+    );
+    it.eval_render(&format!("rm(\"{}\")", dst.to_str().unwrap()))
+        .unwrap();
+    assert_eq!(
+        it.eval_render(&format!("exists(\"{}\")", dst.to_str().unwrap()))
+            .unwrap(),
+        "0"
+    );
+    std::fs::remove_file(&src).ok();
+}

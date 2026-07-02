@@ -1798,6 +1798,196 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 
 // Open a file
+// ---- File I/O extensions (upstream-parity batch B7) ----
+
+// Validate fd and return its open_files index.
+fn fd_index(name: &str, it: &Interp, fd: i64) -> Result<usize, String> {
+    if fd < 3 || fd >= it.next_fd {
+        return Err(format!("{}: invalid file descriptor", name));
+    }
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err(format!("{}: file not open", name));
+    }
+    Ok(idx)
+}
+
+// ferror(fd): 1 if the descriptor's file is in an error state (unreadable), else 0
+fn f_ferror(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ferror", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("ferror: fd out of range")?;
+    let ok = match fd_index("ferror", it, fd) {
+        Ok(idx) => std::fs::metadata(&it.open_files[idx].0).is_ok(),
+        Err(_) => false,
+    };
+    Ok(Value::boolean(!ok))
+}
+
+// fgetstr(fd): next line without the newline, advancing the position
+fn f_fgetstr(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fgetstr", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fgetstr: fd out of range")?;
+    let idx = fd_index("fgetstr", it, fd)?;
+    let (path, pos) = it.open_files[idx].clone();
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("fgetstr: cannot read {}: {}", path, e))?;
+    let rest = content.get(pos as usize..).unwrap_or("");
+    if rest.is_empty() {
+        return Ok(Value::Null);
+    }
+    let (line, advance) = match rest.find('\n') {
+        Some(nl) => (&rest[..nl], nl + 1),
+        None => (rest, rest.len()),
+    };
+    it.open_files[idx].1 = pos + advance as u64;
+    Ok(Value::Str(line.to_string()))
+}
+
+// fgetfield(fd): next whitespace-delimited token, advancing the position
+fn f_fgetfield(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fgetfield", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fgetfield: fd out of range")?;
+    let idx = fd_index("fgetfield", it, fd)?;
+    let (path, pos) = it.open_files[idx].clone();
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("fgetfield: cannot read {}: {}", path, e))?;
+    let rest = content.get(pos as usize..).unwrap_or("");
+    let skipped = rest.len() - rest.trim_start().len();
+    let token_area = &rest[skipped..];
+    if token_area.is_empty() {
+        return Ok(Value::Null);
+    }
+    let token_len = token_area
+        .find(char::is_whitespace)
+        .unwrap_or(token_area.len());
+    it.open_files[idx].1 = pos + (skipped + token_len) as u64;
+    Ok(Value::Str(token_area[..token_len].to_string()))
+}
+
+// fgetfile(fd): everything from the current position to EOF
+fn f_fgetfile(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fgetfile", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fgetfile: fd out of range")?;
+    let idx = fd_index("fgetfile", it, fd)?;
+    let (path, pos) = it.open_files[idx].clone();
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("fgetfile: cannot read {}: {}", path, e))?;
+    let rest = content.get(pos as usize..).unwrap_or("").to_string();
+    it.open_files[idx].1 = content.len() as u64;
+    Ok(Value::Str(rest))
+}
+
+// fpathopen(name, mode [, searchpath]): open name, searching a ':'-separated
+// path list (argument, else CALCPATH) when name is relative and absent
+fn f_fpathopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("fpathopen", a, 2, 3)?;
+    let name = str_arg("fpathopen", a, 0)?.to_string();
+    let mode = str_arg("fpathopen", a, 1)?.to_string();
+    let mut candidate = name.clone();
+    if !std::path::Path::new(&name).exists() && !name.starts_with('/') {
+        let search = if a.len() == 3 {
+            str_arg("fpathopen", a, 2)?.to_string()
+        } else {
+            std::env::var("CALCPATH").unwrap_or_default()
+        };
+        for dir in search.split(':').filter(|d| !d.is_empty()) {
+            let joined = format!("{}/{}", dir, name);
+            if std::path::Path::new(&joined).exists() {
+                candidate = joined;
+                break;
+            }
+        }
+    }
+    f_fopen(it, &[Value::Str(candidate), Value::Str(mode)])
+}
+
+// freopen(fd, mode [, name]): reuse a descriptor for a (new) file
+fn f_freopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("freopen", a, 2, 3)?;
+    let fd = int(a, 0)?.to_i64().ok_or("freopen: fd out of range")?;
+    let idx = fd_index("freopen", it, fd)?;
+    let mode = str_arg("freopen", a, 1)?.to_string();
+    let name = if a.len() == 3 {
+        str_arg("freopen", a, 2)?.to_string()
+    } else {
+        it.open_files[idx].0.clone()
+    };
+    // validate openability with the requested mode
+    match mode.as_str() {
+        "r" => {
+            File::open(&name).map_err(|e| format!("freopen: cannot open {}: {}", name, e))?;
+        }
+        "w" => {
+            OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&name)
+                .map_err(|e| format!("freopen: cannot create {}: {}", name, e))?;
+        }
+        "a" => {
+            OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&name)
+                .map_err(|e| format!("freopen: cannot open {}: {}", name, e))?;
+        }
+        _ => return Err("freopen: mode must be 'r', 'w', or 'a'".to_string()),
+    }
+    it.open_files[idx] = (name, 0);
+    Ok(Value::Number(Num::from_integer(BigInt::from(fd))))
+}
+
+// files([fd]): list of open descriptors, or the filename of one descriptor
+fn f_files(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("files", a, 0, 1)?;
+    if a.is_empty() {
+        let fds: Vec<Value> = (0..it.open_files.len())
+            .map(|i| Value::Number(Num::from_integer(BigInt::from(i as i64 + 3))))
+            .collect();
+        return Ok(Value::List(fds));
+    }
+    let fd = int(a, 0)?.to_i64().ok_or("files: fd out of range")?;
+    match fd_index("files", it, fd) {
+        Ok(idx) => Ok(Value::Str(it.open_files[idx].0.clone())),
+        Err(_) => Ok(Value::Null),
+    }
+}
+
+// isatty(fd): 1 if the descriptor is a terminal (only possible for std fds)
+fn f_isatty(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isatty", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("isatty: fd out of range")?;
+    use std::io::IsTerminal;
+    let tty = match fd {
+        0 => std::io::stdin().is_terminal(),
+        1 => std::io::stdout().is_terminal(),
+        2 => std::io::stderr().is_terminal(),
+        _ => false, // our descriptors are always regular files
+    };
+    Ok(Value::boolean(tty))
+}
+
+// ungetc(fd): push the last-read byte back (moves the position back one)
+fn f_ungetc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("ungetc", a, 1, 2)?;
+    let fd = int(a, 0)?.to_i64().ok_or("ungetc: fd out of range")?;
+    let idx = fd_index("ungetc", it, fd)?;
+    if it.open_files[idx].1 > 0 {
+        it.open_files[idx].1 -= 1;
+    }
+    Ok(Value::Number(Num::zero()))
+}
+
+// cp(src, dst): copy a file, returns bytes copied
+fn f_cp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cp", a, 2)?;
+    let src = str_arg("cp", a, 0)?;
+    let dst = str_arg("cp", a, 1)?;
+    let bytes = std::fs::copy(src, dst).map_err(|e| format!("cp: cannot copy {}: {}", src, e))?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(bytes))))
+}
+
 fn f_fopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("fopen", a, 2)?;
     let filename = match &a[0] {
@@ -6642,6 +6832,21 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("ferror".to_string(), f_ferror as BuiltinFn);
+    builtins.insert("fgetstr".to_string(), f_fgetstr as BuiltinFn);
+    builtins.insert("fgetfield".to_string(), f_fgetfield as BuiltinFn);
+    builtins.insert("fgetfile".to_string(), f_fgetfile as BuiltinFn);
+    builtins.insert("fgetline".to_string(), f_fgetstr as BuiltinFn);
+    builtins.insert("fpathopen".to_string(), f_fpathopen as BuiltinFn);
+    builtins.insert("freopen".to_string(), f_freopen as BuiltinFn);
+    builtins.insert("files".to_string(), f_files as BuiltinFn);
+    builtins.insert("isatty".to_string(), f_isatty as BuiltinFn);
+    builtins.insert("ungetc".to_string(), f_ungetc as BuiltinFn);
+    builtins.insert("cp".to_string(), f_cp as BuiltinFn);
+    builtins.insert("rm".to_string(), f_remove as BuiltinFn);
+    builtins.insert("feof".to_string(), f_eof as BuiltinFn);
+    builtins.insert("ftell".to_string(), f_tell as BuiltinFn);
+    builtins.insert("fputstr".to_string(), f_fputs as BuiltinFn);
     builtins.insert("head".to_string(), f_head as BuiltinFn);
     builtins.insert("tail".to_string(), f_tail as BuiltinFn);
     builtins.insert("segment".to_string(), f_segment as BuiltinFn);
@@ -7136,6 +7341,53 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        (
+            "ferror",
+            "ferror(fd)",
+            "1 if descriptor is in an error state",
+        ),
+        (
+            "fgetstr",
+            "fgetstr(fd)",
+            "next line without newline (null at EOF)",
+        ),
+        (
+            "fgetfield",
+            "fgetfield(fd)",
+            "next whitespace-delimited token (null at EOF)",
+        ),
+        (
+            "fgetfile",
+            "fgetfile(fd)",
+            "rest of the file from current position",
+        ),
+        ("fgetline", "fgetline(fd)", "alias for fgetstr"),
+        (
+            "fpathopen",
+            "fpathopen(name,mode[,path])",
+            "open searching a :-separated path list (default CALCPATH)",
+        ),
+        (
+            "freopen",
+            "freopen(fd,mode[,name])",
+            "reuse a descriptor for a file",
+        ),
+        (
+            "files",
+            "files([fd])",
+            "open descriptors, or the filename of one",
+        ),
+        ("isatty", "isatty(fd)", "1 if descriptor is a terminal"),
+        ("ungetc", "ungetc(fd)", "push last-read byte back"),
+        ("cp", "cp(src,dst)", "copy a file (returns bytes copied)"),
+        ("rm", "rm(name)", "delete a file (alias for remove)"),
+        ("feof", "feof(fd)", "1 at end of file (alias for eof)"),
+        (
+            "ftell",
+            "ftell(fd)",
+            "current file position (alias for tell)",
+        ),
+        ("fputstr", "fputstr(fd,s)", "write string (alias for fputs)"),
         ("head", "head(list,n)", "first n elements"),
         ("tail", "tail(list,n)", "last n elements"),
         (
