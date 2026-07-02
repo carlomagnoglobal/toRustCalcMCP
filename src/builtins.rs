@@ -4443,9 +4443,9 @@ fn f_h2hms(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn recombine(a: &[Value], name: &str) -> Result<Num, String> {
     let sixty = Num::from_integer(BigInt::from(60));
     let mut total = n(a, 0)?.clone();
-    total = total + &(n(a, 1)? / &sixty);
+    total += &(n(a, 1)? / &sixty);
     if a.len() == 3 {
-        total = total + &(n(a, 2)? / &(&sixty * &sixty));
+        total += &(n(a, 2)? / &(&sixty * &sixty));
     }
     let _ = name;
     Ok(total)
@@ -5492,7 +5492,7 @@ fn f_select(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     let func = a[1].clone();
     let mut out = Vec::new();
     for item in items {
-        let keep = match it.call_value(&func, &[item.clone()])? {
+        let keep = match it.call_value(&func, std::slice::from_ref(&item))? {
             Value::Number(v) => !v.is_zero(),
             Value::Null => false,
             _ => true,
