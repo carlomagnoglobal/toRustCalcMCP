@@ -2833,13 +2833,13 @@ fn f_semiversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     f_haversin(it, a)
 }
 
-// Havercosine: (1 + cos(x)) / 2
+// Hacoversine: (1 - sin(x)) / 2 (upstream calc definition; was wrongly (1+cos)/2)
 fn f_hacoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("hacoversin", a, 1)?;
     let x = n(a, 0)?;
-    let cos_x = number::cos(x, &it.cfg.epsilon)?;
+    let sin_x = number::sin(x, &it.cfg.epsilon)?;
     let result =
-        (&Num::from_integer(BigInt::from(1)) + &cos_x) / &Num::from_integer(BigInt::from(2));
+        (&Num::from_integer(BigInt::from(1)) - &sin_x) / &Num::from_integer(BigInt::from(2));
     Ok(Value::Number(result))
 }
 
@@ -2905,6 +2905,102 @@ fn f_hacovercosin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(result))
 }
 
+// ---- Inverse rare-trig variants (upstream-parity batch B3) ----
+// Each inverts its forward variant via a closed form over asin/acos/asec/acsc.
+
+// aversin: inverse of versin(x) = 1 - cos(x)  =>  acos(1 - x)
+fn f_aversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("aversin", a, 1)?;
+    let eps = it.epsilon();
+    let y = Num::one() - n(a, 0)?;
+    Ok(Value::Number(number::acos(&y, &eps)?))
+}
+
+// avercos: inverse of vercos(x) = 1 + cos(x)  =>  acos(x - 1)
+fn f_avercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("avercos", a, 1)?;
+    let eps = it.epsilon();
+    let y = n(a, 0)? - Num::one();
+    Ok(Value::Number(number::acos(&y, &eps)?))
+}
+
+// acoversin: inverse of coversin(x) = 1 - sin(x)  =>  asin(1 - x)
+fn f_acoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acoversin", a, 1)?;
+    let eps = it.epsilon();
+    let y = Num::one() - n(a, 0)?;
+    Ok(Value::Number(number::asin(&y, &eps)?))
+}
+
+// acovercos: inverse of covercos(x) = 1 + sin(x)  =>  asin(x - 1)
+fn f_acovercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acovercos", a, 1)?;
+    let eps = it.epsilon();
+    let y = n(a, 0)? - Num::one();
+    Ok(Value::Number(number::asin(&y, &eps)?))
+}
+
+// ahaversin: inverse of haversin(x) = (1 - cos(x))/2  =>  acos(1 - 2x)
+fn f_ahaversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ahaversin", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let y = Num::one() - &(n(a, 0)? * &two);
+    Ok(Value::Number(number::acos(&y, &eps)?))
+}
+
+// ahavercos: inverse of havercos(x) = (1 + cos(x))/2  =>  acos(2x - 1)
+fn f_ahavercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ahavercos", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let y = (n(a, 0)? * &two) - Num::one();
+    Ok(Value::Number(number::acos(&y, &eps)?))
+}
+
+// ahacoversin: inverse of hacoversin(x) = (1 - sin(x))/2  =>  asin(1 - 2x)
+fn f_ahacoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ahacoversin", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let y = Num::one() - &(n(a, 0)? * &two);
+    Ok(Value::Number(number::asin(&y, &eps)?))
+}
+
+// ahacovercos: inverse of hacovercos(x) = (1 + sin(x))/2  =>  asin(2x - 1)
+fn f_ahacovercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ahacovercos", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let y = (n(a, 0)? * &two) - Num::one();
+    Ok(Value::Number(number::asin(&y, &eps)?))
+}
+
+// aexsec: inverse of exsec(x) = sec(x) - 1  =>  asec(x + 1)
+fn f_aexsec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("aexsec", a, 1)?;
+    let eps = it.epsilon();
+    let y = n(a, 0)? + Num::one();
+    Ok(Value::Number(number::asec(&y, &eps)?))
+}
+
+// aexcsc: inverse of excsc(x) = csc(x) - 1  =>  acsc(x + 1)
+fn f_aexcsc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("aexcsc", a, 1)?;
+    let eps = it.epsilon();
+    let y = n(a, 0)? + Num::one();
+    Ok(Value::Number(number::acsc(&y, &eps)?))
+}
+
+// acrd: inverse of chord(x) = 2 sin(x/2)  =>  2 asin(x/2)
+fn f_acrd(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acrd", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let half = n(a, 0)? / &two;
+    Ok(Value::Number(number::asin(&half, &eps)? * &two))
+}
+
 // Excosecant: csc(x) - 1
 fn f_excosec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("excosec", a, 1)?;
@@ -2943,9 +3039,14 @@ fn f_cvs(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 // Havercosine proper name: (1 + cos(x)) / 2
+// Havercosine: (1 + cos(x)) / 2 (was wrongly aliased to hacoversin)
 fn f_havercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
-    // Alias for hacoversin (havercosine)
-    f_hacoversin(it, a)
+    argc("havercos", a, 1)?;
+    let x = n(a, 0)?;
+    let cos_x = number::cos(x, &it.cfg.epsilon)?;
+    let result =
+        (&Num::from_integer(BigInt::from(1)) + &cos_x) / &Num::from_integer(BigInt::from(2));
+    Ok(Value::Number(result))
 }
 
 // Phase 6.6: Cryptographic & Hashing
@@ -5968,6 +6069,18 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("aversin".to_string(), f_aversin as BuiltinFn);
+    builtins.insert("avercos".to_string(), f_avercos as BuiltinFn);
+    builtins.insert("acoversin".to_string(), f_acoversin as BuiltinFn);
+    builtins.insert("acovercos".to_string(), f_acovercos as BuiltinFn);
+    builtins.insert("ahaversin".to_string(), f_ahaversin as BuiltinFn);
+    builtins.insert("ahavercos".to_string(), f_ahavercos as BuiltinFn);
+    builtins.insert("ahacoversin".to_string(), f_ahacoversin as BuiltinFn);
+    builtins.insert("ahacovercos".to_string(), f_ahacovercos as BuiltinFn);
+    builtins.insert("aexsec".to_string(), f_aexsec as BuiltinFn);
+    builtins.insert("aexcsc".to_string(), f_aexcsc as BuiltinFn);
+    builtins.insert("acrd".to_string(), f_acrd as BuiltinFn);
+    builtins.insert("hacovercos".to_string(), f_hacovercosin as BuiltinFn);
     builtins.insert("strcat".to_string(), f_strcat as BuiltinFn);
     builtins.insert("strcmp".to_string(), f_strcmp as BuiltinFn);
     builtins.insert("strcasecmp".to_string(), f_strcasecmp as BuiltinFn);
@@ -6407,6 +6520,38 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        ("aversin", "aversin(x)", "inverse versine: acos(1-x)"),
+        ("avercos", "avercos(x)", "inverse vercosine: acos(x-1)"),
+        ("acoversin", "acoversin(x)", "inverse coversine: asin(1-x)"),
+        (
+            "acovercos",
+            "acovercos(x)",
+            "inverse covercosine: asin(x-1)",
+        ),
+        ("ahaversin", "ahaversin(x)", "inverse haversine: acos(1-2x)"),
+        (
+            "ahavercos",
+            "ahavercos(x)",
+            "inverse havercosine: acos(2x-1)",
+        ),
+        (
+            "ahacoversin",
+            "ahacoversin(x)",
+            "inverse hacoversine: asin(1-2x)",
+        ),
+        (
+            "ahacovercos",
+            "ahacovercos(x)",
+            "inverse hacovercosine: asin(2x-1)",
+        ),
+        ("aexsec", "aexsec(x)", "inverse exsecant: asec(x+1)"),
+        ("aexcsc", "aexcsc(x)", "inverse excosecant: acsc(x+1)"),
+        ("acrd", "acrd(x)", "inverse chord: 2*asin(x/2)"),
+        (
+            "hacovercos",
+            "hacovercos(x)",
+            "hacovercosine: (1 + sin(x)) / 2",
+        ),
         ("strcat", "strcat(s1,s2,...)", "concatenate strings"),
         ("strcmp", "strcmp(s1,s2)", "compare strings (-1/0/1)"),
         (
@@ -6896,7 +7041,7 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         (
             "hacoversin",
             "hacoversin(x)",
-            "havercosine: (1 + cos(x)) / 2",
+            "hacoversine: (1 - sin(x)) / 2",
         ),
         ("vers", "vers(x)", "versed sine: alias for versin"),
         ("exsec", "exsec(x)", "exsecant: alias for exsecant"),

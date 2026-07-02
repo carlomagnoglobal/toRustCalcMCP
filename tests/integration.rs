@@ -3580,3 +3580,48 @@ fn test_str_aliases() {
     assert_eq!(it.eval_render("strtoupper(\"abc\")").unwrap(), "ABC");
     assert_eq!(it.eval_render("strprintf(\"%d-%d\", 1, 2)").unwrap(), "1-2");
 }
+
+// ---- Upstream parity B3: inverse rare-trig variants ----
+
+fn assert_near(result: &str, expected: f64) {
+    let v: f64 = result.trim().trim_start_matches('~').parse().unwrap();
+    assert!(
+        (v - expected).abs() < 1e-10,
+        "got {} want {}",
+        result,
+        expected
+    );
+}
+
+#[test]
+fn test_inverse_versine_roundtrips() {
+    let mut it = Interp::new();
+    assert_near(&it.eval_render("aversin(versin(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("avercos(vercos(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("acoversin(coversin(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("acovercos(covercos(0.5))").unwrap(), 0.5);
+}
+
+#[test]
+fn test_inverse_haversine_roundtrips() {
+    let mut it = Interp::new();
+    assert_near(&it.eval_render("ahaversin(haversin(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("ahavercos(havercos(0.5))").unwrap(), 0.5);
+    assert_near(
+        &it.eval_render("ahacoversin(hacoversin(0.5))").unwrap(),
+        0.5,
+    );
+    assert_near(
+        &it.eval_render("ahacovercos(hacovercos(0.5))").unwrap(),
+        0.5,
+    );
+}
+
+#[test]
+fn test_inverse_exsec_chord() {
+    let mut it = Interp::new();
+    assert_near(&it.eval_render("aexsec(exsec(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("aexcsc(excsc(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("acrd(chord(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("hacovercos(0)").unwrap(), 0.5);
+}
