@@ -3330,3 +3330,593 @@ fn test_norm_unit() {
     let result = it.eval_render("norm(list(1))").unwrap();
     assert!(result.contains("1"));
 }
+
+// ---- New builtins: nextcand / prevcand / gcdrem / bround / btrunc ----
+
+#[test]
+fn test_nextcand_basic() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("nextcand(100)").unwrap(), "101");
+}
+
+#[test]
+fn test_prevcand_basic() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("prevcand(100)").unwrap(), "97");
+}
+
+#[test]
+fn test_nextcand_residue_modulus() {
+    let mut it = Interp::new();
+    // smallest prime > 2 congruent to 1 mod 6 is 7
+    assert_eq!(it.eval_render("nextcand(2, 1, 1, 1, 6)").unwrap(), "7");
+}
+
+#[test]
+fn test_gcdrem_strips_shared_factors() {
+    let mut it = Interp::new();
+    // 60 = 2^2 * 3 * 5; removing factors shared with 12 (=2^2*3) leaves 5
+    assert_eq!(it.eval_render("gcdrem(60, 12)").unwrap(), "5");
+}
+
+#[test]
+fn test_gcdrem_coprime_unchanged() {
+    let mut it = Interp::new();
+    // 17 and 5 are coprime, so 17 is unchanged
+    assert_eq!(it.eval_render("gcdrem(17, 5)").unwrap(), "17");
+}
+
+#[test]
+fn test_bround_binary_places() {
+    let mut it = Interp::new();
+    // 3.14159 to 4 binary places = nearest 1/16: 50/16 = 3.125
+    assert_eq!(it.eval_render("bround(3.14159, 4)").unwrap(), "3.125");
+}
+
+#[test]
+fn test_btrunc_binary_places() {
+    let mut it = Interp::new();
+    // 3.14159 truncated to 4 binary places = 50/16 = 3.125
+    assert_eq!(it.eval_render("btrunc(3.14159, 4)").unwrap(), "3.125");
+}
+
+#[test]
+fn test_bround_frac_mode() {
+    let mut it = Interp::new();
+    it.eval_render("config(\"mode\", \"frac\")").ok();
+    // in frac mode the exact quantum is visible
+    let result = it.eval_render("bround(3.14159, 4)").unwrap();
+    assert!(result == "25/8" || result == "3.125");
+}
+
+// ---- Audit: exact zeros/values now that epsilon is exact 1/10^20 ----
+
+#[test]
+fn test_cos_zero_is_exact_one() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("cos(0)").unwrap(), "1");
+}
+
+#[test]
+fn test_haversin_zero_is_exact() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("haversin(0)").unwrap(), "0");
+}
+
+#[test]
+fn test_versin_zero_is_exact() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("versin(0)").unwrap(), "0");
+}
+
+#[test]
+fn test_pmod_negative() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("pmod(-1, 3)").unwrap(), "2");
+}
+
+#[test]
+fn test_quomod_pair() {
+    let mut it = Interp::new();
+    let result = it.eval_render("quomod(7, 3)").unwrap();
+    assert!(result.contains("2") && result.contains("1"));
+}
+
+// ---- Upstream parity B1: type predicates ----
+
+#[test]
+fn test_iseven_isodd() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("iseven(4)").unwrap(), "1");
+    assert_eq!(it.eval_render("iseven(3)").unwrap(), "0");
+    assert_eq!(it.eval_render("iseven(1/2)").unwrap(), "0");
+    assert_eq!(it.eval_render("isodd(3)").unwrap(), "1");
+    assert_eq!(it.eval_render("isodd(-3)").unwrap(), "1");
+}
+
+#[test]
+fn test_isint_isnum_isreal_isstr() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isint(5)").unwrap(), "1");
+    assert_eq!(it.eval_render("isint(1/2)").unwrap(), "0");
+    assert_eq!(it.eval_render("isnum(5)").unwrap(), "1");
+    assert_eq!(it.eval_render("isnum(\"x\")").unwrap(), "0");
+    assert_eq!(it.eval_render("isreal(sqrt(-1))").unwrap(), "0");
+    assert_eq!(it.eval_render("isstr(\"x\")").unwrap(), "1");
+}
+
+#[test]
+fn test_islist_isnull_ishash() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("islist(list(1,2))").unwrap(), "1");
+    assert_eq!(it.eval_render("islist(5)").unwrap(), "0");
+    assert_eq!(it.eval_render("ishash(assoc(\"a\", 1))").unwrap(), "1");
+    assert_eq!(it.eval_render("isassoc(assoc(\"a\", 1))").unwrap(), "1");
+}
+
+#[test]
+fn test_ismult_isrel() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("ismult(12, 4)").unwrap(), "1");
+    assert_eq!(it.eval_render("ismult(13, 4)").unwrap(), "0");
+    assert_eq!(it.eval_render("isrel(9, 4)").unwrap(), "1");
+    assert_eq!(it.eval_render("isrel(9, 6)").unwrap(), "0");
+}
+
+#[test]
+fn test_issq_rational() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("issq(16)").unwrap(), "1");
+    assert_eq!(it.eval_render("issq(8)").unwrap(), "0");
+    assert_eq!(it.eval_render("issq(4/9)").unwrap(), "1");
+    assert_eq!(it.eval_render("issq(-4)").unwrap(), "0");
+}
+
+#[test]
+fn test_ismat_isident() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("ismat(list(list(1,2),list(3,4)))").unwrap(),
+        "1"
+    );
+    assert_eq!(it.eval_render("ismat(list(1,2))").unwrap(), "0");
+    assert_eq!(
+        it.eval_render("isident(list(list(1,0),list(0,1)))")
+            .unwrap(),
+        "1"
+    );
+    assert_eq!(
+        it.eval_render("isident(list(list(1,1),list(0,1)))")
+            .unwrap(),
+        "0"
+    );
+}
+
+#[test]
+fn test_istype_and_never_types() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("istype(1, 2)").unwrap(), "1");
+    assert_eq!(it.eval_render("istype(1, \"a\")").unwrap(), "0");
+    assert_eq!(it.eval_render("isobj(1)").unwrap(), "0");
+    assert_eq!(it.eval_render("isptr(1)").unwrap(), "0");
+    assert_eq!(it.eval_render("isblk(1)").unwrap(), "0");
+    assert_eq!(it.eval_render("issimple(1)").unwrap(), "1");
+    assert_eq!(it.eval_render("issimple(list(1))").unwrap(), "0");
+}
+
+// ---- Upstream parity B2: string ops ----
+
+#[test]
+fn test_strcat_strcmp() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("strcat(\"foo\", \"bar\")").unwrap(),
+        "foobar"
+    );
+    assert_eq!(it.eval_render("strcmp(\"a\", \"b\")").unwrap(), "-1");
+    assert_eq!(it.eval_render("strcmp(\"b\", \"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("strcmp(\"a\", \"a\")").unwrap(), "0");
+    assert_eq!(it.eval_render("strcasecmp(\"ABC\", \"abc\")").unwrap(), "0");
+    assert_eq!(
+        it.eval_render("strncmp(\"abcx\", \"abcy\", 3)").unwrap(),
+        "0"
+    );
+    assert_eq!(
+        it.eval_render("strncasecmp(\"ABCX\", \"abcy\", 3)")
+            .unwrap(),
+        "0"
+    );
+}
+
+#[test]
+fn test_strcpy_strncpy() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("strcpy(\"x\", \"hello\")").unwrap(), "hello");
+    assert_eq!(
+        it.eval_render("strncpy(\"x\", \"hello\", 3)").unwrap(),
+        "hel"
+    );
+}
+
+#[test]
+fn test_strpos_one_based() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("strpos(\"hello world\", \"world\")")
+            .unwrap(),
+        "7"
+    );
+    assert_eq!(it.eval_render("strpos(\"hello\", \"z\")").unwrap(), "0");
+}
+
+#[test]
+fn test_char_and_digit() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("char(65)").unwrap(), "A");
+    assert_eq!(it.eval_render("char(\"hello\")").unwrap(), "h");
+    // 1234: digit at 10^2 place is 2
+    assert_eq!(it.eval_render("digit(1234, 2)").unwrap(), "2");
+    // 3.14159: digit at 10^-2 place is 4
+    assert_eq!(it.eval_render("digit(3.14159, -2)").unwrap(), "4");
+    // binary: 6 = 110b, digit at 2^1 place is 1
+    assert_eq!(it.eval_render("digit(6, 1, 2)").unwrap(), "1");
+}
+
+#[test]
+fn test_strscan_formats() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("strscan(\"42 hello 3.5\", \"%d %s %f\")")
+            .unwrap(),
+        "[42, hello, 3.5]"
+    );
+    assert_eq!(it.eval_render("strscan(\"ff\", \"%x\")").unwrap(), "[255]");
+}
+
+#[test]
+fn test_str_aliases() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("strtolower(\"ABC\")").unwrap(), "abc");
+    assert_eq!(it.eval_render("strtoupper(\"abc\")").unwrap(), "ABC");
+    assert_eq!(it.eval_render("strprintf(\"%d-%d\", 1, 2)").unwrap(), "1-2");
+}
+
+// ---- Upstream parity B3: inverse rare-trig variants ----
+
+fn assert_near(result: &str, expected: f64) {
+    let v: f64 = result.trim().trim_start_matches('~').parse().unwrap();
+    assert!(
+        (v - expected).abs() < 1e-10,
+        "got {} want {}",
+        result,
+        expected
+    );
+}
+
+#[test]
+fn test_inverse_versine_roundtrips() {
+    let mut it = Interp::new();
+    assert_near(&it.eval_render("aversin(versin(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("avercos(vercos(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("acoversin(coversin(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("acovercos(covercos(0.5))").unwrap(), 0.5);
+}
+
+#[test]
+fn test_inverse_haversine_roundtrips() {
+    let mut it = Interp::new();
+    assert_near(&it.eval_render("ahaversin(haversin(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("ahavercos(havercos(0.5))").unwrap(), 0.5);
+    assert_near(
+        &it.eval_render("ahacoversin(hacoversin(0.5))").unwrap(),
+        0.5,
+    );
+    assert_near(
+        &it.eval_render("ahacovercos(hacovercos(0.5))").unwrap(),
+        0.5,
+    );
+}
+
+#[test]
+fn test_inverse_exsec_chord() {
+    let mut it = Interp::new();
+    assert_near(&it.eval_render("aexsec(exsec(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("aexcsc(excsc(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("acrd(chord(0.5))").unwrap(), 0.5);
+    assert_near(&it.eval_render("hacovercos(0)").unwrap(), 0.5);
+}
+
+// ---- Upstream parity B4: sexagesimal & angle conversions ----
+
+#[test]
+fn test_d2dm_d2dms() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("d2dm(390.5)").unwrap(), "[30, 30]");
+    assert_eq!(it.eval_render("d2dms(30.755)").unwrap(), "[30, 45, 18]");
+    assert_eq!(it.eval_render("dms2d(30, 45, 18)").unwrap(), "30.755");
+    assert_eq!(it.eval_render("dm2d(30, 30)").unwrap(), "30.5");
+}
+
+#[test]
+fn test_gradian_hour_conversions() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("g2gm(401.25)").unwrap(), "[1, 15]");
+    assert_eq!(it.eval_render("gms2g(1, 15, 0)").unwrap(), "1.25");
+    assert_eq!(it.eval_render("h2hms(25.5)").unwrap(), "[1, 30, 0]");
+    assert_eq!(it.eval_render("hms2h(1, 30, 0)").unwrap(), "1.5");
+}
+
+#[test]
+fn test_r2g_and_near() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("r2g(pi())").unwrap(), "200");
+    assert_eq!(it.eval_render("near(1, 1.0001, 0.001)").unwrap(), "-1");
+    assert_eq!(it.eval_render("near(1, 2)").unwrap(), "1");
+    assert_eq!(it.eval_render("near(1, 1.5, 0.5)").unwrap(), "0");
+}
+
+// ---- Upstream parity B5: number theory & math ----
+
+#[test]
+fn test_frem_lcmfact_pfact_pix() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("frem(60, 2)").unwrap(), "15");
+    assert_eq!(it.eval_render("frem(7, 2)").unwrap(), "7");
+    assert_eq!(it.eval_render("lcmfact(6)").unwrap(), "60");
+    assert_eq!(it.eval_render("pfact(10)").unwrap(), "210");
+    assert_eq!(it.eval_render("pix(100)").unwrap(), "25");
+}
+
+#[test]
+fn test_modular_batch() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("mmin(7, 10)").unwrap(), "-3");
+    assert_eq!(it.eval_render("mmin(3, 10)").unwrap(), "3");
+    assert_eq!(it.eval_render("minv(3, 7)").unwrap(), "5");
+    assert_eq!(it.eval_render("meq(4, 10, 3)").unwrap(), "1");
+    assert_eq!(it.eval_render("mne(4, 10, 3)").unwrap(), "0");
+}
+
+#[test]
+fn test_power_poly_polar() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("power(2, 10)").unwrap(), "1024");
+    // power(2, 0.5) == sqrt(2)
+    let p = it.eval_render("power(2, 0.5)").unwrap();
+    assert!(p.starts_with("1.4142135623730950488"));
+    // x^2 + 2x + 3 at x=2 -> 11
+    assert_eq!(it.eval_render("poly(1, 2, 3, 2)").unwrap(), "11");
+    // list form is ascending: 3 + 2x + x^2 at x=2 -> 11
+    assert_eq!(it.eval_render("poly(list(3, 2, 1), 2)").unwrap(), "11");
+    assert_eq!(it.eval_render("polar(2, 0)").unwrap(), "2");
+}
+
+#[test]
+fn test_ssq_setbit_randombit() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("ssq(1, 2, 3)").unwrap(), "14");
+    assert_eq!(it.eval_render("ssq(list(1, 2), 3)").unwrap(), "14");
+    assert_eq!(it.eval_render("setbit(0, 3)").unwrap(), "8");
+    assert_eq!(it.eval_render("setbit(15, 0, 0)").unwrap(), "14");
+    assert_eq!(it.eval_render("popcnt(7)").unwrap(), "3");
+    // randombit(8) is in [0, 256)
+    it.eval_render("seed(1)").unwrap();
+    let r = it.eval_render("randombit(8)").unwrap();
+    let v: i64 = r.parse().unwrap();
+    assert!((0..256).contains(&v));
+}
+
+// ---- Upstream parity B6: list/struct ops ----
+
+#[test]
+fn test_head_tail_segment() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("head(list(1,2,3,4), 2)").unwrap(), "[1, 2]");
+    assert_eq!(it.eval_render("tail(list(1,2,3,4), 2)").unwrap(), "[3, 4]");
+    assert_eq!(
+        it.eval_render("segment(list(1,2,3,4,5), 1, 3)").unwrap(),
+        "[2, 3, 4]"
+    );
+    assert_eq!(it.eval_render("size(makelist(3))").unwrap(), "3");
+}
+
+#[test]
+fn test_search_rsearch() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("search(list(5,6,7), 6)").unwrap(), "1");
+    assert_eq!(it.eval_render("rsearch(list(1,2,1), 1)").unwrap(), "2");
+    assert_eq!(it.eval_render("search(list(1,2,1), 1, 1)").unwrap(), "2");
+    // not found -> null (renders empty)
+    assert_eq!(it.eval_render("isnull(search(list(1), 9))").unwrap(), "1");
+}
+
+#[test]
+fn test_select_forall_modify() {
+    let mut it = Interp::new();
+    it.eval_render("define big(x) = x > 2").unwrap();
+    assert_eq!(
+        it.eval_render("select(list(1,2,3,4), big)").unwrap(),
+        "[3, 4]"
+    );
+    it.eval_render("define dbl(x) = x * 2").unwrap();
+    assert_eq!(
+        it.eval_render("modify(list(1,2,3), dbl)").unwrap(),
+        "[2, 4, 6]"
+    );
+    assert_eq!(
+        it.eval_render("isnull(forall(list(1,2), dbl))").unwrap(),
+        "1"
+    );
+}
+
+#[test]
+fn test_copy_cmp_swap_test_null() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("copy(list(9,9), list(1,2,3))").unwrap(),
+        "[9, 9, 3]"
+    );
+    assert_eq!(it.eval_render("cmp(2, 3)").unwrap(), "-1");
+    assert_eq!(it.eval_render("cmp(\"b\", \"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("cmp(list(1,2), list(1,2))").unwrap(), "0");
+    assert_eq!(it.eval_render("swap(1, 2)").unwrap(), "[2, 1]");
+    assert_eq!(it.eval_render("test(5)").unwrap(), "1");
+    assert_eq!(it.eval_render("test(0)").unwrap(), "0");
+    assert_eq!(it.eval_render("test(\"\")").unwrap(), "0");
+    assert_eq!(it.eval_render("isnull(null())").unwrap(), "1");
+}
+
+// ---- Upstream parity B7: file I/O & filesystem ----
+
+#[test]
+fn test_fgetfield_fgetstr_fgetfile() {
+    let dir = std::env::temp_dir();
+    let path = dir.join("torustcalc_b7_read.txt");
+    std::fs::write(&path, "hello world\nsecond line\n").unwrap();
+    let p = path.to_str().unwrap();
+    let mut it = Interp::new();
+    it.eval_render(&format!("fd = fopen(\"{}\", \"r\")", p))
+        .unwrap();
+    assert_eq!(it.eval_render("fgetfield(fd)").unwrap(), "hello");
+    assert_eq!(it.eval_render("fgetfield(fd)").unwrap(), "world");
+    // position is just before the newline: remainder of the current line is empty
+    assert_eq!(it.eval_render("fgetstr(fd)").unwrap(), "");
+    assert_eq!(it.eval_render("fgetstr(fd)").unwrap(), "second line");
+    assert_eq!(it.eval_render("fgetfile(fd)").unwrap(), "");
+    assert_eq!(it.eval_render("ftell(fd)").unwrap(), "24");
+    assert_eq!(it.eval_render("ferror(fd)").unwrap(), "0");
+    assert_eq!(it.eval_render("isatty(fd)").unwrap(), "0");
+    it.eval_render("fclose(fd)").unwrap();
+    std::fs::remove_file(&path).ok();
+}
+
+#[test]
+fn test_files_and_freopen() {
+    let dir = std::env::temp_dir();
+    let p1 = dir.join("torustcalc_b7_f1.txt");
+    let p2 = dir.join("torustcalc_b7_f2.txt");
+    std::fs::write(&p1, "one\n").unwrap();
+    std::fs::write(&p2, "two\n").unwrap();
+    let mut it = Interp::new();
+    it.eval_render(&format!("fd = fopen(\"{}\", \"r\")", p1.to_str().unwrap()))
+        .unwrap();
+    let name = it.eval_render("files(fd)").unwrap();
+    assert!(name.contains("torustcalc_b7_f1.txt"));
+    it.eval_render(&format!("freopen(fd, \"r\", \"{}\")", p2.to_str().unwrap()))
+        .unwrap();
+    assert_eq!(it.eval_render("fgetstr(fd)").unwrap(), "two");
+    std::fs::remove_file(&p1).ok();
+    std::fs::remove_file(&p2).ok();
+}
+
+#[test]
+fn test_ungetc_position() {
+    let dir = std::env::temp_dir();
+    let path = dir.join("torustcalc_b7_unget.txt");
+    std::fs::write(&path, "ab").unwrap();
+    let p = path.to_str().unwrap();
+    let mut it = Interp::new();
+    it.eval_render(&format!("fd = fopen(\"{}\", \"r\")", p))
+        .unwrap();
+    assert_eq!(it.eval_render("fgetc(fd)").unwrap(), "97"); // 'a'
+    it.eval_render("ungetc(fd)").unwrap();
+    assert_eq!(it.eval_render("fgetc(fd)").unwrap(), "97"); // 'a' again
+    std::fs::remove_file(&path).ok();
+}
+
+#[test]
+fn test_cp_and_rm() {
+    let dir = std::env::temp_dir();
+    let src = dir.join("torustcalc_b7_src.txt");
+    let dst = dir.join("torustcalc_b7_dst.txt");
+    std::fs::write(&src, "data").unwrap();
+    let mut it = Interp::new();
+    let bytes = it
+        .eval_render(&format!(
+            "cp(\"{}\", \"{}\")",
+            src.to_str().unwrap(),
+            dst.to_str().unwrap()
+        ))
+        .unwrap();
+    assert_eq!(bytes, "4");
+    assert_eq!(
+        it.eval_render(&format!("exists(\"{}\")", dst.to_str().unwrap()))
+            .unwrap(),
+        "1"
+    );
+    it.eval_render(&format!("rm(\"{}\")", dst.to_str().unwrap()))
+        .unwrap();
+    assert_eq!(
+        it.eval_render(&format!("exists(\"{}\")", dst.to_str().unwrap()))
+            .unwrap(),
+        "0"
+    );
+    std::fs::remove_file(&src).ok();
+}
+
+// ---- Upstream parity B8: config/session, REDC & misc ----
+
+#[test]
+fn test_config_getters_setters() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("config(\"display\")").unwrap(), "20");
+    // setting returns the old value
+    assert_eq!(it.eval_render("display(30)").unwrap(), "20");
+    assert_eq!(it.eval_render("display()").unwrap(), "30");
+    it.eval_render("config(\"mode\", \"frac\")").unwrap();
+    assert_eq!(it.eval_render("1/2").unwrap(), "1/2");
+}
+
+#[test]
+fn test_epsilon_get_set() {
+    let mut it = Interp::new();
+    it.eval_render("epsilon(1e-5)").unwrap();
+    let e = it.eval_render("epsilon()").unwrap();
+    assert_eq!(e, "0.00001");
+}
+
+#[test]
+fn test_places() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("places(3.14159)").unwrap(), "5");
+    assert_eq!(it.eval_render("places(1/3)").unwrap(), "-1");
+    assert_eq!(it.eval_render("places(1/8, 2)").unwrap(), "3");
+    assert_eq!(it.eval_render("places(7)").unwrap(), "0");
+}
+
+#[test]
+fn test_ltol_and_hash() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("ltol(0.6)").unwrap(), "0.8");
+    assert_eq!(it.eval_render("hash(42) == hash(42)").unwrap(), "1");
+    assert_eq!(it.eval_render("hash(42) == hash(43)").unwrap(), "0");
+}
+
+#[test]
+fn test_redc_ops() {
+    let mut it = Interp::new();
+    // rcout inverts rcin
+    assert_eq!(it.eval_render("rcout(rcin(5, 13), 13)").unwrap(), "5");
+    // squaring inside the REDC domain: 5^2 mod 13 = 12
+    assert_eq!(
+        it.eval_render("rcout(rcsq(rcin(5, 13), 13), 13)").unwrap(),
+        "12"
+    );
+    // cubing via rcpow: 5^3 mod 13 = 8
+    assert_eq!(
+        it.eval_render("rcout(rcpow(rcin(5, 13), 3, 13), 13)")
+            .unwrap(),
+        "8"
+    );
+}
+
+#[test]
+fn test_free_noops_and_runtime() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isnull(freebernoulli())").unwrap(), "1");
+    assert_eq!(it.eval_render("isnull(freeeuler())").unwrap(), "1");
+    assert_eq!(it.eval_render("isnull(freeredc())").unwrap(), "1");
+    assert_eq!(it.eval_render("isnull(freestatics())").unwrap(), "1");
+    assert_eq!(it.eval_render("runtime() >= 0").unwrap(), "1");
+    assert_eq!(it.eval_render("base2()").unwrap(), "0");
+}

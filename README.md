@@ -55,7 +55,7 @@ A modern browser-based REPL with:
 - Interactive expression evaluation
 - Command history (↑/↓ arrow keys)
 - Syntax-highlighted output
-- Full calc functionality (all 365 builtins)
+- Full calc functionality (483 builtin names)
 - Responsive design for mobile/desktop
 
 Try it: open http://localhost:8888 and enter `2^256` or `sin(pi()/6)`.
@@ -94,101 +94,58 @@ changes them for the session.
 - Lists: `list(1,2,3); append(x,4); slice(x,1,3)`.
 - Complex numbers: `sqrt(-1)` → `i`; arithmetic with `+`, `-`, `*`, `/`.
 - String literals: `"hello"; strlen(s); index(haystack, needle)`.
-- **365 builtins** (100%+ of calc's ~350) organized by category — see implementation status below.
+- **483 builtin names** (full parity with calc's 350, minus 15 documented interpreter internals, plus extensions) — see implementation status below.
 
 ## Precision model
 
 Numbers are exact rationals. Irrational results are approximated to within the
-session `epsilon` (default `1e-20`), exactly like calc. Transcendentals (`exp`,
+session `epsilon` (default exact `1/10^20`), exactly like calc. Transcendentals (`exp`,
 `ln`, `sin`, `cos`, `tan`) are computed at arbitrary precision via Taylor series
 and Newton's method. `sqrt`, `sin`, `cos`, etc. converge until term < epsilon.
 `pi`/`e` are 60-digit constants. A leading `~` in real-mode output marks an
 inexact (rounded/non-terminating) rendering, as in calc.
 
-## Implementation Status — 365 of ~350 builtins (100%+ coverage) ✅ COMPLETE
+## Implementation Status — full upstream parity ✅
 
-calc upstream has ~350 builtins. This port implements **291 core functions** organized by category:
+calc upstream (`lcn2/calc` func.c) defines 350 builtins. This port registers
+**483 builtin names** covering **335 of the 350** upstream builtins (the other
+148 that were long missing were added in the upstream-parity batches below),
+plus dozens of extensions and aliases beyond upstream (statistics, hashing,
+bit tricks, system info, and more).
 
-### ✅ Fully Implemented Categories
+### Intentionally not implemented (15 interpreter internals)
 
-| Category | Count | Functions |
-|----------|-------|-----------|
-| **Arithmetic** | 10/10 | `abs`, `sgn`, `int`, `frac`, `floor`, `ceil`, `round`, `min`, `max`, `avg` |
-| **Number Theory** | 12/19 | `gcd`, `lcm`, `mod`, `fact`, `comb`, `perm`, `fib`, `isprime`, `nextprime`, `num`, `den`, `catalan` |
-| **Basic Trig** | 3/3 | `sin`, `cos`, `tan` |
-| **Inverse Trig** | 4/6 | `asin`, `acos`, `atan`, `atan2` |
-| **Hyperbolic** | 6/9 | `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` |
-| **Transcendental** | 4/4 | `exp`, `ln`, `log`, `log2` |
-| **Special Functions** | 8/12 | `erf`, `erfc`, `hypot`, `gd`, `agd`, `j0`, `j1`, `catalan` |
-| **Complex Numbers** | 3/3 | `arg`, `re`, `im` |
-| **Bitwise** | 10/10 | `and`, `or`, `xor`, `comp`, `lshift`, `rshift`, `bit`, `highbit`, `lowbit`, `fcnt` |
-| **List Operations** | 6/6 | `list`, `size`, `append`, `first`, `last`, `slice` |
-| **String Functions** | 5/17 | `strlen`, `index`, `isalpha`, `isdigit`, `isspace` |
-| **Type Checking** | 3/20 | `typeof`, `isnan`, `isinf` |
-| **Angle Conversion** | 5/5 | `d2r`, `r2d`, `d2g`, `g2d`, `g2r` |
+These upstream names are artifacts of calc's C interpreter and have no
+meaningful mapping to this port's architecture; they remain unimplemented
+rather than shipping fake stubs:
 
-**Total: 99 builtins**
+`access`, `calc_tty`, `calclevel`, `calcpath`, `custom`, `dp`, `estr`,
+`inputlevel`, `memsize`, `name`, `param`, `prompt`, `protect`, `saveval`,
+`stoponerror`
 
-### ⚠️ Partially Implemented
+### Known deviations from upstream
 
-| Category | Implemented | Missing |
-|----------|-----------|---------|
-| **Trigonometric Variants** | 25 | ~13 (haversin, versin, coversin, exsecant, etc.) |
-| **Prime Functions** | 7 | 3 (nextcand, prevcand, gcdrem) |
-| **Rounding** | 1 | 2 (bround, btrunc) |
+- Out-parameter builtins return values instead: `d2dm`/`d2dms` (and the g/h
+  family) return `[deg, min]` / `[deg, min, sec]` lists; `quomod` returns
+  `[q, r]`; `search`/`rsearch` return an index or null.
+- In-place/lvalue builtins return new values: `modify`, `copy`, `swap`
+  (builtins receive values, not references).
+- `base2()` reads as 0 (no secondary base); setting it errors — the renderer
+  has a single output base.
+- `free*()` are no-ops: nothing is cached, values are computed on demand.
 
-### ❌ Not Yet Implemented (~200 functions)
+### Full language features
 
-| Category | Missing | Purpose |
-|----------|---------|---------|
-| **File I/O** | 24 | `fopen`, `fclose`, `fgets`, `fprintf`, `fscan`, etc. |
-| **Matrix Ops** | 9 | `det`, `inverse`, `matdim`, `matfill`, `mattrace`, `mattrans`, etc. |
-| **Hash/Assoc Arrays** | 6 | `assoc`, `indices`, `insert`, `delete`, `count`, `join` |
-| **Character Class** | 12 | `isalnum`, `isupper`, `islower`, `isprint`, `isgraph`, `iscntrl`, `ispunct`, `isxdigit`, etc. |
-| **Environment/System** | 8 | `getenv`, `putenv`, `system`, `time`, `systime`, `ctime`, `sleep`, `usertime` |
-| **Memory Management** | 10 | `blk`, `blkcpy`, `blkfree`, `blocks`, `free`, `freeglobals`, etc. |
-| **Error Handling** | 7 | `errcount`, `errmax`, `errno`, `errsym`, `error`, `newerror`, etc. |
-| **Modular Arithmetic** | 5 | `pmod`, `hnrmod`, `quomod`, `quo`, `rem` |
-| **Rational Approx** | 4 | `appr`, `cfappr`, `cfsim`, `scale` |
-| **Rare Trig Variants** | ~13 | `haversin`, `versin`, `coversin`, `exsecant`, chord, etc. |
-| **Other** | ~110 | Stack ops, command/script, variable manipulation, cryptographic (sha1), etc. |
-
-### ✨ Full Language Features Implemented
-
-- ✅ User-defined functions (`define name(params) = expr`)
+- ✅ User-defined functions (`define name(params) = expr`), higher-order
+  builtins (`select`/`forall`/`modify` call function values)
 - ✅ Control flow (`if`/`else`, `while`, `for` loops)
 - ✅ Variables and scoping
 - ✅ Lists and indexing (0-based, negative indices supported)
 - ✅ Complex numbers with full arithmetic
-- ✅ String literals and operations
+- ✅ String literals and a complete string-function suite
 - ✅ Base conversion (2-36, input and output)
-- ✅ Arbitrary-precision arithmetic (exact rationals)
-- ✅ File loading (`-f filename`)
-- ✅ REPL, pipe mode, quiet mode
-
-### 📋 Roadmap for Remaining Work
-
-**Phase 4: High-Value Functions** (51 added, complete)
-- ✅ Reciprocal trig variants (cot, sec, csc, acot, asec, acsc, coth, sech, csch, acoth, asech, acsch) — 12
-- ✅ Root & logarithm functions (root, cbrt, isqrt, iroot, logn, ilog, ilog2, ilog10, ilogn) — 9
-- ✅ Prime & number theory (prevprime, factor, lfactor, ptest, euler, bernoulli, jacobi) — 8
-- ✅ Special functions (y0, y1, gamma, lgamma, polygamma, zeta) — 6
-- ✅ Random number functions (rand, random, randbit, seed, srand, srandom, randint, randperm) — 8
-- ✅ Environment/system functions (time, systime, ctime, sleep, getenv, putenv, system, usertime) — 8
-
-**Phase 5: Utility & Compatibility** (35 complete, estimated remaining ~10)
-- ✅ Character classification (isalnum, isupper, islower, isprint, isgraph, iscntrl, ispunct, isxdigit, isascii, toupper, tolower, strrev) — 12
-- ✅ Advanced modular arithmetic (pmod, quomod, quo, rem, hnrmod) — 5
-- ✅ Rational approximations (appr, cfappr, cfsim, scale) — 4
-- ✅ Matrix operations (det, inverse, mattrans, mattrace, matdim, matfill, matmin, matmax, matsum) — 9
-- ✅ Hash/associative arrays (assoc, indices, insert, delete, count, join) — 6
-
-**Phase 6: Exotic & Specialized** (remaining ~100 builtins)
-- [ ] Rare trig variants (coversin, exsecant, etc.)
-- [ ] Cryptographic (sha1, md5)
-- [ ] Advanced number theory (Bernoulli, Euler numbers, Jacobi symbols)
-- [ ] Associative arrays and object operations
-- [ ] Complete residue class support
+- ✅ Arbitrary-precision arithmetic (exact rationals; exact 1/10^20 epsilon)
+- ✅ File loading (`-f filename`), file I/O builtins, REPL, pipe mode
 
 ## Scope — Architecture & Design
 

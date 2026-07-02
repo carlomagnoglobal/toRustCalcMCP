@@ -1269,6 +1269,114 @@ pub fn prevprime(n: i64) -> Result<BigInt, String> {
     Err("prevprime: no prime found".to_string())
 }
 
+/// nextcand(n, count, skip, residue, modulus): smallest q > n that is a probable
+/// prime (`count` rounds of the probabilistic test) and, when `modulus` > 0, also
+/// satisfies q ≡ residue (mod modulus). Mirrors calc's `nextcand` signature. Our
+/// probabilistic test is deterministic (`is_prime_check`), so `count`/`skip` are
+/// accepted for compatibility; `count` must be >= 1.
+pub fn nextcand(
+    n: i64,
+    count: i64,
+    skip: i64,
+    residue: i64,
+    modulus: i64,
+) -> Result<BigInt, String> {
+    if count < 1 {
+        return Err("nextcand: count must be at least 1".to_string());
+    }
+    let _ = skip; // accepted for calc-signature compatibility
+    let mut candidate = n + 1;
+    loop {
+        if candidate > 1_000_000_000_000 {
+            return Err("nextcand: search limit exceeded".to_string());
+        }
+        let residue_ok =
+            modulus <= 0 || candidate.rem_euclid(modulus) == residue.rem_euclid(modulus);
+        if candidate >= 2 && residue_ok && is_prime_check(candidate as u64) {
+            return Ok(bi(candidate));
+        }
+        candidate += 1;
+    }
+}
+
+/// prevcand(n, count, skip, residue, modulus): largest q < n that is a probable
+/// prime and, when `modulus` > 0, satisfies q ≡ residue (mod modulus). Companion
+/// to [`nextcand`].
+pub fn prevcand(
+    n: i64,
+    count: i64,
+    skip: i64,
+    residue: i64,
+    modulus: i64,
+) -> Result<BigInt, String> {
+    if count < 1 {
+        return Err("prevcand: count must be at least 1".to_string());
+    }
+    let _ = skip; // accepted for calc-signature compatibility
+    let mut candidate = n - 1;
+    while candidate >= 2 {
+        let residue_ok =
+            modulus <= 0 || candidate.rem_euclid(modulus) == residue.rem_euclid(modulus);
+        if residue_ok && is_prime_check(candidate as u64) {
+            return Ok(bi(candidate));
+        }
+        candidate -= 1;
+    }
+    Err("prevcand: no candidate found".to_string())
+}
+
+/// gcdrem(x, y): remove from x every prime factor it shares with y. Repeatedly
+/// divides x by gcd(x, y) until the two are coprime, returning the remaining part
+/// of x. Matches calc's `gcdrem`.
+pub fn gcdrem(x: &BigInt, y: &BigInt) -> BigInt {
+    let zero = bi(0);
+    if x == &zero {
+        return zero;
+    }
+    let mut r = x.abs();
+    let y = y.abs();
+    if y == zero {
+        return r;
+    }
+    loop {
+        let g = gcd_int(&r, &y);
+        if g == bi(1) {
+            break;
+        }
+        r /= &g;
+    }
+    r
+}
+
+/// bround(x, places): round x to `places` binary places, i.e. to the nearest
+/// multiple of 2^-places (ties handled by [`round_to_epsilon`]). Negative places
+/// round to multiples of 2^|places|.
+pub fn bround(x: &Num, places: i64) -> Num {
+    let eps = pow2_scale(places);
+    round_to_epsilon(x, &eps)
+}
+
+/// btrunc(x, places): truncate x toward zero to `places` binary places.
+pub fn btrunc(x: &Num, places: i64) -> Num {
+    let eps = pow2_scale(places);
+    if eps.is_zero() {
+        return x.clone();
+    }
+    trunc(&(x / &eps)) * &eps
+}
+
+/// 2^(-places) as an exact rational (used as the quantum for binary rounding).
+fn pow2_scale(places: i64) -> Num {
+    let two = bi(2);
+    if places >= 0 {
+        let denom = num_traits::pow(two, places as usize);
+        Num::new(bi(1), denom)
+    } else {
+        let numer = num_traits::pow(two, (-places) as usize);
+        Num::from_integer(numer)
+    }
+}
+
 /// Prime factorization: return vector of prime factors
 pub fn factor(n: i64) -> Result<Vec<BigInt>, String> {
     if n < 2 {

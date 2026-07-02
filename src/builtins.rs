@@ -5,7 +5,7 @@ use crate::eval::Interp;
 use crate::number::{self, Num};
 use crate::value::Value;
 use num_bigint::BigInt;
-use num_traits::{Signed, ToPrimitive, Zero};
+use num_traits::{One, Signed, ToPrimitive, Zero};
 
 fn argc(name: &str, args: &[Value], expected: usize) -> Result<(), String> {
     if args.len() != expected {
@@ -379,6 +379,96 @@ fn f_prevprime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("prevprime", a, 1)?;
     let n = int(a, 0)?.to_i64().ok_or("prevprime: number too large")?;
     Ok(Value::Number(Num::from_integer(number::prevprime(n)?)))
+}
+
+// Next candidate prime: nextcand(n [, count [, skip [, residue [, modulus]]]])
+fn f_nextcand(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("nextcand", a, 1, 5)?;
+    let n = int(a, 0)?.to_i64().ok_or("nextcand: n too large")?;
+    let count = if a.len() > 1 {
+        int(a, 1)?.to_i64().ok_or("nextcand: count too large")?
+    } else {
+        1
+    };
+    let skip = if a.len() > 2 {
+        int(a, 2)?.to_i64().ok_or("nextcand: skip too large")?
+    } else {
+        1
+    };
+    let residue = if a.len() > 3 {
+        int(a, 3)?.to_i64().ok_or("nextcand: residue too large")?
+    } else {
+        0
+    };
+    let modulus = if a.len() > 4 {
+        int(a, 4)?.to_i64().ok_or("nextcand: modulus too large")?
+    } else {
+        0
+    };
+    Ok(Value::Number(Num::from_integer(number::nextcand(
+        n, count, skip, residue, modulus,
+    )?)))
+}
+
+// Previous candidate prime: prevcand(n [, count [, skip [, residue [, modulus]]]])
+fn f_prevcand(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("prevcand", a, 1, 5)?;
+    let n = int(a, 0)?.to_i64().ok_or("prevcand: n too large")?;
+    let count = if a.len() > 1 {
+        int(a, 1)?.to_i64().ok_or("prevcand: count too large")?
+    } else {
+        1
+    };
+    let skip = if a.len() > 2 {
+        int(a, 2)?.to_i64().ok_or("prevcand: skip too large")?
+    } else {
+        1
+    };
+    let residue = if a.len() > 3 {
+        int(a, 3)?.to_i64().ok_or("prevcand: residue too large")?
+    } else {
+        0
+    };
+    let modulus = if a.len() > 4 {
+        int(a, 4)?.to_i64().ok_or("prevcand: modulus too large")?
+    } else {
+        0
+    };
+    Ok(Value::Number(Num::from_integer(number::prevcand(
+        n, count, skip, residue, modulus,
+    )?)))
+}
+
+// gcdrem(x, y): remove factors common with y from x
+fn f_gcdrem(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gcdrem", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    Ok(Value::Number(Num::from_integer(number::gcdrem(&x, &y))))
+}
+
+// bround(x, places): round to binary places
+fn f_bround(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("bround", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let places = if a.len() == 2 {
+        int(a, 1)?.to_i64().ok_or("bround: places out of range")?
+    } else {
+        0
+    };
+    Ok(Value::Number(number::bround(x, places)))
+}
+
+// btrunc(x, places): truncate to binary places
+fn f_btrunc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("btrunc", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let places = if a.len() == 2 {
+        int(a, 1)?.to_i64().ok_or("btrunc: places out of range")?
+    } else {
+        0
+    };
+    Ok(Value::Number(number::btrunc(x, places)))
 }
 
 // Prime factorization
@@ -997,6 +1087,311 @@ fn f_usertime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(
         Num::from_float(elapsed).ok_or("usertime: overflow")?,
     ))
+}
+
+// ---- Config/session, REDC & misc (upstream-parity batch B8) ----
+
+// config(name [, value]): read or set a named config item; returns the old value
+fn f_config(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("config", a, 1, 2)?;
+    let name = str_arg("config", a, 0)?.to_string();
+    let old = match name.as_str() {
+        "mode" => Value::Str(it.cfg.mode.as_str().to_string()),
+        "display" => Value::Number(Num::from_integer(BigInt::from(it.cfg.display as i64))),
+        "epsilon" => Value::Number(it.cfg.epsilon.clone()),
+        "ibase" => Value::Number(Num::from_integer(BigInt::from(it.cfg.ibase as i64))),
+        "obase" => Value::Number(Num::from_integer(BigInt::from(it.cfg.obase as i64))),
+        _ => return Err(format!("config: unknown item {}", name)),
+    };
+    if a.len() == 2 {
+        match name.as_str() {
+            "mode" => {
+                let m = str_arg("config", a, 1)?;
+                it.cfg.mode = crate::config::Mode::parse(m)
+                    .ok_or_else(|| format!("config: invalid mode {}", m))?;
+            }
+            "display" => {
+                it.cfg.display = int(a, 1)?
+                    .to_usize()
+                    .ok_or("config: display out of range")?;
+            }
+            "epsilon" => {
+                let e = n(a, 1)?;
+                if e.is_zero() || e.is_negative() {
+                    return Err("config: epsilon must be positive".to_string());
+                }
+                it.cfg.epsilon = e.clone();
+            }
+            "ibase" => {
+                let b = int(a, 1)?.to_u32().ok_or("config: ibase out of range")?;
+                if !(2..=36).contains(&b) {
+                    return Err("config: ibase must be 2-36".to_string());
+                }
+                it.cfg.ibase = b;
+            }
+            "obase" => {
+                let b = int(a, 1)?.to_u32().ok_or("config: obase out of range")?;
+                if !(2..=36).contains(&b) {
+                    return Err("config: obase must be 2-36".to_string());
+                }
+                it.cfg.obase = b;
+            }
+            _ => unreachable!(),
+        }
+    }
+    Ok(old)
+}
+
+// display([n]): read or set the number of displayed digits; returns the old value
+fn f_display(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("display", a, 0, 1)?;
+    let old = it.cfg.display as i64;
+    if a.len() == 1 {
+        it.cfg.display = int(a, 0)?.to_usize().ok_or("display: out of range")?;
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(old))))
+}
+
+// epsilon([e]): read or set the session epsilon; returns the old value
+fn f_epsilon(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("epsilon", a, 0, 1)?;
+    let old = it.cfg.epsilon.clone();
+    if a.len() == 1 {
+        let e = n(a, 0)?;
+        if e.is_zero() || e.is_negative() {
+            return Err("epsilon: must be positive".to_string());
+        }
+        it.cfg.epsilon = e.clone();
+    }
+    Ok(Value::Number(old))
+}
+
+// places(x [, base]): digits after the point in x's expansion, -1 if infinite
+fn f_places(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("places", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let base = if a.len() == 2 {
+        int(a, 1)?.to_u32().ok_or("places: base out of range")?
+    } else {
+        10
+    };
+    if base < 2 {
+        return Err("places: base must be at least 2".to_string());
+    }
+    // count k = smallest k with denom | base^k; -1 if none (repeating expansion)
+    let mut denom = x.denom().clone();
+    let base_big = BigInt::from(base);
+    let mut k: i64 = 0;
+    loop {
+        if denom == BigInt::from(1) {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(k))));
+        }
+        let g = number::gcd_int(&denom, &base_big);
+        if g == BigInt::from(1) {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(-1))));
+        }
+        denom /= &g;
+        k += 1;
+    }
+}
+
+// base2([b]): secondary display base — not supported by this renderer
+fn f_base2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("base2", a, 0, 1)?;
+    if a.is_empty() {
+        // 0 means "no secondary base configured", matching calc's default
+        return Ok(Value::Number(Num::zero()));
+    }
+    Err("base2: secondary display base not supported".to_string())
+}
+
+// hash(...): stable FNV-1a hash of the rendered arguments
+fn f_hash(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("hash", a, 1, 100)?;
+    let mut h: u64 = 0xcbf29ce484222325;
+    for v in a {
+        for byte in v.render(&it.cfg).bytes() {
+            h ^= byte as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(h))))
+}
+
+// scan(): read one line from stdin, split into whitespace tokens (numbers parsed)
+fn f_scan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("scan", a, 0, 1)?;
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| format!("scan: read error: {}", e))?;
+    let vals: Vec<Value> = line
+        .split_whitespace()
+        .map(|tok| match number::parse_number(tok) {
+            Some(v) => Value::Number(v),
+            None => Value::Str(tok.to_string()),
+        })
+        .collect();
+    Ok(Value::List(vals))
+}
+
+// scanf(fmt): read one line from stdin and scan values per the format
+fn f_scanf(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("scanf", a, 1, 2)?;
+    let fmt = str_arg("scanf", a, 0)?.to_string();
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| format!("scanf: read error: {}", e))?;
+    Ok(Value::List(scan_str(&line, &fmt)?))
+}
+
+// REDC (Montgomery) residue arithmetic. R = 2^bitlen(m).
+fn redc_r(m: &BigInt) -> BigInt {
+    BigInt::from(1) << m.bits()
+}
+
+// rcin(x, m): convert into REDC form: x*R mod m
+fn f_rcin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcin", a, 2)?;
+    let x = int(a, 0)?;
+    let m = int(a, 1)?;
+    if m <= BigInt::from(0) || (&m % BigInt::from(2)).is_zero() {
+        return Err("rcin: modulus must be a positive odd integer".to_string());
+    }
+    let r = redc_r(&m);
+    Ok(Value::Number(Num::from_integer(normalize_mod(
+        &(x * r),
+        &m,
+    ))))
+}
+
+// rcout(x, m): convert out of REDC form: x*R^-1 mod m
+fn f_rcout(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcout", a, 2)?;
+    let x = int(a, 0)?;
+    let m = int(a, 1)?;
+    if m <= BigInt::from(0) || (&m % BigInt::from(2)).is_zero() {
+        return Err("rcout: modulus must be a positive odd integer".to_string());
+    }
+    let r = redc_r(&m);
+    // R^-1 mod m via the existing extended-Euclid builtin
+    let rinv = match f_rcinv(
+        it,
+        &[
+            Value::Number(Num::from_integer(normalize_mod(&r, &m))),
+            Value::Number(Num::from_integer(m.clone())),
+        ],
+    )? {
+        Value::Number(v) => v.numer().clone(),
+        _ => unreachable!(),
+    };
+    Ok(Value::Number(Num::from_integer(normalize_mod(
+        &(x * rinv),
+        &m,
+    ))))
+}
+
+// rcpow(x, k, m): x^k within the REDC domain
+fn f_rcpow(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcpow", a, 3)?;
+    let x = int(a, 0)?;
+    let k = int(a, 1)?.to_u64().ok_or("rcpow: exponent out of range")?;
+    let m = int(a, 2)?;
+    if m <= BigInt::from(0) || (&m % BigInt::from(2)).is_zero() {
+        return Err("rcpow: modulus must be a positive odd integer".to_string());
+    }
+    // convert out, exponentiate mod m, convert back in
+    let plain = match f_rcout(
+        it,
+        &[
+            Value::Number(Num::from_integer(x)),
+            Value::Number(Num::from_integer(m.clone())),
+        ],
+    )? {
+        Value::Number(v) => v.numer().clone(),
+        _ => unreachable!(),
+    };
+    let powered = plain.modpow(&BigInt::from(k), &m);
+    f_rcin(
+        it,
+        &[
+            Value::Number(Num::from_integer(powered)),
+            Value::Number(Num::from_integer(m)),
+        ],
+    )
+}
+
+// rcsq(x, m): x^2 within the REDC domain
+fn f_rcsq(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcsq", a, 2)?;
+    let x = int(a, 0)?;
+    let m = int(a, 1)?;
+    let args = [
+        Value::Number(Num::from_integer(x)),
+        Value::Number(Num::from_integer(BigInt::from(2))),
+        Value::Number(Num::from_integer(m)),
+    ];
+    f_rcpow(it, &args)
+}
+
+// free*(): cache-release no-ops — this port computes bernoulli/euler/REDC
+// values on demand and keeps no caches, so there is nothing to free.
+fn f_freebernoulli(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freebernoulli", a, 0)?;
+    Ok(Value::Null)
+}
+fn f_freeeuler(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freeeuler", a, 0)?;
+    Ok(Value::Null)
+}
+fn f_freeredc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freeredc", a, 0)?;
+    Ok(Value::Null)
+}
+fn f_freestatics(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freestatics", a, 0)?;
+    Ok(Value::Null)
+}
+
+// runtime(): CPU time used, in seconds (same source as usertime)
+fn f_runtime(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("runtime", a, 0)?;
+    f_usertime(it, &[])
+}
+
+// links(name): number of hard links to a file
+fn f_links(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("links", a, 1)?;
+    let path = str_arg("links", a, 0)?;
+    let meta = std::fs::metadata(path).map_err(|e| format!("links: {}: {}", path, e))?;
+    #[cfg(unix)]
+    let nlinks = {
+        use std::os::unix::fs::MetadataExt;
+        meta.nlink() as i64
+    };
+    #[cfg(not(unix))]
+    let nlinks = {
+        let _ = &meta;
+        1i64
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(nlinks))))
+}
+
+// ltol(a [, eps]): leg-to-leg of a unit right triangle: sqrt(1 - a^2)
+fn f_ltol(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("ltol", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let eps = if a.len() == 2 {
+        n(a, 1)?.abs()
+    } else {
+        it.epsilon()
+    };
+    let one_minus = Num::one() - &(x * x);
+    if one_minus.is_negative() {
+        return Err("ltol: |a| must be at most 1".to_string());
+    }
+    Ok(Value::Number(number::sqrt(&one_minus, &eps)?))
 }
 
 // Phase 5.1: Character Classification Functions
@@ -1708,6 +2103,196 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 
 // Open a file
+// ---- File I/O extensions (upstream-parity batch B7) ----
+
+// Validate fd and return its open_files index.
+fn fd_index(name: &str, it: &Interp, fd: i64) -> Result<usize, String> {
+    if fd < 3 || fd >= it.next_fd {
+        return Err(format!("{}: invalid file descriptor", name));
+    }
+    let idx = (fd - 3) as usize;
+    if idx >= it.open_files.len() {
+        return Err(format!("{}: file not open", name));
+    }
+    Ok(idx)
+}
+
+// ferror(fd): 1 if the descriptor's file is in an error state (unreadable), else 0
+fn f_ferror(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ferror", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("ferror: fd out of range")?;
+    let ok = match fd_index("ferror", it, fd) {
+        Ok(idx) => std::fs::metadata(&it.open_files[idx].0).is_ok(),
+        Err(_) => false,
+    };
+    Ok(Value::boolean(!ok))
+}
+
+// fgetstr(fd): next line without the newline, advancing the position
+fn f_fgetstr(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fgetstr", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fgetstr: fd out of range")?;
+    let idx = fd_index("fgetstr", it, fd)?;
+    let (path, pos) = it.open_files[idx].clone();
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("fgetstr: cannot read {}: {}", path, e))?;
+    let rest = content.get(pos as usize..).unwrap_or("");
+    if rest.is_empty() {
+        return Ok(Value::Null);
+    }
+    let (line, advance) = match rest.find('\n') {
+        Some(nl) => (&rest[..nl], nl + 1),
+        None => (rest, rest.len()),
+    };
+    it.open_files[idx].1 = pos + advance as u64;
+    Ok(Value::Str(line.to_string()))
+}
+
+// fgetfield(fd): next whitespace-delimited token, advancing the position
+fn f_fgetfield(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fgetfield", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fgetfield: fd out of range")?;
+    let idx = fd_index("fgetfield", it, fd)?;
+    let (path, pos) = it.open_files[idx].clone();
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("fgetfield: cannot read {}: {}", path, e))?;
+    let rest = content.get(pos as usize..).unwrap_or("");
+    let skipped = rest.len() - rest.trim_start().len();
+    let token_area = &rest[skipped..];
+    if token_area.is_empty() {
+        return Ok(Value::Null);
+    }
+    let token_len = token_area
+        .find(char::is_whitespace)
+        .unwrap_or(token_area.len());
+    it.open_files[idx].1 = pos + (skipped + token_len) as u64;
+    Ok(Value::Str(token_area[..token_len].to_string()))
+}
+
+// fgetfile(fd): everything from the current position to EOF
+fn f_fgetfile(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("fgetfile", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("fgetfile: fd out of range")?;
+    let idx = fd_index("fgetfile", it, fd)?;
+    let (path, pos) = it.open_files[idx].clone();
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("fgetfile: cannot read {}: {}", path, e))?;
+    let rest = content.get(pos as usize..).unwrap_or("").to_string();
+    it.open_files[idx].1 = content.len() as u64;
+    Ok(Value::Str(rest))
+}
+
+// fpathopen(name, mode [, searchpath]): open name, searching a ':'-separated
+// path list (argument, else CALCPATH) when name is relative and absent
+fn f_fpathopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("fpathopen", a, 2, 3)?;
+    let name = str_arg("fpathopen", a, 0)?.to_string();
+    let mode = str_arg("fpathopen", a, 1)?.to_string();
+    let mut candidate = name.clone();
+    if !std::path::Path::new(&name).exists() && !name.starts_with('/') {
+        let search = if a.len() == 3 {
+            str_arg("fpathopen", a, 2)?.to_string()
+        } else {
+            std::env::var("CALCPATH").unwrap_or_default()
+        };
+        for dir in search.split(':').filter(|d| !d.is_empty()) {
+            let joined = format!("{}/{}", dir, name);
+            if std::path::Path::new(&joined).exists() {
+                candidate = joined;
+                break;
+            }
+        }
+    }
+    f_fopen(it, &[Value::Str(candidate), Value::Str(mode)])
+}
+
+// freopen(fd, mode [, name]): reuse a descriptor for a (new) file
+fn f_freopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("freopen", a, 2, 3)?;
+    let fd = int(a, 0)?.to_i64().ok_or("freopen: fd out of range")?;
+    let idx = fd_index("freopen", it, fd)?;
+    let mode = str_arg("freopen", a, 1)?.to_string();
+    let name = if a.len() == 3 {
+        str_arg("freopen", a, 2)?.to_string()
+    } else {
+        it.open_files[idx].0.clone()
+    };
+    // validate openability with the requested mode
+    match mode.as_str() {
+        "r" => {
+            File::open(&name).map_err(|e| format!("freopen: cannot open {}: {}", name, e))?;
+        }
+        "w" => {
+            OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&name)
+                .map_err(|e| format!("freopen: cannot create {}: {}", name, e))?;
+        }
+        "a" => {
+            OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&name)
+                .map_err(|e| format!("freopen: cannot open {}: {}", name, e))?;
+        }
+        _ => return Err("freopen: mode must be 'r', 'w', or 'a'".to_string()),
+    }
+    it.open_files[idx] = (name, 0);
+    Ok(Value::Number(Num::from_integer(BigInt::from(fd))))
+}
+
+// files([fd]): list of open descriptors, or the filename of one descriptor
+fn f_files(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("files", a, 0, 1)?;
+    if a.is_empty() {
+        let fds: Vec<Value> = (0..it.open_files.len())
+            .map(|i| Value::Number(Num::from_integer(BigInt::from(i as i64 + 3))))
+            .collect();
+        return Ok(Value::List(fds));
+    }
+    let fd = int(a, 0)?.to_i64().ok_or("files: fd out of range")?;
+    match fd_index("files", it, fd) {
+        Ok(idx) => Ok(Value::Str(it.open_files[idx].0.clone())),
+        Err(_) => Ok(Value::Null),
+    }
+}
+
+// isatty(fd): 1 if the descriptor is a terminal (only possible for std fds)
+fn f_isatty(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isatty", a, 1)?;
+    let fd = int(a, 0)?.to_i64().ok_or("isatty: fd out of range")?;
+    use std::io::IsTerminal;
+    let tty = match fd {
+        0 => std::io::stdin().is_terminal(),
+        1 => std::io::stdout().is_terminal(),
+        2 => std::io::stderr().is_terminal(),
+        _ => false, // our descriptors are always regular files
+    };
+    Ok(Value::boolean(tty))
+}
+
+// ungetc(fd): push the last-read byte back (moves the position back one)
+fn f_ungetc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("ungetc", a, 1, 2)?;
+    let fd = int(a, 0)?.to_i64().ok_or("ungetc: fd out of range")?;
+    let idx = fd_index("ungetc", it, fd)?;
+    if it.open_files[idx].1 > 0 {
+        it.open_files[idx].1 -= 1;
+    }
+    Ok(Value::Number(Num::zero()))
+}
+
+// cp(src, dst): copy a file, returns bytes copied
+fn f_cp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cp", a, 2)?;
+    let src = str_arg("cp", a, 0)?;
+    let dst = str_arg("cp", a, 1)?;
+    let bytes = std::fs::copy(src, dst).map_err(|e| format!("cp: cannot copy {}: {}", src, e))?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(bytes))))
+}
+
 fn f_fopen(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("fopen", a, 2)?;
     let filename = match &a[0] {
@@ -2743,13 +3328,13 @@ fn f_semiversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     f_haversin(it, a)
 }
 
-// Havercosine: (1 + cos(x)) / 2
+// Hacoversine: (1 - sin(x)) / 2 (upstream calc definition; was wrongly (1+cos)/2)
 fn f_hacoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("hacoversin", a, 1)?;
     let x = n(a, 0)?;
-    let cos_x = number::cos(x, &it.cfg.epsilon)?;
+    let sin_x = number::sin(x, &it.cfg.epsilon)?;
     let result =
-        (&Num::from_integer(BigInt::from(1)) + &cos_x) / &Num::from_integer(BigInt::from(2));
+        (&Num::from_integer(BigInt::from(1)) - &sin_x) / &Num::from_integer(BigInt::from(2));
     Ok(Value::Number(result))
 }
 
@@ -2815,6 +3400,102 @@ fn f_hacovercosin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(result))
 }
 
+// ---- Inverse rare-trig variants (upstream-parity batch B3) ----
+// Each inverts its forward variant via a closed form over asin/acos/asec/acsc.
+
+// aversin: inverse of versin(x) = 1 - cos(x)  =>  acos(1 - x)
+fn f_aversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("aversin", a, 1)?;
+    let eps = it.epsilon();
+    let y = Num::one() - n(a, 0)?;
+    Ok(Value::Number(number::acos(&y, &eps)?))
+}
+
+// avercos: inverse of vercos(x) = 1 + cos(x)  =>  acos(x - 1)
+fn f_avercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("avercos", a, 1)?;
+    let eps = it.epsilon();
+    let y = n(a, 0)? - Num::one();
+    Ok(Value::Number(number::acos(&y, &eps)?))
+}
+
+// acoversin: inverse of coversin(x) = 1 - sin(x)  =>  asin(1 - x)
+fn f_acoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acoversin", a, 1)?;
+    let eps = it.epsilon();
+    let y = Num::one() - n(a, 0)?;
+    Ok(Value::Number(number::asin(&y, &eps)?))
+}
+
+// acovercos: inverse of covercos(x) = 1 + sin(x)  =>  asin(x - 1)
+fn f_acovercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acovercos", a, 1)?;
+    let eps = it.epsilon();
+    let y = n(a, 0)? - Num::one();
+    Ok(Value::Number(number::asin(&y, &eps)?))
+}
+
+// ahaversin: inverse of haversin(x) = (1 - cos(x))/2  =>  acos(1 - 2x)
+fn f_ahaversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ahaversin", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let y = Num::one() - &(n(a, 0)? * &two);
+    Ok(Value::Number(number::acos(&y, &eps)?))
+}
+
+// ahavercos: inverse of havercos(x) = (1 + cos(x))/2  =>  acos(2x - 1)
+fn f_ahavercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ahavercos", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let y = (n(a, 0)? * &two) - Num::one();
+    Ok(Value::Number(number::acos(&y, &eps)?))
+}
+
+// ahacoversin: inverse of hacoversin(x) = (1 - sin(x))/2  =>  asin(1 - 2x)
+fn f_ahacoversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ahacoversin", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let y = Num::one() - &(n(a, 0)? * &two);
+    Ok(Value::Number(number::asin(&y, &eps)?))
+}
+
+// ahacovercos: inverse of hacovercos(x) = (1 + sin(x))/2  =>  asin(2x - 1)
+fn f_ahacovercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ahacovercos", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let y = (n(a, 0)? * &two) - Num::one();
+    Ok(Value::Number(number::asin(&y, &eps)?))
+}
+
+// aexsec: inverse of exsec(x) = sec(x) - 1  =>  asec(x + 1)
+fn f_aexsec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("aexsec", a, 1)?;
+    let eps = it.epsilon();
+    let y = n(a, 0)? + Num::one();
+    Ok(Value::Number(number::asec(&y, &eps)?))
+}
+
+// aexcsc: inverse of excsc(x) = csc(x) - 1  =>  acsc(x + 1)
+fn f_aexcsc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("aexcsc", a, 1)?;
+    let eps = it.epsilon();
+    let y = n(a, 0)? + Num::one();
+    Ok(Value::Number(number::acsc(&y, &eps)?))
+}
+
+// acrd: inverse of chord(x) = 2 sin(x/2)  =>  2 asin(x/2)
+fn f_acrd(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("acrd", a, 1)?;
+    let eps = it.epsilon();
+    let two = Num::from_integer(BigInt::from(2));
+    let half = n(a, 0)? / &two;
+    Ok(Value::Number(number::asin(&half, &eps)? * &two))
+}
+
 // Excosecant: csc(x) - 1
 fn f_excosec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("excosec", a, 1)?;
@@ -2853,9 +3534,14 @@ fn f_cvs(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 }
 
 // Havercosine proper name: (1 + cos(x)) / 2
+// Havercosine: (1 + cos(x)) / 2 (was wrongly aliased to hacoversin)
 fn f_havercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
-    // Alias for hacoversin (havercosine)
-    f_hacoversin(it, a)
+    argc("havercos", a, 1)?;
+    let x = n(a, 0)?;
+    let cos_x = number::cos(x, &it.cfg.epsilon)?;
+    let result =
+        (&Num::from_integer(BigInt::from(1)) + &cos_x) / &Num::from_integer(BigInt::from(2));
+    Ok(Value::Number(result))
 }
 
 // Phase 6.6: Cryptographic & Hashing
@@ -3133,6 +3819,255 @@ fn f_index(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// ---- String ops (upstream-parity batch B2) ----
+
+fn str_arg<'a>(name: &str, a: &'a [Value], i: usize) -> Result<&'a str, String> {
+    match &a[i] {
+        Value::Str(s) => Ok(s.as_str()),
+        _ => Err(format!("{}: argument {} must be a string", name, i + 1)),
+    }
+}
+
+// Concatenate all string arguments
+fn f_strcat(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("strcat", a, 1, 100)?;
+    let mut out = String::new();
+    for (i, _) in a.iter().enumerate() {
+        out.push_str(str_arg("strcat", a, i)?);
+    }
+    Ok(Value::Str(out))
+}
+
+// String compare: -1 / 0 / 1
+fn f_strcmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strcmp", a, 2)?;
+    let x = str_arg("strcmp", a, 0)?;
+    let y = str_arg("strcmp", a, 1)?;
+    let ord = x.cmp(y) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+// Case-insensitive compare
+fn f_strcasecmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strcasecmp", a, 2)?;
+    let x = str_arg("strcasecmp", a, 0)?.to_lowercase();
+    let y = str_arg("strcasecmp", a, 1)?.to_lowercase();
+    let ord = x.cmp(&y) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+// Compare first n characters
+fn f_strncmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strncmp", a, 3)?;
+    let x = str_arg("strncmp", a, 0)?;
+    let y = str_arg("strncmp", a, 1)?;
+    let n_chars = int(a, 2)?.to_usize().ok_or("strncmp: n out of range")?;
+    let xs: String = x.chars().take(n_chars).collect();
+    let ys: String = y.chars().take(n_chars).collect();
+    let ord = xs.cmp(&ys) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+// Case-insensitive compare of first n characters
+fn f_strncasecmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strncasecmp", a, 3)?;
+    let x = str_arg("strncasecmp", a, 0)?.to_lowercase();
+    let y = str_arg("strncasecmp", a, 1)?.to_lowercase();
+    let n_chars = int(a, 2)?.to_usize().ok_or("strncasecmp: n out of range")?;
+    let xs: String = x.chars().take(n_chars).collect();
+    let ys: String = y.chars().take(n_chars).collect();
+    let ord = xs.cmp(&ys) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+// Copy of src (calc copies into dst; values are immutable here, so we return the copy)
+fn f_strcpy(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strcpy", a, 2)?;
+    let _dst = str_arg("strcpy", a, 0)?;
+    let src = str_arg("strcpy", a, 1)?;
+    Ok(Value::Str(src.to_string()))
+}
+
+// Copy of first n characters of src
+fn f_strncpy(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strncpy", a, 3)?;
+    let _dst = str_arg("strncpy", a, 0)?;
+    let src = str_arg("strncpy", a, 1)?;
+    let n_chars = int(a, 2)?.to_usize().ok_or("strncpy: n out of range")?;
+    Ok(Value::Str(src.chars().take(n_chars).collect()))
+}
+
+// Position of needle in haystack, 1-based; 0 if absent (calc semantics)
+fn f_strpos(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strpos", a, 2)?;
+    let haystack = str_arg("strpos", a, 0)?;
+    let needle = str_arg("strpos", a, 1)?;
+    let pos = match haystack.find(needle) {
+        Some(byte_idx) => haystack[..byte_idx].chars().count() as i64 + 1,
+        None => 0,
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(pos))))
+}
+
+// Message for an error code (defaults to the last error)
+fn f_strerror(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("strerror", a, 0, 1)?;
+    let code = if a.is_empty() {
+        it.last_errno
+    } else {
+        int(a, 0)?.to_i64().ok_or("strerror: code out of range")?
+    };
+    f_errsym(it, &[Value::Number(Num::from_integer(BigInt::from(code)))])
+}
+
+// Character for a code, or first character of a string
+fn f_char(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("char", a, 1)?;
+    match &a[0] {
+        Value::Number(x) => {
+            if !x.is_integer() {
+                return Err("char: non-integer code".to_string());
+            }
+            let code = x.numer().to_u32().ok_or("char: code out of range")?;
+            let ch = char::from_u32(code).ok_or("char: invalid character code")?;
+            Ok(Value::Str(ch.to_string()))
+        }
+        Value::Str(s) => Ok(Value::Str(
+            s.chars().next().map(String::from).unwrap_or_default(),
+        )),
+        _ => Err("char: argument must be a number or string".to_string()),
+    }
+}
+
+// digit(x, n [, base]): coefficient of base^n in |x| (n may be negative)
+fn f_digit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("digit", a, 2, 3)?;
+    let x = n(a, 0)?.abs();
+    let pos = int(a, 1)?.to_i64().ok_or("digit: position out of range")?;
+    let base = if a.len() == 3 {
+        int(a, 2)?
+    } else {
+        BigInt::from(10)
+    };
+    if base < BigInt::from(2) {
+        return Err("digit: base must be at least 2".to_string());
+    }
+    let base_r = Num::from_integer(base.clone());
+    // shift x so the wanted digit lands in the units place, then floor & mod
+    let mut shifted = x;
+    if pos >= 0 {
+        for _ in 0..pos {
+            shifted = &shifted / &base_r;
+        }
+    } else {
+        for _ in 0..(-pos) {
+            shifted = &shifted * &base_r;
+        }
+    }
+    let floored = number::floor(&shifted);
+    let digit = floored.numer() % &base;
+    Ok(Value::Number(Num::from_integer(digit)))
+}
+
+// strscan(s, fmt): scan values out of a string per a simplified scanf format
+// (%d %i %f %s %c %x %o), returning a list of the scanned values.
+fn f_strscan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strscan", a, 2)?;
+    let input = str_arg("strscan", a, 0)?;
+    let fmt = str_arg("strscan", a, 1)?;
+    Ok(Value::List(scan_str(input, fmt)?))
+}
+
+fn scan_str(input: &str, fmt: &str) -> Result<Vec<Value>, String> {
+    let mut results = Vec::new();
+    let bytes = input.as_bytes();
+    let fmt_bytes = fmt.as_bytes();
+    let mut i = 0usize; // input index
+    let mut f = 0usize; // format index
+    while f < fmt_bytes.len() && i <= bytes.len() {
+        if fmt_bytes[f] == b'%' && f + 1 < fmt_bytes.len() {
+            f += 1;
+            let spec = fmt_bytes[f] as char;
+            // skip leading whitespace in input for all specs except %c
+            if spec != 'c' {
+                while i < bytes.len() && (bytes[i] as char).is_whitespace() {
+                    i += 1;
+                }
+            }
+            match spec {
+                'd' | 'i' | 'f' => {
+                    let start = i;
+                    if i < bytes.len() && (bytes[i] == b'-' || bytes[i] == b'+') {
+                        i += 1;
+                    }
+                    while i < bytes.len() && (bytes[i] as char).is_ascii_digit() {
+                        i += 1;
+                    }
+                    if spec == 'f' && i < bytes.len() && bytes[i] == b'.' {
+                        i += 1;
+                        while i < bytes.len() && (bytes[i] as char).is_ascii_digit() {
+                            i += 1;
+                        }
+                    }
+                    if i > start {
+                        let tok = &input[start..i];
+                        match number::parse_number(tok) {
+                            Some(v) => results.push(Value::Number(v)),
+                            None => return Err(format!("strscan: bad number {}", tok)),
+                        }
+                    }
+                }
+                'x' | 'o' => {
+                    let radix = if spec == 'x' { 16 } else { 8 };
+                    let start = i;
+                    while i < bytes.len() && (bytes[i] as char).is_digit(radix) {
+                        i += 1;
+                    }
+                    if i > start {
+                        match BigInt::parse_bytes(&bytes[start..i], radix) {
+                            Some(v) => results.push(Value::Number(Num::from_integer(v))),
+                            None => return Err("strscan: bad radix literal".to_string()),
+                        }
+                    }
+                }
+                's' => {
+                    let start = i;
+                    while i < bytes.len() && !(bytes[i] as char).is_whitespace() {
+                        i += 1;
+                    }
+                    results.push(Value::Str(input[start..i].to_string()));
+                }
+                'c' => {
+                    if i < bytes.len() {
+                        let ch = input[i..].chars().next().unwrap();
+                        results.push(Value::Str(ch.to_string()));
+                        i += ch.len_utf8();
+                    }
+                }
+                '%' => {
+                    if i < bytes.len() && bytes[i] == b'%' {
+                        i += 1;
+                    }
+                }
+                _ => return Err(format!("strscan: unsupported format %{}", spec)),
+            }
+            f += 1;
+        } else if (fmt_bytes[f] as char).is_whitespace() {
+            while i < bytes.len() && (bytes[i] as char).is_whitespace() {
+                i += 1;
+            }
+            f += 1;
+        } else {
+            // literal character must match
+            if i < bytes.len() && bytes[i] == fmt_bytes[f] {
+                i += 1;
+            }
+            f += 1;
+        }
+    }
+    Ok(results)
+}
+
 // Check if all characters are alphabetic
 fn f_isalpha(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("isalpha", a, 1)?;
@@ -3196,6 +4131,230 @@ fn f_isinf(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// ---- Type predicates (upstream-parity batch B1) ----
+
+// Even integer test: 1 if x is an even integer, 0 otherwise (incl. non-integers)
+fn f_iseven(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("iseven", a, 1)?;
+    Ok(Value::boolean(match &a[0] {
+        Value::Number(x) => x.is_integer() && (x.numer() % BigInt::from(2)).is_zero(),
+        _ => false,
+    }))
+}
+
+// Odd integer test
+fn f_isodd(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isodd", a, 1)?;
+    Ok(Value::boolean(match &a[0] {
+        Value::Number(x) => x.is_integer() && !(x.numer() % BigInt::from(2)).is_zero(),
+        _ => false,
+    }))
+}
+
+// Integer test
+fn f_isint(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isint", a, 1)?;
+    Ok(Value::boolean(
+        matches!(&a[0], Value::Number(x) if x.is_integer()),
+    ))
+}
+
+// Number test (real or complex)
+fn f_isnum(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isnum", a, 1)?;
+    Ok(Value::boolean(matches!(
+        &a[0],
+        Value::Number(_) | Value::Complex(_, _)
+    )))
+}
+
+// Real number test
+fn f_isreal(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isreal", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Number(_))))
+}
+
+// String test
+fn f_isstr(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isstr", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Str(_))))
+}
+
+// List test
+fn f_islist(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("islist", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::List(_))))
+}
+
+// Null test
+fn f_isnull(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isnull", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Null)))
+}
+
+// Associative array test (our Hash type)
+fn f_isassoc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isassoc", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Hash(_))))
+}
+
+// Hash test (alias semantics of isassoc for our value model)
+fn f_ishash(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ishash", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Hash(_))))
+}
+
+// Matrix test: list of equal-length lists
+fn f_ismat(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ismat", a, 1)?;
+    Ok(Value::boolean(is_matrix(&a[0])))
+}
+
+fn is_matrix(v: &Value) -> bool {
+    match v {
+        Value::List(rows) if !rows.is_empty() => {
+            let width = match &rows[0] {
+                Value::List(r) => r.len(),
+                _ => return false,
+            };
+            rows.iter()
+                .all(|r| matches!(r, Value::List(x) if x.len() == width))
+        }
+        _ => false,
+    }
+}
+
+// Identity matrix test
+fn f_isident(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isident", a, 1)?;
+    let rows = match &a[0] {
+        Value::List(rows) if is_matrix(&a[0]) => rows,
+        _ => return Ok(Value::boolean(false)),
+    };
+    let n_rows = rows.len();
+    for (i, row) in rows.iter().enumerate() {
+        let cells = match row {
+            Value::List(c) => c,
+            _ => return Ok(Value::boolean(false)),
+        };
+        if cells.len() != n_rows {
+            return Ok(Value::boolean(false));
+        }
+        for (j, cell) in cells.iter().enumerate() {
+            let want = if i == j { Num::one() } else { Num::zero() };
+            match cell {
+                Value::Number(x) if *x == want => {}
+                _ => return Ok(Value::boolean(false)),
+            }
+        }
+    }
+    Ok(Value::boolean(true))
+}
+
+// Error value test: we have no error values, so always 0
+fn f_iserror(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("iserror", a, 1)?;
+    Ok(Value::boolean(false))
+}
+
+// Multiple test: 1 if x is an integer multiple of y
+fn f_ismult(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ismult", a, 2)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    if y.is_zero() {
+        return Err("ismult: division by zero".to_string());
+    }
+    Ok(Value::boolean((x / y).is_integer()))
+}
+
+// Relatively-prime test: gcd(x, y) == 1 for integers
+fn f_isrel(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isrel", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    Ok(Value::boolean(number::gcd_int(&x, &y) == BigInt::from(1)))
+}
+
+// Perfect-square test for rationals: numerator and denominator both squares
+fn f_issq(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("issq", a, 1)?;
+    let x = n(a, 0)?;
+    if x.is_negative() {
+        return Ok(Value::boolean(false));
+    }
+    let is_square = |v: &BigInt| -> bool {
+        let r = v.sqrt();
+        &(&r * &r) == v
+    };
+    Ok(Value::boolean(is_square(x.numer()) && is_square(x.denom())))
+}
+
+// Simple value test: number, string, or null
+fn f_issimple(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("issimple", a, 1)?;
+    Ok(Value::boolean(matches!(
+        &a[0],
+        Value::Number(_) | Value::Complex(_, _) | Value::Str(_) | Value::Null
+    )))
+}
+
+// Same-type test
+fn f_istype(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("istype", a, 2)?;
+    Ok(Value::boolean(
+        std::mem::discriminant(&a[0]) == std::mem::discriminant(&a[1]),
+    ))
+}
+
+// Open-file-descriptor test
+fn f_isfile(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isfile", a, 1)?;
+    Ok(Value::boolean(match &a[0] {
+        Value::Number(x) if x.is_integer() => match x.numer().to_i64() {
+            Some(fd) => fd >= 3 && ((fd - 3) as usize) < it.open_files.len(),
+            None => false,
+        },
+        _ => false,
+    }))
+}
+
+// Type predicates for types this port does not model as distinct values:
+// rand/random state, config, obj, pointer, block, octet. A value can never be
+// one of those types here, so these correctly return 0.
+fn f_isrand(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isrand", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_israndom(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("israndom", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isconfig(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isconfig", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isobj(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isobj", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isobjtype(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isobjtype", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isptr(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isptr", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isblk(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isblk", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isoctet(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isoctet", a, 1)?;
+    Ok(Value::boolean(false))
+}
+
 // Degrees to radians
 fn f_d2r(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("d2r", a, 1)?;
@@ -3227,6 +4386,367 @@ fn f_g2r(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 fn f_g2d(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("g2d", a, 1)?;
     Ok(Value::Number(number::g2d(n(a, 0)?)))
+}
+
+// ---- Sexagesimal & angle conversions (upstream-parity batch B4) ----
+// Upstream returns the parts via out-parameters; this port returns lists
+// ([whole, minutes] / [whole, minutes, seconds]), noted in the catalog.
+
+// Normalize x into [0, modulus) then split off whole part and 60ths.
+fn split_units(x: &Num, modulus: i64, parts: usize) -> Vec<Value> {
+    let m = Num::from_integer(BigInt::from(modulus));
+    let sixty = Num::from_integer(BigInt::from(60));
+    // positive modulus reduction
+    let q = number::floor(&(x / &m));
+    let mut rest = x - &(&q * &m);
+    let mut out = Vec::with_capacity(parts + 1);
+    for _ in 0..parts {
+        let whole = number::floor(&rest);
+        out.push(Value::Number(whole.clone()));
+        rest = (&rest - &whole) * &sixty;
+    }
+    out.push(Value::Number(rest)); // final unit keeps any fraction, exact
+    out
+}
+
+fn f_d2dm(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("d2dm", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 360, 1)))
+}
+
+fn f_d2dms(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("d2dms", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 360, 2)))
+}
+
+fn f_g2gm(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("g2gm", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 400, 1)))
+}
+
+fn f_g2gms(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("g2gms", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 400, 2)))
+}
+
+fn f_h2hm(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("h2hm", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 24, 1)))
+}
+
+fn f_h2hms(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("h2hms", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 24, 2)))
+}
+
+// x + m/60 (+ s/3600): recombine split units
+fn recombine(a: &[Value], name: &str) -> Result<Num, String> {
+    let sixty = Num::from_integer(BigInt::from(60));
+    let mut total = n(a, 0)?.clone();
+    total = total + &(n(a, 1)? / &sixty);
+    if a.len() == 3 {
+        total = total + &(n(a, 2)? / &(&sixty * &sixty));
+    }
+    let _ = name;
+    Ok(total)
+}
+
+fn f_dm2d(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("dm2d", a, 2)?;
+    Ok(Value::Number(recombine(a, "dm2d")?))
+}
+
+fn f_dms2d(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("dms2d", a, 3)?;
+    Ok(Value::Number(recombine(a, "dms2d")?))
+}
+
+fn f_gm2g(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gm2g", a, 2)?;
+    Ok(Value::Number(recombine(a, "gm2g")?))
+}
+
+fn f_gms2g(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gms2g", a, 3)?;
+    Ok(Value::Number(recombine(a, "gms2g")?))
+}
+
+fn f_hm2h(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hm2h", a, 2)?;
+    Ok(Value::Number(recombine(a, "hm2h")?))
+}
+
+fn f_hms2h(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hms2h", a, 3)?;
+    Ok(Value::Number(recombine(a, "hms2h")?))
+}
+
+// Radians to gradians: x * 200 / pi
+fn f_r2g(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("r2g", a, 1)?;
+    let x = n(a, 0)?;
+    let two_hundred = Num::from_integer(BigInt::from(200));
+    let result = x * &two_hundred / number::pi();
+    Ok(Value::Number(number::round_to_epsilon(
+        &result,
+        &it.epsilon(),
+    )))
+}
+
+// near(x, y [, eps]): -1 if |x-y| < eps, 0 if == eps, 1 if > eps
+fn f_near(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("near", a, 2, 3)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let eps = if a.len() == 3 {
+        n(a, 2)?.abs()
+    } else {
+        it.epsilon()
+    };
+    let diff = (x - y).abs();
+    let sign: i64 = match diff.cmp(&eps) {
+        std::cmp::Ordering::Less => -1,
+        std::cmp::Ordering::Equal => 0,
+        std::cmp::Ordering::Greater => 1,
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(sign))))
+}
+
+// ---- Number theory & math (upstream-parity batch B5) ----
+
+// frem(x, y): remove all factors of y from x (x with every power of y divided out)
+fn f_frem(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("frem", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    let y_abs = y.abs();
+    if y_abs <= BigInt::from(1) {
+        return Ok(Value::Number(Num::from_integer(x.abs())));
+    }
+    let mut r = x.abs();
+    if r.is_zero() {
+        return Ok(Value::Number(Num::zero()));
+    }
+    while (&r % &y_abs).is_zero() {
+        r /= &y_abs;
+    }
+    Ok(Value::Number(Num::from_integer(r)))
+}
+
+// lcmfact(n): lcm of 1..n
+fn f_lcmfact(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("lcmfact", a, 1)?;
+    let n_val = int(a, 0)?.to_i64().ok_or("lcmfact: n too large")?;
+    if n_val < 1 {
+        return Err("lcmfact: n must be at least 1".to_string());
+    }
+    if n_val > 100_000 {
+        return Err("lcmfact: n too large".to_string());
+    }
+    let mut acc = BigInt::from(1);
+    for k in 2..=n_val {
+        let k = BigInt::from(k);
+        let g = number::gcd_int(&acc, &k);
+        acc = &acc / &g * &k;
+    }
+    Ok(Value::Number(Num::from_integer(acc)))
+}
+
+// pfact(n): product of primes <= n (primorial)
+fn f_pfact(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("pfact", a, 1)?;
+    let n_val = int(a, 0)?.to_u64().ok_or("pfact: n out of range")?;
+    if n_val > 1_000_000 {
+        return Err("pfact: n too large".to_string());
+    }
+    let mut acc = BigInt::from(1);
+    for k in 2..=n_val {
+        if is_prime(k) {
+            acc *= BigInt::from(k);
+        }
+    }
+    Ok(Value::Number(Num::from_integer(acc)))
+}
+
+// pix(n): number of primes <= n
+fn f_pix(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("pix", a, 1)?;
+    let n_val = int(a, 0)?.to_u64().ok_or("pix: n out of range")?;
+    if n_val > 10_000_000 {
+        return Err("pix: n too large".to_string());
+    }
+    let mut count: i64 = 0;
+    for k in 2..=n_val {
+        if is_prime(k) {
+            count += 1;
+        }
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(count))))
+}
+
+// mmin(x, m): residue of x mod m with minimal absolute value
+fn f_mmin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mmin", a, 2)?;
+    let x = int(a, 0)?;
+    let m = int(a, 1)?.abs();
+    if m.is_zero() {
+        return Ok(Value::Number(Num::from_integer(x)));
+    }
+    let mut r = normalize_mod(&x, &m);
+    let twice = &r * BigInt::from(2);
+    if twice > m {
+        r -= &m;
+    }
+    Ok(Value::Number(Num::from_integer(r)))
+}
+
+// minv(a, m): modular inverse (same math as rcinv)
+fn f_minv(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("minv", a, 2)?;
+    f_rcinv(it, a)
+}
+
+// meq(a, b, m): 1 if a ≡ b (mod m)
+fn f_meq(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("meq", a, 3)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    let m = int(a, 2)?;
+    if m.is_zero() {
+        return Ok(Value::boolean(x == y));
+    }
+    Ok(Value::boolean(((x - y) % m).is_zero()))
+}
+
+// mne(a, b, m): 1 if a ≢ b (mod m)
+fn f_mne(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mne", a, 3)?;
+    match f_meq(it, a)? {
+        Value::Number(v) => Ok(Value::boolean(v.is_zero())),
+        _ => unreachable!(),
+    }
+}
+
+// power(x, y [, eps]): x^y; non-integer exponents via exp(y ln x) to epsilon
+fn f_power(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("power", a, 2, 3)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let eps = if a.len() == 3 {
+        n(a, 2)?.abs()
+    } else {
+        it.epsilon()
+    };
+    if y.is_integer() {
+        return Ok(Value::Number(number::pow_int(x, &y.to_integer())?));
+    }
+    if x.is_zero() {
+        return Ok(Value::Number(Num::zero()));
+    }
+    if x.is_negative() {
+        return Err("power: negative base with non-integer exponent".to_string());
+    }
+    let ln_x = number::ln(x, &eps)?;
+    let result = number::exp(&(y * &ln_x), &eps)?;
+    Ok(Value::Number(number::round_to_epsilon(&result, &eps)))
+}
+
+// poly: poly(coeff_list, x) evaluates sum(c[i]*x^i);
+// poly(a_n, ..., a_0, x) evaluates with a_n the highest-order coefficient
+fn f_poly(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("poly", a, 2, 100)?;
+    if matches!(&a[0], Value::List(_)) {
+        argc("poly", a, 2)?;
+        return f_polyval(it, a);
+    }
+    let x = n(a, a.len() - 1)?.clone();
+    let mut result = n(a, 0)?.clone();
+    for item in &a[1..a.len() - 1] {
+        let c = item.as_number()?;
+        result = &(&result * &x) + c;
+    }
+    Ok(Value::Number(result))
+}
+
+// polar(r, theta [, eps]): complex value r*cos(theta) + r*sin(theta)*i
+fn f_polar(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("polar", a, 2, 3)?;
+    let r = n(a, 0)?;
+    let theta = n(a, 1)?;
+    let eps = if a.len() == 3 {
+        n(a, 2)?.abs()
+    } else {
+        it.epsilon()
+    };
+    let re = r * &number::cos(theta, &eps)?;
+    let im = r * &number::sin(theta, &eps)?;
+    if im.is_zero() {
+        Ok(Value::Number(re))
+    } else {
+        Ok(Value::Complex(re, im))
+    }
+}
+
+// ssq(...): sum of squares of all arguments (lists included)
+fn f_ssq(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("ssq", a, 1, 100)?;
+    fn add_sq(acc: &mut Num, v: &Value) -> Result<(), String> {
+        match v {
+            Value::Number(x) => {
+                *acc = &*acc + &(x * x);
+                Ok(())
+            }
+            Value::List(items) => {
+                for item in items {
+                    add_sq(acc, item)?;
+                }
+                Ok(())
+            }
+            _ => Err("ssq: arguments must be numbers or lists".to_string()),
+        }
+    }
+    let mut acc = Num::zero();
+    for v in a {
+        add_sq(&mut acc, v)?;
+    }
+    Ok(Value::Number(acc))
+}
+
+// setbit(x, n [, v]): set (v=1, default) or clear (v=0) bit n of integer x
+fn f_setbit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("setbit", a, 2, 3)?;
+    let x = int(a, 0)?;
+    let bit = int(a, 1)?.to_u64().ok_or("setbit: bit out of range")?;
+    if bit > 1_000_000 {
+        return Err("setbit: bit out of range".to_string());
+    }
+    let v = if a.len() == 3 {
+        let v = int(a, 2)?;
+        !v.is_zero()
+    } else {
+        true
+    };
+    let mask = BigInt::from(1) << bit;
+    let result = if v { x | mask } else { x & !mask };
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// randombit([n]): integer made of n random bits (default 1)
+fn f_randombit(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("randombit", a, 0, 1)?;
+    let bits = if a.is_empty() {
+        1
+    } else {
+        int(a, 0)?.to_u64().ok_or("randombit: n out of range")?
+    };
+    if bits > 100_000 {
+        return Err("randombit: n too large".to_string());
+    }
+    let mut acc = BigInt::from(0);
+    for _ in 0..bits {
+        acc = (acc << 1) | BigInt::from(number::randbit(&mut it.rng_seed));
+    }
+    Ok(Value::Number(Num::from_integer(acc)))
 }
 
 // Simple primality test (trial division for small primes, then test a few bases)
@@ -3910,6 +5430,218 @@ fn f_product(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         }
     }
     Ok(Value::Number(total))
+}
+
+// ---- List/struct ops (upstream-parity batch B6) ----
+
+fn list_arg<'a>(name: &str, a: &'a [Value], i: usize) -> Result<&'a [Value], String> {
+    match &a[i] {
+        Value::List(items) => Ok(items.as_slice()),
+        _ => Err(format!("{}: argument {} must be a list", name, i + 1)),
+    }
+}
+
+// head(list, n): first n elements
+fn f_head(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("head", a, 2)?;
+    let items = list_arg("head", a, 0)?;
+    let count = int(a, 1)?.to_usize().ok_or("head: n out of range")?;
+    Ok(Value::List(items.iter().take(count).cloned().collect()))
+}
+
+// tail(list, n): last n elements
+fn f_tail(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("tail", a, 2)?;
+    let items = list_arg("tail", a, 0)?;
+    let count = int(a, 1)?.to_usize().ok_or("tail: n out of range")?;
+    let skip = items.len().saturating_sub(count);
+    Ok(Value::List(items.iter().skip(skip).cloned().collect()))
+}
+
+// segment(list, start [, end]): elements start..end inclusive (0-based)
+fn f_segment(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("segment", a, 2, 3)?;
+    let items = list_arg("segment", a, 0)?;
+    let start = int(a, 1)?.to_usize().ok_or("segment: start out of range")?;
+    let end = if a.len() == 3 {
+        int(a, 2)?.to_usize().ok_or("segment: end out of range")?
+    } else {
+        items.len().saturating_sub(1)
+    };
+    if start >= items.len() || end < start {
+        return Ok(Value::List(Vec::new()));
+    }
+    let end = end.min(items.len() - 1);
+    Ok(Value::List(items[start..=end].to_vec()))
+}
+
+// makelist(n): list of n nulls
+fn f_makelist(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("makelist", a, 1)?;
+    let count = int(a, 0)?.to_usize().ok_or("makelist: n out of range")?;
+    if count > 10_000_000 {
+        return Err("makelist: n too large".to_string());
+    }
+    Ok(Value::List(vec![Value::Null; count]))
+}
+
+// select(list, f): elements for which f(element) is nonzero
+fn f_select(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("select", a, 2)?;
+    let items = list_arg("select", a, 0)?.to_vec();
+    let func = a[1].clone();
+    let mut out = Vec::new();
+    for item in items {
+        let keep = match it.call_value(&func, &[item.clone()])? {
+            Value::Number(v) => !v.is_zero(),
+            Value::Null => false,
+            _ => true,
+        };
+        if keep {
+            out.push(item);
+        }
+    }
+    Ok(Value::List(out))
+}
+
+// forall(list, f): call f on every element (for side effects); returns null
+fn f_forall(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("forall", a, 2)?;
+    let items = list_arg("forall", a, 0)?.to_vec();
+    let func = a[1].clone();
+    for item in items {
+        it.call_value(&func, &[item])?;
+    }
+    Ok(Value::Null)
+}
+
+// modify(list, f): list of f(element) (upstream modifies in place; we return the new list)
+fn f_modify(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("modify", a, 2)?;
+    let items = list_arg("modify", a, 0)?.to_vec();
+    let func = a[1].clone();
+    let mut out = Vec::with_capacity(items.len());
+    for item in items {
+        out.push(it.call_value(&func, &[item])?);
+    }
+    Ok(Value::List(out))
+}
+
+// search(list, value [, start]): index of first match at/after start, or null
+fn f_search(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("search", a, 2, 3)?;
+    let items = list_arg("search", a, 0)?;
+    let start = if a.len() == 3 {
+        int(a, 2)?.to_usize().ok_or("search: start out of range")?
+    } else {
+        0
+    };
+    for (i, item) in items.iter().enumerate().skip(start) {
+        if item == &a[1] {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(i as i64))));
+        }
+    }
+    Ok(Value::Null)
+}
+
+// rsearch(list, value [, start]): index of last match at/before start, or null
+fn f_rsearch(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("rsearch", a, 2, 3)?;
+    let items = list_arg("rsearch", a, 0)?;
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+    let last = if a.len() == 3 {
+        int(a, 2)?.to_usize().ok_or("rsearch: start out of range")?
+    } else {
+        items.len() - 1
+    };
+    for i in (0..=last.min(items.len() - 1)).rev() {
+        if items.get(i) == Some(&a[1]) {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(i as i64))));
+        }
+    }
+    Ok(Value::Null)
+}
+
+// copy(src, dst): dst with the leading elements replaced by src's elements
+// (upstream copies via out-parameter; values are immutable here, so we return it)
+fn f_copy(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("copy", a, 2)?;
+    match (&a[0], &a[1]) {
+        (Value::List(src), Value::List(dst)) => {
+            let mut out = dst.clone();
+            for (i, v) in src.iter().enumerate() {
+                if i < out.len() {
+                    out[i] = v.clone();
+                } else {
+                    out.push(v.clone());
+                }
+            }
+            Ok(Value::List(out))
+        }
+        (src, _) => Ok(src.clone()),
+    }
+}
+
+// cmp(a, b): -1/0/1 for numbers and strings; lists compare lexicographically
+fn f_cmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cmp", a, 2)?;
+    let ord = cmp_values(&a[0], &a[1])?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+fn cmp_values(x: &Value, y: &Value) -> Result<i64, String> {
+    match (x, y) {
+        (Value::Number(p), Value::Number(q)) => Ok(match p.cmp(q) {
+            std::cmp::Ordering::Less => -1,
+            std::cmp::Ordering::Equal => 0,
+            std::cmp::Ordering::Greater => 1,
+        }),
+        (Value::Str(p), Value::Str(q)) => Ok(p.cmp(q) as i64),
+        (Value::Null, Value::Null) => Ok(0),
+        (Value::List(p), Value::List(q)) => {
+            for (pi, qi) in p.iter().zip(q.iter()) {
+                let ord = cmp_values(pi, qi)?;
+                if ord != 0 {
+                    return Ok(ord);
+                }
+            }
+            Ok(match p.len().cmp(&q.len()) {
+                std::cmp::Ordering::Less => -1,
+                std::cmp::Ordering::Equal => 0,
+                std::cmp::Ordering::Greater => 1,
+            })
+        }
+        _ => Err("cmp: values are not comparable".to_string()),
+    }
+}
+
+// swap(a, b): [b, a] (upstream swaps two lvalues; builtins here receive
+// values, so the swapped pair is returned as a list)
+fn f_swap(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("swap", a, 2)?;
+    Ok(Value::List(vec![a[1].clone(), a[0].clone()]))
+}
+
+// test(x): 1 if x is "true" (nonzero / nonempty), else 0
+fn f_test(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("test", a, 1)?;
+    Ok(Value::boolean(match &a[0] {
+        Value::Number(v) => !v.is_zero(),
+        Value::Complex(r, i) => !(r.is_zero() && i.is_zero()),
+        Value::Str(s) => !s.is_empty(),
+        Value::List(l) => !l.is_empty(),
+        Value::Hash(h) => !h.is_empty(),
+        Value::Function(_, _) => true,
+        Value::Null => false,
+    }))
+}
+
+// null(): the null value
+fn f_null(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("null", a, 0)?;
+    Ok(Value::Null)
 }
 
 // Find index of value in list
@@ -5405,6 +7137,144 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("config".to_string(), f_config as BuiltinFn);
+    builtins.insert("display".to_string(), f_display as BuiltinFn);
+    builtins.insert("epsilon".to_string(), f_epsilon as BuiltinFn);
+    builtins.insert("places".to_string(), f_places as BuiltinFn);
+    builtins.insert("base2".to_string(), f_base2 as BuiltinFn);
+    builtins.insert("hash".to_string(), f_hash as BuiltinFn);
+    builtins.insert("scan".to_string(), f_scan as BuiltinFn);
+    builtins.insert("scanf".to_string(), f_scanf as BuiltinFn);
+    builtins.insert("rcin".to_string(), f_rcin as BuiltinFn);
+    builtins.insert("rcout".to_string(), f_rcout as BuiltinFn);
+    builtins.insert("rcpow".to_string(), f_rcpow as BuiltinFn);
+    builtins.insert("rcsq".to_string(), f_rcsq as BuiltinFn);
+    builtins.insert("freebernoulli".to_string(), f_freebernoulli as BuiltinFn);
+    builtins.insert("freeeuler".to_string(), f_freeeuler as BuiltinFn);
+    builtins.insert("freeredc".to_string(), f_freeredc as BuiltinFn);
+    builtins.insert("freestatics".to_string(), f_freestatics as BuiltinFn);
+    builtins.insert("runtime".to_string(), f_runtime as BuiltinFn);
+    builtins.insert("links".to_string(), f_links as BuiltinFn);
+    builtins.insert("ltol".to_string(), f_ltol as BuiltinFn);
+    builtins.insert("ferror".to_string(), f_ferror as BuiltinFn);
+    builtins.insert("fgetstr".to_string(), f_fgetstr as BuiltinFn);
+    builtins.insert("fgetfield".to_string(), f_fgetfield as BuiltinFn);
+    builtins.insert("fgetfile".to_string(), f_fgetfile as BuiltinFn);
+    builtins.insert("fgetline".to_string(), f_fgetstr as BuiltinFn);
+    builtins.insert("fpathopen".to_string(), f_fpathopen as BuiltinFn);
+    builtins.insert("freopen".to_string(), f_freopen as BuiltinFn);
+    builtins.insert("files".to_string(), f_files as BuiltinFn);
+    builtins.insert("isatty".to_string(), f_isatty as BuiltinFn);
+    builtins.insert("ungetc".to_string(), f_ungetc as BuiltinFn);
+    builtins.insert("cp".to_string(), f_cp as BuiltinFn);
+    builtins.insert("rm".to_string(), f_remove as BuiltinFn);
+    builtins.insert("feof".to_string(), f_eof as BuiltinFn);
+    builtins.insert("ftell".to_string(), f_tell as BuiltinFn);
+    builtins.insert("fputstr".to_string(), f_fputs as BuiltinFn);
+    builtins.insert("head".to_string(), f_head as BuiltinFn);
+    builtins.insert("tail".to_string(), f_tail as BuiltinFn);
+    builtins.insert("segment".to_string(), f_segment as BuiltinFn);
+    builtins.insert("makelist".to_string(), f_makelist as BuiltinFn);
+    builtins.insert("select".to_string(), f_select as BuiltinFn);
+    builtins.insert("forall".to_string(), f_forall as BuiltinFn);
+    builtins.insert("modify".to_string(), f_modify as BuiltinFn);
+    builtins.insert("search".to_string(), f_search as BuiltinFn);
+    builtins.insert("rsearch".to_string(), f_rsearch as BuiltinFn);
+    builtins.insert("copy".to_string(), f_copy as BuiltinFn);
+    builtins.insert("cmp".to_string(), f_cmp as BuiltinFn);
+    builtins.insert("swap".to_string(), f_swap as BuiltinFn);
+    builtins.insert("test".to_string(), f_test as BuiltinFn);
+    builtins.insert("null".to_string(), f_null as BuiltinFn);
+    builtins.insert("frem".to_string(), f_frem as BuiltinFn);
+    builtins.insert("lcmfact".to_string(), f_lcmfact as BuiltinFn);
+    builtins.insert("pfact".to_string(), f_pfact as BuiltinFn);
+    builtins.insert("pix".to_string(), f_pix as BuiltinFn);
+    builtins.insert("mmin".to_string(), f_mmin as BuiltinFn);
+    builtins.insert("minv".to_string(), f_minv as BuiltinFn);
+    builtins.insert("meq".to_string(), f_meq as BuiltinFn);
+    builtins.insert("mne".to_string(), f_mne as BuiltinFn);
+    builtins.insert("power".to_string(), f_power as BuiltinFn);
+    builtins.insert("poly".to_string(), f_poly as BuiltinFn);
+    builtins.insert("polar".to_string(), f_polar as BuiltinFn);
+    builtins.insert("ssq".to_string(), f_ssq as BuiltinFn);
+    builtins.insert("setbit".to_string(), f_setbit as BuiltinFn);
+    builtins.insert("randombit".to_string(), f_randombit as BuiltinFn);
+    builtins.insert("popcnt".to_string(), f_popcount as BuiltinFn);
+    builtins.insert("d2dm".to_string(), f_d2dm as BuiltinFn);
+    builtins.insert("d2dms".to_string(), f_d2dms as BuiltinFn);
+    builtins.insert("dm2d".to_string(), f_dm2d as BuiltinFn);
+    builtins.insert("dms2d".to_string(), f_dms2d as BuiltinFn);
+    builtins.insert("g2gm".to_string(), f_g2gm as BuiltinFn);
+    builtins.insert("g2gms".to_string(), f_g2gms as BuiltinFn);
+    builtins.insert("gm2g".to_string(), f_gm2g as BuiltinFn);
+    builtins.insert("gms2g".to_string(), f_gms2g as BuiltinFn);
+    builtins.insert("h2hm".to_string(), f_h2hm as BuiltinFn);
+    builtins.insert("h2hms".to_string(), f_h2hms as BuiltinFn);
+    builtins.insert("hm2h".to_string(), f_hm2h as BuiltinFn);
+    builtins.insert("hms2h".to_string(), f_hms2h as BuiltinFn);
+    builtins.insert("r2g".to_string(), f_r2g as BuiltinFn);
+    builtins.insert("near".to_string(), f_near as BuiltinFn);
+    builtins.insert("aversin".to_string(), f_aversin as BuiltinFn);
+    builtins.insert("avercos".to_string(), f_avercos as BuiltinFn);
+    builtins.insert("acoversin".to_string(), f_acoversin as BuiltinFn);
+    builtins.insert("acovercos".to_string(), f_acovercos as BuiltinFn);
+    builtins.insert("ahaversin".to_string(), f_ahaversin as BuiltinFn);
+    builtins.insert("ahavercos".to_string(), f_ahavercos as BuiltinFn);
+    builtins.insert("ahacoversin".to_string(), f_ahacoversin as BuiltinFn);
+    builtins.insert("ahacovercos".to_string(), f_ahacovercos as BuiltinFn);
+    builtins.insert("aexsec".to_string(), f_aexsec as BuiltinFn);
+    builtins.insert("aexcsc".to_string(), f_aexcsc as BuiltinFn);
+    builtins.insert("acrd".to_string(), f_acrd as BuiltinFn);
+    builtins.insert("hacovercos".to_string(), f_hacovercosin as BuiltinFn);
+    builtins.insert("strcat".to_string(), f_strcat as BuiltinFn);
+    builtins.insert("strcmp".to_string(), f_strcmp as BuiltinFn);
+    builtins.insert("strcasecmp".to_string(), f_strcasecmp as BuiltinFn);
+    builtins.insert("strncmp".to_string(), f_strncmp as BuiltinFn);
+    builtins.insert("strncasecmp".to_string(), f_strncasecmp as BuiltinFn);
+    builtins.insert("strcpy".to_string(), f_strcpy as BuiltinFn);
+    builtins.insert("strncpy".to_string(), f_strncpy as BuiltinFn);
+    builtins.insert("strpos".to_string(), f_strpos as BuiltinFn);
+    builtins.insert("strerror".to_string(), f_strerror as BuiltinFn);
+    builtins.insert("char".to_string(), f_char as BuiltinFn);
+    builtins.insert("digit".to_string(), f_digit as BuiltinFn);
+    builtins.insert("strscan".to_string(), f_strscan as BuiltinFn);
+    builtins.insert("strscanf".to_string(), f_strscan as BuiltinFn);
+    builtins.insert("strtolower".to_string(), f_tolower as BuiltinFn);
+    builtins.insert("strtoupper".to_string(), f_toupper as BuiltinFn);
+    builtins.insert("strprintf".to_string(), f_sprintf as BuiltinFn);
+    builtins.insert("iseven".to_string(), f_iseven as BuiltinFn);
+    builtins.insert("isodd".to_string(), f_isodd as BuiltinFn);
+    builtins.insert("isint".to_string(), f_isint as BuiltinFn);
+    builtins.insert("isnum".to_string(), f_isnum as BuiltinFn);
+    builtins.insert("isreal".to_string(), f_isreal as BuiltinFn);
+    builtins.insert("isstr".to_string(), f_isstr as BuiltinFn);
+    builtins.insert("islist".to_string(), f_islist as BuiltinFn);
+    builtins.insert("isnull".to_string(), f_isnull as BuiltinFn);
+    builtins.insert("isassoc".to_string(), f_isassoc as BuiltinFn);
+    builtins.insert("ishash".to_string(), f_ishash as BuiltinFn);
+    builtins.insert("ismat".to_string(), f_ismat as BuiltinFn);
+    builtins.insert("isident".to_string(), f_isident as BuiltinFn);
+    builtins.insert("iserror".to_string(), f_iserror as BuiltinFn);
+    builtins.insert("ismult".to_string(), f_ismult as BuiltinFn);
+    builtins.insert("isrel".to_string(), f_isrel as BuiltinFn);
+    builtins.insert("issq".to_string(), f_issq as BuiltinFn);
+    builtins.insert("issimple".to_string(), f_issimple as BuiltinFn);
+    builtins.insert("istype".to_string(), f_istype as BuiltinFn);
+    builtins.insert("isfile".to_string(), f_isfile as BuiltinFn);
+    builtins.insert("isdefined".to_string(), f_defined as BuiltinFn);
+    builtins.insert("isrand".to_string(), f_isrand as BuiltinFn);
+    builtins.insert("israndom".to_string(), f_israndom as BuiltinFn);
+    builtins.insert("isconfig".to_string(), f_isconfig as BuiltinFn);
+    builtins.insert("isobj".to_string(), f_isobj as BuiltinFn);
+    builtins.insert("isobjtype".to_string(), f_isobjtype as BuiltinFn);
+    builtins.insert("isptr".to_string(), f_isptr as BuiltinFn);
+    builtins.insert("isblk".to_string(), f_isblk as BuiltinFn);
+    builtins.insert("isoctet".to_string(), f_isoctet as BuiltinFn);
+    builtins.insert("nextcand".to_string(), f_nextcand as BuiltinFn);
+    builtins.insert("prevcand".to_string(), f_prevcand as BuiltinFn);
+    builtins.insert("gcdrem".to_string(), f_gcdrem as BuiltinFn);
+    builtins.insert("bround".to_string(), f_bround as BuiltinFn);
+    builtins.insert("btrunc".to_string(), f_btrunc as BuiltinFn);
     builtins.insert("factor".to_string(), f_factor as BuiltinFn);
     builtins.insert("lfactor".to_string(), f_lfactor as BuiltinFn);
     builtins.insert("ptest".to_string(), f_ptest as BuiltinFn);
@@ -5795,6 +7665,376 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        (
+            "config",
+            "config(name[,val])",
+            "read or set a named config item",
+        ),
+        ("display", "display([n])", "read or set displayed digits"),
+        ("epsilon", "epsilon([e])", "read or set the session epsilon"),
+        (
+            "places",
+            "places(x[,base])",
+            "digits after the point, -1 if infinite",
+        ),
+        (
+            "base2",
+            "base2([b])",
+            "secondary display base (not supported)",
+        ),
+        ("hash", "hash(x,...)", "stable hash of values"),
+        (
+            "scan",
+            "scan()",
+            "read stdin line as whitespace-separated values",
+        ),
+        ("scanf", "scanf(fmt)", "read stdin line per scanf format"),
+        ("rcin", "rcin(x,m)", "convert into REDC form: x*R mod m"),
+        ("rcout", "rcout(x,m)", "convert out of REDC form: x/R mod m"),
+        ("rcpow", "rcpow(x,k,m)", "x^k within the REDC domain"),
+        ("rcsq", "rcsq(x,m)", "x^2 within the REDC domain"),
+        (
+            "freebernoulli",
+            "freebernoulli()",
+            "release bernoulli cache (no-op)",
+        ),
+        ("freeeuler", "freeeuler()", "release euler cache (no-op)"),
+        ("freeredc", "freeredc()", "release REDC cache (no-op)"),
+        (
+            "freestatics",
+            "freestatics()",
+            "release static caches (no-op)",
+        ),
+        ("runtime", "runtime()", "CPU time used, in seconds"),
+        ("links", "links(name)", "number of hard links to a file"),
+        ("ltol", "ltol(a[,eps])", "leg-to-leg: sqrt(1 - a^2)"),
+        (
+            "ferror",
+            "ferror(fd)",
+            "1 if descriptor is in an error state",
+        ),
+        (
+            "fgetstr",
+            "fgetstr(fd)",
+            "next line without newline (null at EOF)",
+        ),
+        (
+            "fgetfield",
+            "fgetfield(fd)",
+            "next whitespace-delimited token (null at EOF)",
+        ),
+        (
+            "fgetfile",
+            "fgetfile(fd)",
+            "rest of the file from current position",
+        ),
+        ("fgetline", "fgetline(fd)", "alias for fgetstr"),
+        (
+            "fpathopen",
+            "fpathopen(name,mode[,path])",
+            "open searching a :-separated path list (default CALCPATH)",
+        ),
+        (
+            "freopen",
+            "freopen(fd,mode[,name])",
+            "reuse a descriptor for a file",
+        ),
+        (
+            "files",
+            "files([fd])",
+            "open descriptors, or the filename of one",
+        ),
+        ("isatty", "isatty(fd)", "1 if descriptor is a terminal"),
+        ("ungetc", "ungetc(fd)", "push last-read byte back"),
+        ("cp", "cp(src,dst)", "copy a file (returns bytes copied)"),
+        ("rm", "rm(name)", "delete a file (alias for remove)"),
+        ("feof", "feof(fd)", "1 at end of file (alias for eof)"),
+        (
+            "ftell",
+            "ftell(fd)",
+            "current file position (alias for tell)",
+        ),
+        ("fputstr", "fputstr(fd,s)", "write string (alias for fputs)"),
+        ("head", "head(list,n)", "first n elements"),
+        ("tail", "tail(list,n)", "last n elements"),
+        (
+            "segment",
+            "segment(list,start[,end])",
+            "elements start..end inclusive (0-based)",
+        ),
+        ("makelist", "makelist(n)", "list of n nulls"),
+        (
+            "select",
+            "select(list,f)",
+            "elements where f(element) is nonzero",
+        ),
+        ("forall", "forall(list,f)", "call f on every element"),
+        ("modify", "modify(list,f)", "list of f(element)"),
+        (
+            "search",
+            "search(list,value[,start])",
+            "index of first match, or null",
+        ),
+        (
+            "rsearch",
+            "rsearch(list,value[,start])",
+            "index of last match, or null",
+        ),
+        (
+            "copy",
+            "copy(src,dst)",
+            "dst with leading elements from src",
+        ),
+        ("cmp", "cmp(a,b)", "compare values (-1/0/1)"),
+        ("swap", "swap(a,b)", "swapped pair [b, a]"),
+        ("test", "test(x)", "1 if x is true (nonzero/nonempty)"),
+        ("null", "null()", "the null value"),
+        ("frem", "frem(x,y)", "x with all factors of y removed"),
+        ("lcmfact", "lcmfact(n)", "lcm of 1..n"),
+        ("pfact", "pfact(n)", "product of primes <= n (primorial)"),
+        ("pix", "pix(n)", "number of primes <= n"),
+        (
+            "mmin",
+            "mmin(x,m)",
+            "residue of x mod m with minimal absolute value",
+        ),
+        ("minv", "minv(a,m)", "modular inverse of a mod m"),
+        ("meq", "meq(a,b,m)", "1 if a == b (mod m)"),
+        ("mne", "mne(a,b,m)", "1 if a != b (mod m)"),
+        ("power", "power(x,y[,eps])", "x^y computed to epsilon"),
+        (
+            "poly",
+            "poly(a_n,...,a_0,x)",
+            "polynomial evaluation (or poly(list,x))",
+        ),
+        (
+            "polar",
+            "polar(r,theta[,eps])",
+            "complex from polar coordinates",
+        ),
+        ("ssq", "ssq(x,...)", "sum of squares (lists included)"),
+        ("setbit", "setbit(x,n[,v])", "set or clear bit n of x"),
+        ("randombit", "randombit([n])", "integer of n random bits"),
+        ("popcnt", "popcnt(x)", "count set bits (alias for popcount)"),
+        ("d2dm", "d2dm(x)", "degrees to [deg, min] (deg mod 360)"),
+        (
+            "d2dms",
+            "d2dms(x)",
+            "degrees to [deg, min, sec] (deg mod 360)",
+        ),
+        ("dm2d", "dm2d(d,m)", "degrees+minutes to degrees"),
+        (
+            "dms2d",
+            "dms2d(d,m,s)",
+            "degrees+minutes+seconds to degrees",
+        ),
+        ("g2gm", "g2gm(x)", "gradians to [grad, min] (grad mod 400)"),
+        (
+            "g2gms",
+            "g2gms(x)",
+            "gradians to [grad, min, sec] (grad mod 400)",
+        ),
+        ("gm2g", "gm2g(g,m)", "gradians+minutes to gradians"),
+        (
+            "gms2g",
+            "gms2g(g,m,s)",
+            "gradians+minutes+seconds to gradians",
+        ),
+        ("h2hm", "h2hm(x)", "hours to [hour, min] (hour mod 24)"),
+        (
+            "h2hms",
+            "h2hms(x)",
+            "hours to [hour, min, sec] (hour mod 24)",
+        ),
+        ("hm2h", "hm2h(h,m)", "hours+minutes to hours"),
+        ("hms2h", "hms2h(h,m,s)", "hours+minutes+seconds to hours"),
+        ("r2g", "r2g(x)", "radians to gradians"),
+        (
+            "near",
+            "near(x,y[,eps])",
+            "-1/0/1 as |x-y| is less/equal/greater than eps",
+        ),
+        ("aversin", "aversin(x)", "inverse versine: acos(1-x)"),
+        ("avercos", "avercos(x)", "inverse vercosine: acos(x-1)"),
+        ("acoversin", "acoversin(x)", "inverse coversine: asin(1-x)"),
+        (
+            "acovercos",
+            "acovercos(x)",
+            "inverse covercosine: asin(x-1)",
+        ),
+        ("ahaversin", "ahaversin(x)", "inverse haversine: acos(1-2x)"),
+        (
+            "ahavercos",
+            "ahavercos(x)",
+            "inverse havercosine: acos(2x-1)",
+        ),
+        (
+            "ahacoversin",
+            "ahacoversin(x)",
+            "inverse hacoversine: asin(1-2x)",
+        ),
+        (
+            "ahacovercos",
+            "ahacovercos(x)",
+            "inverse hacovercosine: asin(2x-1)",
+        ),
+        ("aexsec", "aexsec(x)", "inverse exsecant: asec(x+1)"),
+        ("aexcsc", "aexcsc(x)", "inverse excosecant: acsc(x+1)"),
+        ("acrd", "acrd(x)", "inverse chord: 2*asin(x/2)"),
+        (
+            "hacovercos",
+            "hacovercos(x)",
+            "hacovercosine: (1 + sin(x)) / 2",
+        ),
+        ("strcat", "strcat(s1,s2,...)", "concatenate strings"),
+        ("strcmp", "strcmp(s1,s2)", "compare strings (-1/0/1)"),
+        (
+            "strcasecmp",
+            "strcasecmp(s1,s2)",
+            "case-insensitive compare",
+        ),
+        ("strncmp", "strncmp(s1,s2,n)", "compare first n characters"),
+        (
+            "strncasecmp",
+            "strncasecmp(s1,s2,n)",
+            "case-insensitive compare of first n chars",
+        ),
+        ("strcpy", "strcpy(dst,src)", "copy of src"),
+        (
+            "strncpy",
+            "strncpy(dst,src,n)",
+            "copy of first n chars of src",
+        ),
+        (
+            "strpos",
+            "strpos(haystack,needle)",
+            "1-based position of needle, 0 if absent",
+        ),
+        ("strerror", "strerror([code])", "message for an error code"),
+        (
+            "char",
+            "char(x)",
+            "character for a code, or first char of string",
+        ),
+        ("digit", "digit(x,n[,base])", "digit of x at base^n place"),
+        (
+            "strscan",
+            "strscan(s,fmt)",
+            "scan values from string per scanf format (returns list)",
+        ),
+        ("strscanf", "strscanf(s,fmt)", "alias for strscan"),
+        (
+            "strtolower",
+            "strtolower(s)",
+            "lowercase (alias for tolower)",
+        ),
+        (
+            "strtoupper",
+            "strtoupper(s)",
+            "uppercase (alias for toupper)",
+        ),
+        (
+            "strprintf",
+            "strprintf(fmt,...)",
+            "formatted string (alias for sprintf)",
+        ),
+        ("iseven", "iseven(x)", "1 if x is an even integer"),
+        ("isodd", "isodd(x)", "1 if x is an odd integer"),
+        ("isint", "isint(x)", "1 if x is an integer"),
+        ("isnum", "isnum(x)", "1 if x is a number (real or complex)"),
+        ("isreal", "isreal(x)", "1 if x is a real number"),
+        ("isstr", "isstr(x)", "1 if x is a string"),
+        ("islist", "islist(x)", "1 if x is a list"),
+        ("isnull", "isnull(x)", "1 if x is null"),
+        ("isassoc", "isassoc(x)", "1 if x is an associative array"),
+        ("ishash", "ishash(x)", "1 if x is a hash/associative array"),
+        (
+            "ismat",
+            "ismat(x)",
+            "1 if x is a matrix (list of equal-length lists)",
+        ),
+        ("isident", "isident(m)", "1 if m is an identity matrix"),
+        (
+            "iserror",
+            "iserror(x)",
+            "1 if x is an error value (always 0 here)",
+        ),
+        (
+            "ismult",
+            "ismult(x,y)",
+            "1 if x is an integer multiple of y",
+        ),
+        ("isrel", "isrel(x,y)", "1 if x and y are relatively prime"),
+        ("issq", "issq(x)", "1 if x is a perfect square (rational)"),
+        (
+            "issimple",
+            "issimple(x)",
+            "1 if x is a simple value (number/string/null)",
+        ),
+        ("istype", "istype(x,y)", "1 if x and y have the same type"),
+        ("isfile", "isfile(x)", "1 if x is an open file descriptor"),
+        (
+            "isdefined",
+            "isdefined(name)",
+            "1 if name is a defined variable",
+        ),
+        (
+            "isrand",
+            "isrand(x)",
+            "1 if x is a rand state (always 0 here)",
+        ),
+        (
+            "israndom",
+            "israndom(x)",
+            "1 if x is a random state (always 0 here)",
+        ),
+        (
+            "isconfig",
+            "isconfig(x)",
+            "1 if x is a config value (always 0 here)",
+        ),
+        ("isobj", "isobj(x)", "1 if x is an object (always 0 here)"),
+        (
+            "isobjtype",
+            "isobjtype(x)",
+            "1 if x is an object type (always 0 here)",
+        ),
+        ("isptr", "isptr(x)", "1 if x is a pointer (always 0 here)"),
+        (
+            "isblk",
+            "isblk(x)",
+            "1 if x is a block value (always 0 here)",
+        ),
+        (
+            "isoctet",
+            "isoctet(x)",
+            "1 if x is an octet (always 0 here)",
+        ),
+        (
+            "nextcand",
+            "nextcand(n[,count[,skip[,residue[,modulus]]]])",
+            "next probable prime after n (optional residue mod modulus)",
+        ),
+        (
+            "prevcand",
+            "prevcand(n[,count[,skip[,residue[,modulus]]]])",
+            "previous probable prime before n (optional residue mod modulus)",
+        ),
+        (
+            "gcdrem",
+            "gcdrem(x,y)",
+            "remove from x all prime factors shared with y",
+        ),
+        (
+            "bround",
+            "bround(x[,places])",
+            "round x to given number of binary places",
+        ),
+        (
+            "btrunc",
+            "btrunc(x[,places])",
+            "truncate x to given number of binary places",
+        ),
         ("factor", "factor(n)", "prime factorization (returns list)"),
         ("lfactor", "lfactor(n)", "largest prime factor"),
         ("ptest", "ptest(n,k)", "probabilistic primality test"),
@@ -6135,7 +8375,7 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         (
             "hacoversin",
             "hacoversin(x)",
-            "havercosine: (1 + cos(x)) / 2",
+            "hacoversine: (1 - sin(x)) / 2",
         ),
         ("vers", "vers(x)", "versed sine: alias for versin"),
         ("exsec", "exsec(x)", "exsecant: alias for exsecant"),

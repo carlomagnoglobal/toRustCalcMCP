@@ -103,6 +103,31 @@ impl Interp {
         Ok(lines.join("\n"))
     }
 
+    /// Call a function value (user-defined) with the given arguments.
+    /// Used by builtins like select/forall/modify that take a function argument.
+    pub fn call_value(&mut self, func: &Value, args: &[Value]) -> Result<Value, String> {
+        match func {
+            Value::Function(params, body) => {
+                if params.len() != args.len() {
+                    return Err(format!(
+                        "function expects {} args, got {}",
+                        params.len(),
+                        args.len()
+                    ));
+                }
+                let mut local_scope = HashMap::new();
+                for (param, arg) in params.iter().zip(args.iter()) {
+                    local_scope.insert(param.clone(), arg.clone());
+                }
+                self.scope_stack.push(local_scope);
+                let result = self.eval(body);
+                self.scope_stack.pop();
+                result
+            }
+            _ => Err("not a function".to_string()),
+        }
+    }
+
     pub fn eval(&mut self, e: &Expr) -> Result<Value, String> {
         match e {
             Expr::Number(s) => number::parse_number(s)

@@ -15,8 +15,9 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **100% COMPLETE (351 builtins).** The project has a full `src/` structure
-with lexer, parser, evaluator, 351 builtins, CLI, MCP server, and 359 integration
+Current status: **FULL UPSTREAM PARITY (483 builtin names).** The project has a full `src/` structure
+with lexer, parser, evaluator, 483 registered builtins (335 of upstream's 350 + extensions;
+15 interpreter internals intentionally excluded), CLI, MCP server, and 418 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
@@ -684,12 +685,50 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 345 → 351 (+6: 5 unique + 1 alias)
    - Total tests: 359 (all passing, ready for final 5 tests)
 
+### 15.0 Additional calc builtins + precision audit — DONE (5 of 5 functions)
+   - ✅ `nextcand(n[,count[,skip[,residue[,modulus]]]])` — next probable prime after n,
+     optionally constrained to residue mod modulus (full calc signature)
+   - ✅ `prevcand(n[,count[,skip[,residue[,modulus]]]])` — previous probable prime before n
+   - ✅ `gcdrem(x,y)` — remove from x all prime factors it shares with y
+   - ✅ `bround(x[,places])` — round x to a number of binary places (nearest 2^-places)
+   - ✅ `btrunc(x[,places])` — truncate x to a number of binary places
+   - ✅ **Precision fix:** default `epsilon` is now exact `1/10^20` (was
+     `Num::from_float(1e-20)`, a messy binary rational p/2^k). This stopped
+     `round_to_epsilon` from snapping clean values like `cos(0)=1` off their value —
+     `cos(0)` now renders `1`, `haversin(0)`/`versin(0)` render `0`, `cos(pi/3)` → `0.5`.
+   - ✅ Audited existing trig-variant / modular / matrix builtins for calc-correct output.
+   - ✅ 13 new integration tests added and passing
+   - Builtins: 351 → 356 (+5)
+   - Total tests: 368 → 381 (+13)
+
+### 16.0 Upstream parity — DONE (~133 builtins in 8 batches)
+   Diffed upstream `lcn2/calc` func.c's builtin table against our registry:
+   148 genuinely missing; implemented all but 15 interpreter internals
+   (`access calc_tty calclevel calcpath custom dp estr inputlevel memsize
+   name param prompt protect saveval stoponerror` — documented in README).
+   - ✅ B1 Type predicates (28): iseven..isoctet; never-types return 0
+   - ✅ B2 String ops (16): strcat strcmp strpos(1-based) char digit strscan ...
+   - ✅ B3 Inverse rare trig (12): aversin..acrd; **fixed hacoversin
+     ((1+cos)/2 → (1-sin)/2) and havercos (wrong alias → (1+cos)/2)**
+   - ✅ B4 Sexagesimal (14): d2dm/d2dms/... return lists; r2g, near
+   - ✅ B5 Number theory (15): frem lcmfact pfact pix mmin minv meq mne
+     power poly polar ssq setbit randombit popcnt
+   - ✅ B6 List/struct (14): head tail segment select forall modify search
+     rsearch copy cmp swap test null; added Interp::call_value for
+     higher-order builtins
+   - ✅ B7 File I/O (15): ferror fgetstr fgetfield fgetfile fpathopen
+     freopen files isatty ungetc cp rm + aliases
+   - ✅ B8 Config/REDC/misc (19): config display epsilon places base2 hash
+     scan scanf rcin rcout rcpow rcsq free* runtime links ltol
+   - Builtins: 356 → 483 registered names
+   - Total tests: 381 → 418 (all passing)
+
 ## 100% Coverage Achieved
 
 **Final Statistics:**
-- **351 builtins** (100% of calc's ~350)
-- **359 integration tests** (all passing)
-- **Phases 1-14 complete** (exact rationals through final utilities)
+- **483 builtin names** (full upstream parity minus 15 documented internals, plus extensions)
+- **418 integration tests** (all passing)
+- **Phases 1-16 complete** (exact rationals through upstream parity)
 - **Full language support:** user functions, control flow, complex numbers, lists, strings, file I/O, system access
 - **MCP server:** JSON-RPC 2.0 interface with 4 tools
 - **Build:** `cargo build --release` succeeds cleanly
