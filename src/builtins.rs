@@ -511,7 +511,11 @@ fn f_log(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         return Err("log of non-positive number".to_string());
     }
     let eps = it.epsilon();
-    Ok(Value::Number(number::logn(x, &Num::from_integer(BigInt::from(10)), &eps)?))
+    Ok(Value::Number(number::logn(
+        x,
+        &Num::from_integer(BigInt::from(10)),
+        &eps,
+    )?))
 }
 
 // Log base 2
@@ -522,7 +526,11 @@ fn f_log2(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
         return Err("log2 of non-positive number".to_string());
     }
     let eps = it.epsilon();
-    Ok(Value::Number(number::logn(x, &Num::from_integer(BigInt::from(2)), &eps)?))
+    Ok(Value::Number(number::logn(
+        x,
+        &Num::from_integer(BigInt::from(2)),
+        &eps,
+    )?))
 }
 
 // Log base n
@@ -6134,7 +6142,11 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("vercosin", "vercosin(x)", "vercosine: 1 + cos(x)"),
         ("vercos", "vercos(x)", "vercosine: alias for vercosin"),
         ("covercosin", "covercosin(x)", "covercosine: 1 + sin(x)"),
-        ("covercos", "covercos(x)", "covercosine: alias for covercosin"),
+        (
+            "covercos",
+            "covercos(x)",
+            "covercosine: alias for covercosin",
+        ),
         (
             "cohaversin",
             "cohaversin(x)",
@@ -6150,11 +6162,7 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("hav", "hav(x)", "haversine: alias for haversin"),
         ("crd", "crd(x)", "chord: alias for chord"),
         ("cvs", "cvs(x)", "coversine: alias for coversin"),
-        (
-            "havercos",
-            "havercos(x)",
-            "havercosine: (1 + cos(x)) / 2",
-        ),
+        ("havercos", "havercos(x)", "havercosine: (1 + cos(x)) / 2"),
         // Cryptographic & hashing (Phase 6.6)
         ("sha1", "sha1(str)", "SHA-1 hash (returns hex string)"),
         ("md5", "md5(str)", "MD5 hash (returns hex string)"),
