@@ -381,6 +381,96 @@ fn f_prevprime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_integer(number::prevprime(n)?)))
 }
 
+// Next candidate prime: nextcand(n [, count [, skip [, residue [, modulus]]]])
+fn f_nextcand(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("nextcand", a, 1, 5)?;
+    let n = int(a, 0)?.to_i64().ok_or("nextcand: n too large")?;
+    let count = if a.len() > 1 {
+        int(a, 1)?.to_i64().ok_or("nextcand: count too large")?
+    } else {
+        1
+    };
+    let skip = if a.len() > 2 {
+        int(a, 2)?.to_i64().ok_or("nextcand: skip too large")?
+    } else {
+        1
+    };
+    let residue = if a.len() > 3 {
+        int(a, 3)?.to_i64().ok_or("nextcand: residue too large")?
+    } else {
+        0
+    };
+    let modulus = if a.len() > 4 {
+        int(a, 4)?.to_i64().ok_or("nextcand: modulus too large")?
+    } else {
+        0
+    };
+    Ok(Value::Number(Num::from_integer(number::nextcand(
+        n, count, skip, residue, modulus,
+    )?)))
+}
+
+// Previous candidate prime: prevcand(n [, count [, skip [, residue [, modulus]]]])
+fn f_prevcand(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("prevcand", a, 1, 5)?;
+    let n = int(a, 0)?.to_i64().ok_or("prevcand: n too large")?;
+    let count = if a.len() > 1 {
+        int(a, 1)?.to_i64().ok_or("prevcand: count too large")?
+    } else {
+        1
+    };
+    let skip = if a.len() > 2 {
+        int(a, 2)?.to_i64().ok_or("prevcand: skip too large")?
+    } else {
+        1
+    };
+    let residue = if a.len() > 3 {
+        int(a, 3)?.to_i64().ok_or("prevcand: residue too large")?
+    } else {
+        0
+    };
+    let modulus = if a.len() > 4 {
+        int(a, 4)?.to_i64().ok_or("prevcand: modulus too large")?
+    } else {
+        0
+    };
+    Ok(Value::Number(Num::from_integer(number::prevcand(
+        n, count, skip, residue, modulus,
+    )?)))
+}
+
+// gcdrem(x, y): remove factors common with y from x
+fn f_gcdrem(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gcdrem", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    Ok(Value::Number(Num::from_integer(number::gcdrem(&x, &y))))
+}
+
+// bround(x, places): round to binary places
+fn f_bround(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("bround", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let places = if a.len() == 2 {
+        int(a, 1)?.to_i64().ok_or("bround: places out of range")?
+    } else {
+        0
+    };
+    Ok(Value::Number(number::bround(x, places)))
+}
+
+// btrunc(x, places): truncate to binary places
+fn f_btrunc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("btrunc", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let places = if a.len() == 2 {
+        int(a, 1)?.to_i64().ok_or("btrunc: places out of range")?
+    } else {
+        0
+    };
+    Ok(Value::Number(number::btrunc(x, places)))
+}
+
 // Prime factorization
 fn f_factor(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("factor", a, 1)?;
@@ -5405,6 +5495,11 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("nextcand".to_string(), f_nextcand as BuiltinFn);
+    builtins.insert("prevcand".to_string(), f_prevcand as BuiltinFn);
+    builtins.insert("gcdrem".to_string(), f_gcdrem as BuiltinFn);
+    builtins.insert("bround".to_string(), f_bround as BuiltinFn);
+    builtins.insert("btrunc".to_string(), f_btrunc as BuiltinFn);
     builtins.insert("factor".to_string(), f_factor as BuiltinFn);
     builtins.insert("lfactor".to_string(), f_lfactor as BuiltinFn);
     builtins.insert("ptest".to_string(), f_ptest as BuiltinFn);
@@ -5795,6 +5890,31 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        (
+            "nextcand",
+            "nextcand(n[,count[,skip[,residue[,modulus]]]])",
+            "next probable prime after n (optional residue mod modulus)",
+        ),
+        (
+            "prevcand",
+            "prevcand(n[,count[,skip[,residue[,modulus]]]])",
+            "previous probable prime before n (optional residue mod modulus)",
+        ),
+        (
+            "gcdrem",
+            "gcdrem(x,y)",
+            "remove from x all prime factors shared with y",
+        ),
+        (
+            "bround",
+            "bround(x[,places])",
+            "round x to given number of binary places",
+        ),
+        (
+            "btrunc",
+            "btrunc(x[,places])",
+            "truncate x to given number of binary places",
+        ),
         ("factor", "factor(n)", "prime factorization (returns list)"),
         ("lfactor", "lfactor(n)", "largest prime factor"),
         ("ptest", "ptest(n,k)", "probabilistic primality test"),

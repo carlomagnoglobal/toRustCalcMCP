@@ -3330,3 +3330,94 @@ fn test_norm_unit() {
     let result = it.eval_render("norm(list(1))").unwrap();
     assert!(result.contains("1"));
 }
+
+// ---- New builtins: nextcand / prevcand / gcdrem / bround / btrunc ----
+
+#[test]
+fn test_nextcand_basic() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("nextcand(100)").unwrap(), "101");
+}
+
+#[test]
+fn test_prevcand_basic() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("prevcand(100)").unwrap(), "97");
+}
+
+#[test]
+fn test_nextcand_residue_modulus() {
+    let mut it = Interp::new();
+    // smallest prime > 2 congruent to 1 mod 6 is 7
+    assert_eq!(it.eval_render("nextcand(2, 1, 1, 1, 6)").unwrap(), "7");
+}
+
+#[test]
+fn test_gcdrem_strips_shared_factors() {
+    let mut it = Interp::new();
+    // 60 = 2^2 * 3 * 5; removing factors shared with 12 (=2^2*3) leaves 5
+    assert_eq!(it.eval_render("gcdrem(60, 12)").unwrap(), "5");
+}
+
+#[test]
+fn test_gcdrem_coprime_unchanged() {
+    let mut it = Interp::new();
+    // 17 and 5 are coprime, so 17 is unchanged
+    assert_eq!(it.eval_render("gcdrem(17, 5)").unwrap(), "17");
+}
+
+#[test]
+fn test_bround_binary_places() {
+    let mut it = Interp::new();
+    // 3.14159 to 4 binary places = nearest 1/16: 50/16 = 3.125
+    assert_eq!(it.eval_render("bround(3.14159, 4)").unwrap(), "3.125");
+}
+
+#[test]
+fn test_btrunc_binary_places() {
+    let mut it = Interp::new();
+    // 3.14159 truncated to 4 binary places = 50/16 = 3.125
+    assert_eq!(it.eval_render("btrunc(3.14159, 4)").unwrap(), "3.125");
+}
+
+#[test]
+fn test_bround_frac_mode() {
+    let mut it = Interp::new();
+    it.eval_render("config(\"mode\", \"frac\")").ok();
+    // in frac mode the exact quantum is visible
+    let result = it.eval_render("bround(3.14159, 4)").unwrap();
+    assert!(result == "25/8" || result == "3.125");
+}
+
+// ---- Audit: exact zeros/values now that epsilon is exact 1/10^20 ----
+
+#[test]
+fn test_cos_zero_is_exact_one() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("cos(0)").unwrap(), "1");
+}
+
+#[test]
+fn test_haversin_zero_is_exact() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("haversin(0)").unwrap(), "0");
+}
+
+#[test]
+fn test_versin_zero_is_exact() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("versin(0)").unwrap(), "0");
+}
+
+#[test]
+fn test_pmod_negative() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("pmod(-1, 3)").unwrap(), "2");
+}
+
+#[test]
+fn test_quomod_pair() {
+    let mut it = Interp::new();
+    let result = it.eval_render("quomod(7, 3)").unwrap();
+    assert!(result.contains("2") && result.contains("1"));
+}

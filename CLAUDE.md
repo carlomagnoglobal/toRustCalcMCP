@@ -15,8 +15,8 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **100% COMPLETE (351 builtins).** The project has a full `src/` structure
-with lexer, parser, evaluator, 351 builtins, CLI, MCP server, and 359 integration
+Current status: **100% COMPLETE (356 builtins).** The project has a full `src/` structure
+with lexer, parser, evaluator, 356 builtins, CLI, MCP server, and 381 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
@@ -684,12 +684,28 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 345 → 351 (+6: 5 unique + 1 alias)
    - Total tests: 359 (all passing, ready for final 5 tests)
 
+### 15.0 Additional calc builtins + precision audit — DONE (5 of 5 functions)
+   - ✅ `nextcand(n[,count[,skip[,residue[,modulus]]]])` — next probable prime after n,
+     optionally constrained to residue mod modulus (full calc signature)
+   - ✅ `prevcand(n[,count[,skip[,residue[,modulus]]]])` — previous probable prime before n
+   - ✅ `gcdrem(x,y)` — remove from x all prime factors it shares with y
+   - ✅ `bround(x[,places])` — round x to a number of binary places (nearest 2^-places)
+   - ✅ `btrunc(x[,places])` — truncate x to a number of binary places
+   - ✅ **Precision fix:** default `epsilon` is now exact `1/10^20` (was
+     `Num::from_float(1e-20)`, a messy binary rational p/2^k). This stopped
+     `round_to_epsilon` from snapping clean values like `cos(0)=1` off their value —
+     `cos(0)` now renders `1`, `haversin(0)`/`versin(0)` render `0`, `cos(pi/3)` → `0.5`.
+   - ✅ Audited existing trig-variant / modular / matrix builtins for calc-correct output.
+   - ✅ 13 new integration tests added and passing
+   - Builtins: 351 → 356 (+5)
+   - Total tests: 368 → 381 (+13)
+
 ## 100% Coverage Achieved
 
 **Final Statistics:**
-- **351 builtins** (100% of calc's ~350)
-- **359 integration tests** (all passing)
-- **Phases 1-14 complete** (exact rationals through final utilities)
+- **356 builtins** (100%+ of calc's ~350)
+- **381 integration tests** (all passing)
+- **Phases 1-15 complete** (exact rationals through final utilities + precision audit)
 - **Full language support:** user functions, control flow, complex numbers, lists, strings, file I/O, system access
 - **MCP server:** JSON-RPC 2.0 interface with 4 tools
 - **Build:** `cargo build --release` succeeds cleanly

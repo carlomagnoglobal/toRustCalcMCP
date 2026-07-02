@@ -41,7 +41,10 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            epsilon: Num::from_float(1e-20).unwrap(),
+            // Exact 1/10^20 (not Num::from_float, which yields a messy binary
+            // rational p/2^k and makes round_to_epsilon snap clean values like
+            // cos(0)=1 to nearby non-clean multiples, printing "~-0" etc.).
+            epsilon: number::parse_number("1e-20").expect("valid default epsilon"),
             display: 20,
             mode: Mode::Real,
             ibase: 10,
