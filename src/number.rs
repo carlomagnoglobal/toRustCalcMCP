@@ -1799,56 +1799,20 @@ pub fn hnrmod(x: &Num, y: &Num) -> Result<Num, String> {
 
 /// Approximate a number as a simple rational within epsilon
 /// Returns the input if it's already a rational number, or a simple approximation
+/// Approximate `x` as the nearest multiple of `epsilon` (calc's `appr`).
+/// Returns `round(x / epsilon) * epsilon`, where rounding is to the nearest
+/// integer with ties rounded away from zero. With `epsilon = 0` the value is
+/// returned unchanged (exact).
 pub fn appr(x: &Num, epsilon: &Num) -> Result<Num, String> {
     if epsilon.is_zero() {
         return Ok(x.clone());
     }
 
-    // Simple implementation: if x is already rational with small denominator, return it
-    // Otherwise, round it to the nearest integer
-    let denom = x.denom();
-
-    // If denominator is small, x is already a simple rational
-    if denom.bits() <= 32 {
-        return Ok(x.clone());
-    }
-
-    // Otherwise, find a simple approximation using limited continued fractions
-    let mut num = x.clone();
-    let mut h_prev = Num::from_integer(bi(1));
-    let mut h_curr = num.floor();
-    let mut k_prev = Num::from_integer(bi(0));
-    let mut k_curr = Num::from_integer(bi(1));
-
-    for iteration in 0..20 {
-        let frac = &num - &h_curr;
-
-        if frac.abs() < *epsilon {
-            return Ok(h_curr);
-        }
-
-        if frac.is_zero() {
-            break;
-        }
-
-        // Avoid very deep nesting
-        if iteration >= 10 {
-            break;
-        }
-
-        num = Num::from_integer(bi(1)) / &frac;
-        let int_part = num.floor();
-
-        let h_next = &(&int_part * &h_curr) + &h_prev;
-        let k_next = &(&int_part * &k_curr) + &k_prev;
-
-        h_prev = h_curr.clone();
-        h_curr = h_next;
-        k_prev = k_curr.clone();
-        k_curr = k_next;
-    }
-
-    Ok(h_curr)
+    // q = nearest integer to x / epsilon; the multiple q * epsilon is the
+    // closest representable value on the epsilon grid.
+    let quotient = x / epsilon;
+    let q = Num::from_integer(quotient.round().to_integer());
+    Ok(round_to_epsilon(&(&q * epsilon), epsilon))
 }
 
 /// Continued fraction approximation with max denominator constraint

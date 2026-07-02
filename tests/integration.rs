@@ -1403,12 +1403,33 @@ fn test_hnrmod() {
 #[test]
 fn test_appr() {
     let mut it = Interp::new();
-    // appr should find simple rational approximations
+    // appr(x, y) rounds x to the nearest multiple of y
     let result = it.eval_render("appr(3.14159265, 0.01)").unwrap();
-    // Should approximate pi to within 0.01
-    let clean = result.trim_start_matches('~');
-    let val: f64 = clean.parse().unwrap_or(0.0);
-    assert!((val - std::f64::consts::PI).abs() < 0.02);
+    assert_eq!(result.trim_start_matches('~'), "3.14");
+}
+
+#[test]
+fn test_appr_rounds_to_nearest_multiple() {
+    let mut it = Interp::new();
+    // 3.14159265 to the nearest 0.001 is 3.142 (rounds up)
+    let result = it.eval_render("appr(3.14159265, 0.001)").unwrap();
+    assert_eq!(result.trim_start_matches('~'), "3.142");
+}
+
+#[test]
+fn test_appr_ties_away_from_zero() {
+    let mut it = Interp::new();
+    // 2.5 to the nearest 1 rounds away from zero -> 3
+    let result = it.eval_render("appr(2.5, 1)").unwrap();
+    assert_eq!(result.trim_start_matches('~'), "3");
+}
+
+#[test]
+fn test_appr_negative() {
+    let mut it = Interp::new();
+    // negative values round symmetrically
+    let result = it.eval_render("appr(-3.14159265, 0.01)").unwrap();
+    assert_eq!(result.trim_start_matches('~'), "-3.14");
 }
 
 #[test]

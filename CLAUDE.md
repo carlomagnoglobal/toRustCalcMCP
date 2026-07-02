@@ -377,11 +377,12 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Total tests: 154 → 159 (+5)
 
 ### 5.3 Rational Approximations — DONE
-   - ✅ `appr(x, [eps])` — approximate rational within epsilon (uses continued fractions)
+   - ✅ `appr(x, [eps])` — round x to nearest multiple of eps (ties away from zero)
+     (fixed: previously returned x unchanged or an integer numerator; now matches calc)
    - ✅ `cfappr(x, [maxd])` — continued fraction approximation with max denominator
    - ✅ `cfsim(x, [maxd])` — continued fraction simplification (same as cfappr)
    - ✅ `scale(x, [places])` — scale/round to decimal places
-   - ✅ 6 new integration tests added and passing
+   - ✅ 9 integration tests added and passing (6 prior + 3 new appr edge cases)
    - Builtins: 165 → 169 (+4)
    - Total tests: 159 → 165 (+6)
 
