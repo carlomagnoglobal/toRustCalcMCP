@@ -3625,3 +3625,32 @@ fn test_inverse_exsec_chord() {
     assert_near(&it.eval_render("acrd(chord(0.5))").unwrap(), 0.5);
     assert_near(&it.eval_render("hacovercos(0)").unwrap(), 0.5);
 }
+
+// ---- Upstream parity B4: sexagesimal & angle conversions ----
+
+#[test]
+fn test_d2dm_d2dms() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("d2dm(390.5)").unwrap(), "[30, 30]");
+    assert_eq!(it.eval_render("d2dms(30.755)").unwrap(), "[30, 45, 18]");
+    assert_eq!(it.eval_render("dms2d(30, 45, 18)").unwrap(), "30.755");
+    assert_eq!(it.eval_render("dm2d(30, 30)").unwrap(), "30.5");
+}
+
+#[test]
+fn test_gradian_hour_conversions() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("g2gm(401.25)").unwrap(), "[1, 15]");
+    assert_eq!(it.eval_render("gms2g(1, 15, 0)").unwrap(), "1.25");
+    assert_eq!(it.eval_render("h2hms(25.5)").unwrap(), "[1, 30, 0]");
+    assert_eq!(it.eval_render("hms2h(1, 30, 0)").unwrap(), "1.5");
+}
+
+#[test]
+fn test_r2g_and_near() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("r2g(pi())").unwrap(), "200");
+    assert_eq!(it.eval_render("near(1, 1.0001, 0.001)").unwrap(), "-1");
+    assert_eq!(it.eval_render("near(1, 2)").unwrap(), "1");
+    assert_eq!(it.eval_render("near(1, 1.5, 0.5)").unwrap(), "0");
+}

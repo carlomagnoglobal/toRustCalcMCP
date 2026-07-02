@@ -3893,6 +3893,130 @@ fn f_g2d(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(number::g2d(n(a, 0)?)))
 }
 
+// ---- Sexagesimal & angle conversions (upstream-parity batch B4) ----
+// Upstream returns the parts via out-parameters; this port returns lists
+// ([whole, minutes] / [whole, minutes, seconds]), noted in the catalog.
+
+// Normalize x into [0, modulus) then split off whole part and 60ths.
+fn split_units(x: &Num, modulus: i64, parts: usize) -> Vec<Value> {
+    let m = Num::from_integer(BigInt::from(modulus));
+    let sixty = Num::from_integer(BigInt::from(60));
+    // positive modulus reduction
+    let q = number::floor(&(x / &m));
+    let mut rest = x - &(&q * &m);
+    let mut out = Vec::with_capacity(parts + 1);
+    for _ in 0..parts {
+        let whole = number::floor(&rest);
+        out.push(Value::Number(whole.clone()));
+        rest = (&rest - &whole) * &sixty;
+    }
+    out.push(Value::Number(rest)); // final unit keeps any fraction, exact
+    out
+}
+
+fn f_d2dm(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("d2dm", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 360, 1)))
+}
+
+fn f_d2dms(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("d2dms", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 360, 2)))
+}
+
+fn f_g2gm(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("g2gm", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 400, 1)))
+}
+
+fn f_g2gms(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("g2gms", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 400, 2)))
+}
+
+fn f_h2hm(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("h2hm", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 24, 1)))
+}
+
+fn f_h2hms(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("h2hms", a, 1)?;
+    Ok(Value::List(split_units(n(a, 0)?, 24, 2)))
+}
+
+// x + m/60 (+ s/3600): recombine split units
+fn recombine(a: &[Value], name: &str) -> Result<Num, String> {
+    let sixty = Num::from_integer(BigInt::from(60));
+    let mut total = n(a, 0)?.clone();
+    total = total + &(n(a, 1)? / &sixty);
+    if a.len() == 3 {
+        total = total + &(n(a, 2)? / &(&sixty * &sixty));
+    }
+    let _ = name;
+    Ok(total)
+}
+
+fn f_dm2d(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("dm2d", a, 2)?;
+    Ok(Value::Number(recombine(a, "dm2d")?))
+}
+
+fn f_dms2d(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("dms2d", a, 3)?;
+    Ok(Value::Number(recombine(a, "dms2d")?))
+}
+
+fn f_gm2g(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gm2g", a, 2)?;
+    Ok(Value::Number(recombine(a, "gm2g")?))
+}
+
+fn f_gms2g(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("gms2g", a, 3)?;
+    Ok(Value::Number(recombine(a, "gms2g")?))
+}
+
+fn f_hm2h(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hm2h", a, 2)?;
+    Ok(Value::Number(recombine(a, "hm2h")?))
+}
+
+fn f_hms2h(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hms2h", a, 3)?;
+    Ok(Value::Number(recombine(a, "hms2h")?))
+}
+
+// Radians to gradians: x * 200 / pi
+fn f_r2g(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("r2g", a, 1)?;
+    let x = n(a, 0)?;
+    let two_hundred = Num::from_integer(BigInt::from(200));
+    let result = x * &two_hundred / number::pi();
+    Ok(Value::Number(number::round_to_epsilon(
+        &result,
+        &it.epsilon(),
+    )))
+}
+
+// near(x, y [, eps]): -1 if |x-y| < eps, 0 if == eps, 1 if > eps
+fn f_near(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("near", a, 2, 3)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let eps = if a.len() == 3 {
+        n(a, 2)?.abs()
+    } else {
+        it.epsilon()
+    };
+    let diff = (x - y).abs();
+    let sign: i64 = match diff.cmp(&eps) {
+        std::cmp::Ordering::Less => -1,
+        std::cmp::Ordering::Equal => 0,
+        std::cmp::Ordering::Greater => 1,
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(sign))))
+}
+
 // Simple primality test (trial division for small primes, then test a few bases)
 fn is_prime(n: u64) -> bool {
     if n < 2 {
@@ -6069,6 +6193,20 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("d2dm".to_string(), f_d2dm as BuiltinFn);
+    builtins.insert("d2dms".to_string(), f_d2dms as BuiltinFn);
+    builtins.insert("dm2d".to_string(), f_dm2d as BuiltinFn);
+    builtins.insert("dms2d".to_string(), f_dms2d as BuiltinFn);
+    builtins.insert("g2gm".to_string(), f_g2gm as BuiltinFn);
+    builtins.insert("g2gms".to_string(), f_g2gms as BuiltinFn);
+    builtins.insert("gm2g".to_string(), f_gm2g as BuiltinFn);
+    builtins.insert("gms2g".to_string(), f_gms2g as BuiltinFn);
+    builtins.insert("h2hm".to_string(), f_h2hm as BuiltinFn);
+    builtins.insert("h2hms".to_string(), f_h2hms as BuiltinFn);
+    builtins.insert("hm2h".to_string(), f_hm2h as BuiltinFn);
+    builtins.insert("hms2h".to_string(), f_hms2h as BuiltinFn);
+    builtins.insert("r2g".to_string(), f_r2g as BuiltinFn);
+    builtins.insert("near".to_string(), f_near as BuiltinFn);
     builtins.insert("aversin".to_string(), f_aversin as BuiltinFn);
     builtins.insert("avercos".to_string(), f_avercos as BuiltinFn);
     builtins.insert("acoversin".to_string(), f_acoversin as BuiltinFn);
@@ -6520,6 +6658,44 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        ("d2dm", "d2dm(x)", "degrees to [deg, min] (deg mod 360)"),
+        (
+            "d2dms",
+            "d2dms(x)",
+            "degrees to [deg, min, sec] (deg mod 360)",
+        ),
+        ("dm2d", "dm2d(d,m)", "degrees+minutes to degrees"),
+        (
+            "dms2d",
+            "dms2d(d,m,s)",
+            "degrees+minutes+seconds to degrees",
+        ),
+        ("g2gm", "g2gm(x)", "gradians to [grad, min] (grad mod 400)"),
+        (
+            "g2gms",
+            "g2gms(x)",
+            "gradians to [grad, min, sec] (grad mod 400)",
+        ),
+        ("gm2g", "gm2g(g,m)", "gradians+minutes to gradians"),
+        (
+            "gms2g",
+            "gms2g(g,m,s)",
+            "gradians+minutes+seconds to gradians",
+        ),
+        ("h2hm", "h2hm(x)", "hours to [hour, min] (hour mod 24)"),
+        (
+            "h2hms",
+            "h2hms(x)",
+            "hours to [hour, min, sec] (hour mod 24)",
+        ),
+        ("hm2h", "hm2h(h,m)", "hours+minutes to hours"),
+        ("hms2h", "hms2h(h,m,s)", "hours+minutes+seconds to hours"),
+        ("r2g", "r2g(x)", "radians to gradians"),
+        (
+            "near",
+            "near(x,y[,eps])",
+            "-1/0/1 as |x-y| is less/equal/greater than eps",
+        ),
         ("aversin", "aversin(x)", "inverse versine: acos(1-x)"),
         ("avercos", "avercos(x)", "inverse vercosine: acos(x-1)"),
         ("acoversin", "acoversin(x)", "inverse coversine: asin(1-x)"),
