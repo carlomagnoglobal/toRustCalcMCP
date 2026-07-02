@@ -3503,3 +3503,80 @@ fn test_istype_and_never_types() {
     assert_eq!(it.eval_render("issimple(1)").unwrap(), "1");
     assert_eq!(it.eval_render("issimple(list(1))").unwrap(), "0");
 }
+
+// ---- Upstream parity B2: string ops ----
+
+#[test]
+fn test_strcat_strcmp() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("strcat(\"foo\", \"bar\")").unwrap(),
+        "foobar"
+    );
+    assert_eq!(it.eval_render("strcmp(\"a\", \"b\")").unwrap(), "-1");
+    assert_eq!(it.eval_render("strcmp(\"b\", \"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("strcmp(\"a\", \"a\")").unwrap(), "0");
+    assert_eq!(it.eval_render("strcasecmp(\"ABC\", \"abc\")").unwrap(), "0");
+    assert_eq!(
+        it.eval_render("strncmp(\"abcx\", \"abcy\", 3)").unwrap(),
+        "0"
+    );
+    assert_eq!(
+        it.eval_render("strncasecmp(\"ABCX\", \"abcy\", 3)")
+            .unwrap(),
+        "0"
+    );
+}
+
+#[test]
+fn test_strcpy_strncpy() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("strcpy(\"x\", \"hello\")").unwrap(), "hello");
+    assert_eq!(
+        it.eval_render("strncpy(\"x\", \"hello\", 3)").unwrap(),
+        "hel"
+    );
+}
+
+#[test]
+fn test_strpos_one_based() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("strpos(\"hello world\", \"world\")")
+            .unwrap(),
+        "7"
+    );
+    assert_eq!(it.eval_render("strpos(\"hello\", \"z\")").unwrap(), "0");
+}
+
+#[test]
+fn test_char_and_digit() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("char(65)").unwrap(), "A");
+    assert_eq!(it.eval_render("char(\"hello\")").unwrap(), "h");
+    // 1234: digit at 10^2 place is 2
+    assert_eq!(it.eval_render("digit(1234, 2)").unwrap(), "2");
+    // 3.14159: digit at 10^-2 place is 4
+    assert_eq!(it.eval_render("digit(3.14159, -2)").unwrap(), "4");
+    // binary: 6 = 110b, digit at 2^1 place is 1
+    assert_eq!(it.eval_render("digit(6, 1, 2)").unwrap(), "1");
+}
+
+#[test]
+fn test_strscan_formats() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("strscan(\"42 hello 3.5\", \"%d %s %f\")")
+            .unwrap(),
+        "[42, hello, 3.5]"
+    );
+    assert_eq!(it.eval_render("strscan(\"ff\", \"%x\")").unwrap(), "[255]");
+}
+
+#[test]
+fn test_str_aliases() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("strtolower(\"ABC\")").unwrap(), "abc");
+    assert_eq!(it.eval_render("strtoupper(\"abc\")").unwrap(), "ABC");
+    assert_eq!(it.eval_render("strprintf(\"%d-%d\", 1, 2)").unwrap(), "1-2");
+}

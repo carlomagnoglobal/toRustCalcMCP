@@ -3223,6 +3223,255 @@ fn f_index(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// ---- String ops (upstream-parity batch B2) ----
+
+fn str_arg<'a>(name: &str, a: &'a [Value], i: usize) -> Result<&'a str, String> {
+    match &a[i] {
+        Value::Str(s) => Ok(s.as_str()),
+        _ => Err(format!("{}: argument {} must be a string", name, i + 1)),
+    }
+}
+
+// Concatenate all string arguments
+fn f_strcat(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("strcat", a, 1, 100)?;
+    let mut out = String::new();
+    for (i, _) in a.iter().enumerate() {
+        out.push_str(str_arg("strcat", a, i)?);
+    }
+    Ok(Value::Str(out))
+}
+
+// String compare: -1 / 0 / 1
+fn f_strcmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strcmp", a, 2)?;
+    let x = str_arg("strcmp", a, 0)?;
+    let y = str_arg("strcmp", a, 1)?;
+    let ord = x.cmp(y) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+// Case-insensitive compare
+fn f_strcasecmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strcasecmp", a, 2)?;
+    let x = str_arg("strcasecmp", a, 0)?.to_lowercase();
+    let y = str_arg("strcasecmp", a, 1)?.to_lowercase();
+    let ord = x.cmp(&y) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+// Compare first n characters
+fn f_strncmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strncmp", a, 3)?;
+    let x = str_arg("strncmp", a, 0)?;
+    let y = str_arg("strncmp", a, 1)?;
+    let n_chars = int(a, 2)?.to_usize().ok_or("strncmp: n out of range")?;
+    let xs: String = x.chars().take(n_chars).collect();
+    let ys: String = y.chars().take(n_chars).collect();
+    let ord = xs.cmp(&ys) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+// Case-insensitive compare of first n characters
+fn f_strncasecmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strncasecmp", a, 3)?;
+    let x = str_arg("strncasecmp", a, 0)?.to_lowercase();
+    let y = str_arg("strncasecmp", a, 1)?.to_lowercase();
+    let n_chars = int(a, 2)?.to_usize().ok_or("strncasecmp: n out of range")?;
+    let xs: String = x.chars().take(n_chars).collect();
+    let ys: String = y.chars().take(n_chars).collect();
+    let ord = xs.cmp(&ys) as i64;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+// Copy of src (calc copies into dst; values are immutable here, so we return the copy)
+fn f_strcpy(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strcpy", a, 2)?;
+    let _dst = str_arg("strcpy", a, 0)?;
+    let src = str_arg("strcpy", a, 1)?;
+    Ok(Value::Str(src.to_string()))
+}
+
+// Copy of first n characters of src
+fn f_strncpy(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strncpy", a, 3)?;
+    let _dst = str_arg("strncpy", a, 0)?;
+    let src = str_arg("strncpy", a, 1)?;
+    let n_chars = int(a, 2)?.to_usize().ok_or("strncpy: n out of range")?;
+    Ok(Value::Str(src.chars().take(n_chars).collect()))
+}
+
+// Position of needle in haystack, 1-based; 0 if absent (calc semantics)
+fn f_strpos(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strpos", a, 2)?;
+    let haystack = str_arg("strpos", a, 0)?;
+    let needle = str_arg("strpos", a, 1)?;
+    let pos = match haystack.find(needle) {
+        Some(byte_idx) => haystack[..byte_idx].chars().count() as i64 + 1,
+        None => 0,
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(pos))))
+}
+
+// Message for an error code (defaults to the last error)
+fn f_strerror(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("strerror", a, 0, 1)?;
+    let code = if a.is_empty() {
+        it.last_errno
+    } else {
+        int(a, 0)?.to_i64().ok_or("strerror: code out of range")?
+    };
+    f_errsym(it, &[Value::Number(Num::from_integer(BigInt::from(code)))])
+}
+
+// Character for a code, or first character of a string
+fn f_char(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("char", a, 1)?;
+    match &a[0] {
+        Value::Number(x) => {
+            if !x.is_integer() {
+                return Err("char: non-integer code".to_string());
+            }
+            let code = x.numer().to_u32().ok_or("char: code out of range")?;
+            let ch = char::from_u32(code).ok_or("char: invalid character code")?;
+            Ok(Value::Str(ch.to_string()))
+        }
+        Value::Str(s) => Ok(Value::Str(
+            s.chars().next().map(String::from).unwrap_or_default(),
+        )),
+        _ => Err("char: argument must be a number or string".to_string()),
+    }
+}
+
+// digit(x, n [, base]): coefficient of base^n in |x| (n may be negative)
+fn f_digit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("digit", a, 2, 3)?;
+    let x = n(a, 0)?.abs();
+    let pos = int(a, 1)?.to_i64().ok_or("digit: position out of range")?;
+    let base = if a.len() == 3 {
+        int(a, 2)?
+    } else {
+        BigInt::from(10)
+    };
+    if base < BigInt::from(2) {
+        return Err("digit: base must be at least 2".to_string());
+    }
+    let base_r = Num::from_integer(base.clone());
+    // shift x so the wanted digit lands in the units place, then floor & mod
+    let mut shifted = x;
+    if pos >= 0 {
+        for _ in 0..pos {
+            shifted = &shifted / &base_r;
+        }
+    } else {
+        for _ in 0..(-pos) {
+            shifted = &shifted * &base_r;
+        }
+    }
+    let floored = number::floor(&shifted);
+    let digit = floored.numer() % &base;
+    Ok(Value::Number(Num::from_integer(digit)))
+}
+
+// strscan(s, fmt): scan values out of a string per a simplified scanf format
+// (%d %i %f %s %c %x %o), returning a list of the scanned values.
+fn f_strscan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("strscan", a, 2)?;
+    let input = str_arg("strscan", a, 0)?;
+    let fmt = str_arg("strscan", a, 1)?;
+    Ok(Value::List(scan_str(input, fmt)?))
+}
+
+fn scan_str(input: &str, fmt: &str) -> Result<Vec<Value>, String> {
+    let mut results = Vec::new();
+    let bytes = input.as_bytes();
+    let fmt_bytes = fmt.as_bytes();
+    let mut i = 0usize; // input index
+    let mut f = 0usize; // format index
+    while f < fmt_bytes.len() && i <= bytes.len() {
+        if fmt_bytes[f] == b'%' && f + 1 < fmt_bytes.len() {
+            f += 1;
+            let spec = fmt_bytes[f] as char;
+            // skip leading whitespace in input for all specs except %c
+            if spec != 'c' {
+                while i < bytes.len() && (bytes[i] as char).is_whitespace() {
+                    i += 1;
+                }
+            }
+            match spec {
+                'd' | 'i' | 'f' => {
+                    let start = i;
+                    if i < bytes.len() && (bytes[i] == b'-' || bytes[i] == b'+') {
+                        i += 1;
+                    }
+                    while i < bytes.len() && (bytes[i] as char).is_ascii_digit() {
+                        i += 1;
+                    }
+                    if spec == 'f' && i < bytes.len() && bytes[i] == b'.' {
+                        i += 1;
+                        while i < bytes.len() && (bytes[i] as char).is_ascii_digit() {
+                            i += 1;
+                        }
+                    }
+                    if i > start {
+                        let tok = &input[start..i];
+                        match number::parse_number(tok) {
+                            Some(v) => results.push(Value::Number(v)),
+                            None => return Err(format!("strscan: bad number {}", tok)),
+                        }
+                    }
+                }
+                'x' | 'o' => {
+                    let radix = if spec == 'x' { 16 } else { 8 };
+                    let start = i;
+                    while i < bytes.len() && (bytes[i] as char).is_digit(radix) {
+                        i += 1;
+                    }
+                    if i > start {
+                        match BigInt::parse_bytes(&bytes[start..i], radix) {
+                            Some(v) => results.push(Value::Number(Num::from_integer(v))),
+                            None => return Err("strscan: bad radix literal".to_string()),
+                        }
+                    }
+                }
+                's' => {
+                    let start = i;
+                    while i < bytes.len() && !(bytes[i] as char).is_whitespace() {
+                        i += 1;
+                    }
+                    results.push(Value::Str(input[start..i].to_string()));
+                }
+                'c' => {
+                    if i < bytes.len() {
+                        let ch = input[i..].chars().next().unwrap();
+                        results.push(Value::Str(ch.to_string()));
+                        i += ch.len_utf8();
+                    }
+                }
+                '%' => {
+                    if i < bytes.len() && bytes[i] == b'%' {
+                        i += 1;
+                    }
+                }
+                _ => return Err(format!("strscan: unsupported format %{}", spec)),
+            }
+            f += 1;
+        } else if (fmt_bytes[f] as char).is_whitespace() {
+            while i < bytes.len() && (bytes[i] as char).is_whitespace() {
+                i += 1;
+            }
+            f += 1;
+        } else {
+            // literal character must match
+            if i < bytes.len() && bytes[i] == fmt_bytes[f] {
+                i += 1;
+            }
+            f += 1;
+        }
+    }
+    Ok(results)
+}
+
 // Check if all characters are alphabetic
 fn f_isalpha(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("isalpha", a, 1)?;
@@ -5719,6 +5968,22 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("strcat".to_string(), f_strcat as BuiltinFn);
+    builtins.insert("strcmp".to_string(), f_strcmp as BuiltinFn);
+    builtins.insert("strcasecmp".to_string(), f_strcasecmp as BuiltinFn);
+    builtins.insert("strncmp".to_string(), f_strncmp as BuiltinFn);
+    builtins.insert("strncasecmp".to_string(), f_strncasecmp as BuiltinFn);
+    builtins.insert("strcpy".to_string(), f_strcpy as BuiltinFn);
+    builtins.insert("strncpy".to_string(), f_strncpy as BuiltinFn);
+    builtins.insert("strpos".to_string(), f_strpos as BuiltinFn);
+    builtins.insert("strerror".to_string(), f_strerror as BuiltinFn);
+    builtins.insert("char".to_string(), f_char as BuiltinFn);
+    builtins.insert("digit".to_string(), f_digit as BuiltinFn);
+    builtins.insert("strscan".to_string(), f_strscan as BuiltinFn);
+    builtins.insert("strscanf".to_string(), f_strscan as BuiltinFn);
+    builtins.insert("strtolower".to_string(), f_tolower as BuiltinFn);
+    builtins.insert("strtoupper".to_string(), f_toupper as BuiltinFn);
+    builtins.insert("strprintf".to_string(), f_sprintf as BuiltinFn);
     builtins.insert("iseven".to_string(), f_iseven as BuiltinFn);
     builtins.insert("isodd".to_string(), f_isodd as BuiltinFn);
     builtins.insert("isint".to_string(), f_isint as BuiltinFn);
@@ -6142,6 +6407,58 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        ("strcat", "strcat(s1,s2,...)", "concatenate strings"),
+        ("strcmp", "strcmp(s1,s2)", "compare strings (-1/0/1)"),
+        (
+            "strcasecmp",
+            "strcasecmp(s1,s2)",
+            "case-insensitive compare",
+        ),
+        ("strncmp", "strncmp(s1,s2,n)", "compare first n characters"),
+        (
+            "strncasecmp",
+            "strncasecmp(s1,s2,n)",
+            "case-insensitive compare of first n chars",
+        ),
+        ("strcpy", "strcpy(dst,src)", "copy of src"),
+        (
+            "strncpy",
+            "strncpy(dst,src,n)",
+            "copy of first n chars of src",
+        ),
+        (
+            "strpos",
+            "strpos(haystack,needle)",
+            "1-based position of needle, 0 if absent",
+        ),
+        ("strerror", "strerror([code])", "message for an error code"),
+        (
+            "char",
+            "char(x)",
+            "character for a code, or first char of string",
+        ),
+        ("digit", "digit(x,n[,base])", "digit of x at base^n place"),
+        (
+            "strscan",
+            "strscan(s,fmt)",
+            "scan values from string per scanf format (returns list)",
+        ),
+        ("strscanf", "strscanf(s,fmt)", "alias for strscan"),
+        (
+            "strtolower",
+            "strtolower(s)",
+            "lowercase (alias for tolower)",
+        ),
+        (
+            "strtoupper",
+            "strtoupper(s)",
+            "uppercase (alias for toupper)",
+        ),
+        (
+            "strprintf",
+            "strprintf(fmt,...)",
+            "formatted string (alias for sprintf)",
+        ),
         ("iseven", "iseven(x)", "1 if x is an even integer"),
         ("isodd", "isodd(x)", "1 if x is an odd integer"),
         ("isint", "isint(x)", "1 if x is an integer"),
