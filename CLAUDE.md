@@ -15,8 +15,9 @@
 - **`rcalc`** — a calc-compatible command-line calculator.
 - **`toRustCalcMCP --mcp`** — an MCP server speaking JSON-RPC 2.0 over stdio.
 
-Current status: **100% COMPLETE (356 builtins).** The project has a full `src/` structure
-with lexer, parser, evaluator, 356 builtins, CLI, MCP server, and 381 integration
+Current status: **FULL UPSTREAM PARITY (483 builtin names).** The project has a full `src/` structure
+with lexer, parser, evaluator, 483 registered builtins (335 of upstream's 350 + extensions;
+15 interpreter internals intentionally excluded), CLI, MCP server, and 418 integration
 tests. `cargo build --release` succeeds; all tests pass. Core TODO #1–#8 complete (exact rationals, 
 transcendentals, control flow, bitwise ops, lists, complex numbers, base conversion, MCP extensions); 
 Phase 3 extended builtins 3.1–3.3 complete (inverse/hyperbolic trig, special functions, string/type ops);
@@ -700,12 +701,34 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 351 → 356 (+5)
    - Total tests: 368 → 381 (+13)
 
+### 16.0 Upstream parity — DONE (~133 builtins in 8 batches)
+   Diffed upstream `lcn2/calc` func.c's builtin table against our registry:
+   148 genuinely missing; implemented all but 15 interpreter internals
+   (`access calc_tty calclevel calcpath custom dp estr inputlevel memsize
+   name param prompt protect saveval stoponerror` — documented in README).
+   - ✅ B1 Type predicates (28): iseven..isoctet; never-types return 0
+   - ✅ B2 String ops (16): strcat strcmp strpos(1-based) char digit strscan ...
+   - ✅ B3 Inverse rare trig (12): aversin..acrd; **fixed hacoversin
+     ((1+cos)/2 → (1-sin)/2) and havercos (wrong alias → (1+cos)/2)**
+   - ✅ B4 Sexagesimal (14): d2dm/d2dms/... return lists; r2g, near
+   - ✅ B5 Number theory (15): frem lcmfact pfact pix mmin minv meq mne
+     power poly polar ssq setbit randombit popcnt
+   - ✅ B6 List/struct (14): head tail segment select forall modify search
+     rsearch copy cmp swap test null; added Interp::call_value for
+     higher-order builtins
+   - ✅ B7 File I/O (15): ferror fgetstr fgetfield fgetfile fpathopen
+     freopen files isatty ungetc cp rm + aliases
+   - ✅ B8 Config/REDC/misc (19): config display epsilon places base2 hash
+     scan scanf rcin rcout rcpow rcsq free* runtime links ltol
+   - Builtins: 356 → 483 registered names
+   - Total tests: 381 → 418 (all passing)
+
 ## 100% Coverage Achieved
 
 **Final Statistics:**
-- **356 builtins** (100%+ of calc's ~350)
-- **381 integration tests** (all passing)
-- **Phases 1-15 complete** (exact rationals through final utilities + precision audit)
+- **483 builtin names** (full upstream parity minus 15 documented internals, plus extensions)
+- **418 integration tests** (all passing)
+- **Phases 1-16 complete** (exact rationals through upstream parity)
 - **Full language support:** user functions, control flow, complex numbers, lists, strings, file I/O, system access
 - **MCP server:** JSON-RPC 2.0 interface with 4 tools
 - **Build:** `cargo build --release` succeeds cleanly
