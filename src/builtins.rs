@@ -5,7 +5,7 @@ use crate::eval::Interp;
 use crate::number::{self, Num};
 use crate::value::Value;
 use num_bigint::BigInt;
-use num_traits::{Signed, ToPrimitive, Zero};
+use num_traits::{One, Signed, ToPrimitive, Zero};
 
 fn argc(name: &str, args: &[Value], expected: usize) -> Result<(), String> {
     if args.len() != expected {
@@ -3286,6 +3286,230 @@ fn f_isinf(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     }
 }
 
+// ---- Type predicates (upstream-parity batch B1) ----
+
+// Even integer test: 1 if x is an even integer, 0 otherwise (incl. non-integers)
+fn f_iseven(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("iseven", a, 1)?;
+    Ok(Value::boolean(match &a[0] {
+        Value::Number(x) => x.is_integer() && (x.numer() % BigInt::from(2)).is_zero(),
+        _ => false,
+    }))
+}
+
+// Odd integer test
+fn f_isodd(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isodd", a, 1)?;
+    Ok(Value::boolean(match &a[0] {
+        Value::Number(x) => x.is_integer() && !(x.numer() % BigInt::from(2)).is_zero(),
+        _ => false,
+    }))
+}
+
+// Integer test
+fn f_isint(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isint", a, 1)?;
+    Ok(Value::boolean(
+        matches!(&a[0], Value::Number(x) if x.is_integer()),
+    ))
+}
+
+// Number test (real or complex)
+fn f_isnum(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isnum", a, 1)?;
+    Ok(Value::boolean(matches!(
+        &a[0],
+        Value::Number(_) | Value::Complex(_, _)
+    )))
+}
+
+// Real number test
+fn f_isreal(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isreal", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Number(_))))
+}
+
+// String test
+fn f_isstr(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isstr", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Str(_))))
+}
+
+// List test
+fn f_islist(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("islist", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::List(_))))
+}
+
+// Null test
+fn f_isnull(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isnull", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Null)))
+}
+
+// Associative array test (our Hash type)
+fn f_isassoc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isassoc", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Hash(_))))
+}
+
+// Hash test (alias semantics of isassoc for our value model)
+fn f_ishash(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ishash", a, 1)?;
+    Ok(Value::boolean(matches!(&a[0], Value::Hash(_))))
+}
+
+// Matrix test: list of equal-length lists
+fn f_ismat(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ismat", a, 1)?;
+    Ok(Value::boolean(is_matrix(&a[0])))
+}
+
+fn is_matrix(v: &Value) -> bool {
+    match v {
+        Value::List(rows) if !rows.is_empty() => {
+            let width = match &rows[0] {
+                Value::List(r) => r.len(),
+                _ => return false,
+            };
+            rows.iter()
+                .all(|r| matches!(r, Value::List(x) if x.len() == width))
+        }
+        _ => false,
+    }
+}
+
+// Identity matrix test
+fn f_isident(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isident", a, 1)?;
+    let rows = match &a[0] {
+        Value::List(rows) if is_matrix(&a[0]) => rows,
+        _ => return Ok(Value::boolean(false)),
+    };
+    let n_rows = rows.len();
+    for (i, row) in rows.iter().enumerate() {
+        let cells = match row {
+            Value::List(c) => c,
+            _ => return Ok(Value::boolean(false)),
+        };
+        if cells.len() != n_rows {
+            return Ok(Value::boolean(false));
+        }
+        for (j, cell) in cells.iter().enumerate() {
+            let want = if i == j { Num::one() } else { Num::zero() };
+            match cell {
+                Value::Number(x) if *x == want => {}
+                _ => return Ok(Value::boolean(false)),
+            }
+        }
+    }
+    Ok(Value::boolean(true))
+}
+
+// Error value test: we have no error values, so always 0
+fn f_iserror(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("iserror", a, 1)?;
+    Ok(Value::boolean(false))
+}
+
+// Multiple test: 1 if x is an integer multiple of y
+fn f_ismult(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("ismult", a, 2)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    if y.is_zero() {
+        return Err("ismult: division by zero".to_string());
+    }
+    Ok(Value::boolean((x / y).is_integer()))
+}
+
+// Relatively-prime test: gcd(x, y) == 1 for integers
+fn f_isrel(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isrel", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    Ok(Value::boolean(number::gcd_int(&x, &y) == BigInt::from(1)))
+}
+
+// Perfect-square test for rationals: numerator and denominator both squares
+fn f_issq(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("issq", a, 1)?;
+    let x = n(a, 0)?;
+    if x.is_negative() {
+        return Ok(Value::boolean(false));
+    }
+    let is_square = |v: &BigInt| -> bool {
+        let r = v.sqrt();
+        &(&r * &r) == v
+    };
+    Ok(Value::boolean(is_square(x.numer()) && is_square(x.denom())))
+}
+
+// Simple value test: number, string, or null
+fn f_issimple(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("issimple", a, 1)?;
+    Ok(Value::boolean(matches!(
+        &a[0],
+        Value::Number(_) | Value::Complex(_, _) | Value::Str(_) | Value::Null
+    )))
+}
+
+// Same-type test
+fn f_istype(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("istype", a, 2)?;
+    Ok(Value::boolean(
+        std::mem::discriminant(&a[0]) == std::mem::discriminant(&a[1]),
+    ))
+}
+
+// Open-file-descriptor test
+fn f_isfile(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isfile", a, 1)?;
+    Ok(Value::boolean(match &a[0] {
+        Value::Number(x) if x.is_integer() => match x.numer().to_i64() {
+            Some(fd) => fd >= 3 && ((fd - 3) as usize) < it.open_files.len(),
+            None => false,
+        },
+        _ => false,
+    }))
+}
+
+// Type predicates for types this port does not model as distinct values:
+// rand/random state, config, obj, pointer, block, octet. A value can never be
+// one of those types here, so these correctly return 0.
+fn f_isrand(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isrand", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_israndom(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("israndom", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isconfig(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isconfig", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isobj(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isobj", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isobjtype(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isobjtype", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isptr(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isptr", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isblk(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isblk", a, 1)?;
+    Ok(Value::boolean(false))
+}
+fn f_isoctet(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("isoctet", a, 1)?;
+    Ok(Value::boolean(false))
+}
+
 // Degrees to radians
 fn f_d2r(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("d2r", a, 1)?;
@@ -5495,6 +5719,34 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("iseven".to_string(), f_iseven as BuiltinFn);
+    builtins.insert("isodd".to_string(), f_isodd as BuiltinFn);
+    builtins.insert("isint".to_string(), f_isint as BuiltinFn);
+    builtins.insert("isnum".to_string(), f_isnum as BuiltinFn);
+    builtins.insert("isreal".to_string(), f_isreal as BuiltinFn);
+    builtins.insert("isstr".to_string(), f_isstr as BuiltinFn);
+    builtins.insert("islist".to_string(), f_islist as BuiltinFn);
+    builtins.insert("isnull".to_string(), f_isnull as BuiltinFn);
+    builtins.insert("isassoc".to_string(), f_isassoc as BuiltinFn);
+    builtins.insert("ishash".to_string(), f_ishash as BuiltinFn);
+    builtins.insert("ismat".to_string(), f_ismat as BuiltinFn);
+    builtins.insert("isident".to_string(), f_isident as BuiltinFn);
+    builtins.insert("iserror".to_string(), f_iserror as BuiltinFn);
+    builtins.insert("ismult".to_string(), f_ismult as BuiltinFn);
+    builtins.insert("isrel".to_string(), f_isrel as BuiltinFn);
+    builtins.insert("issq".to_string(), f_issq as BuiltinFn);
+    builtins.insert("issimple".to_string(), f_issimple as BuiltinFn);
+    builtins.insert("istype".to_string(), f_istype as BuiltinFn);
+    builtins.insert("isfile".to_string(), f_isfile as BuiltinFn);
+    builtins.insert("isdefined".to_string(), f_defined as BuiltinFn);
+    builtins.insert("isrand".to_string(), f_isrand as BuiltinFn);
+    builtins.insert("israndom".to_string(), f_israndom as BuiltinFn);
+    builtins.insert("isconfig".to_string(), f_isconfig as BuiltinFn);
+    builtins.insert("isobj".to_string(), f_isobj as BuiltinFn);
+    builtins.insert("isobjtype".to_string(), f_isobjtype as BuiltinFn);
+    builtins.insert("isptr".to_string(), f_isptr as BuiltinFn);
+    builtins.insert("isblk".to_string(), f_isblk as BuiltinFn);
+    builtins.insert("isoctet".to_string(), f_isoctet as BuiltinFn);
     builtins.insert("nextcand".to_string(), f_nextcand as BuiltinFn);
     builtins.insert("prevcand".to_string(), f_prevcand as BuiltinFn);
     builtins.insert("gcdrem".to_string(), f_gcdrem as BuiltinFn);
@@ -5890,6 +6142,78 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        ("iseven", "iseven(x)", "1 if x is an even integer"),
+        ("isodd", "isodd(x)", "1 if x is an odd integer"),
+        ("isint", "isint(x)", "1 if x is an integer"),
+        ("isnum", "isnum(x)", "1 if x is a number (real or complex)"),
+        ("isreal", "isreal(x)", "1 if x is a real number"),
+        ("isstr", "isstr(x)", "1 if x is a string"),
+        ("islist", "islist(x)", "1 if x is a list"),
+        ("isnull", "isnull(x)", "1 if x is null"),
+        ("isassoc", "isassoc(x)", "1 if x is an associative array"),
+        ("ishash", "ishash(x)", "1 if x is a hash/associative array"),
+        (
+            "ismat",
+            "ismat(x)",
+            "1 if x is a matrix (list of equal-length lists)",
+        ),
+        ("isident", "isident(m)", "1 if m is an identity matrix"),
+        (
+            "iserror",
+            "iserror(x)",
+            "1 if x is an error value (always 0 here)",
+        ),
+        (
+            "ismult",
+            "ismult(x,y)",
+            "1 if x is an integer multiple of y",
+        ),
+        ("isrel", "isrel(x,y)", "1 if x and y are relatively prime"),
+        ("issq", "issq(x)", "1 if x is a perfect square (rational)"),
+        (
+            "issimple",
+            "issimple(x)",
+            "1 if x is a simple value (number/string/null)",
+        ),
+        ("istype", "istype(x,y)", "1 if x and y have the same type"),
+        ("isfile", "isfile(x)", "1 if x is an open file descriptor"),
+        (
+            "isdefined",
+            "isdefined(name)",
+            "1 if name is a defined variable",
+        ),
+        (
+            "isrand",
+            "isrand(x)",
+            "1 if x is a rand state (always 0 here)",
+        ),
+        (
+            "israndom",
+            "israndom(x)",
+            "1 if x is a random state (always 0 here)",
+        ),
+        (
+            "isconfig",
+            "isconfig(x)",
+            "1 if x is a config value (always 0 here)",
+        ),
+        ("isobj", "isobj(x)", "1 if x is an object (always 0 here)"),
+        (
+            "isobjtype",
+            "isobjtype(x)",
+            "1 if x is an object type (always 0 here)",
+        ),
+        ("isptr", "isptr(x)", "1 if x is a pointer (always 0 here)"),
+        (
+            "isblk",
+            "isblk(x)",
+            "1 if x is a block value (always 0 here)",
+        ),
+        (
+            "isoctet",
+            "isoctet(x)",
+            "1 if x is an octet (always 0 here)",
+        ),
         (
             "nextcand",
             "nextcand(n[,count[,skip[,residue[,modulus]]]])",

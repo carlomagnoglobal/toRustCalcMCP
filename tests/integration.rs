@@ -3421,3 +3421,85 @@ fn test_quomod_pair() {
     let result = it.eval_render("quomod(7, 3)").unwrap();
     assert!(result.contains("2") && result.contains("1"));
 }
+
+// ---- Upstream parity B1: type predicates ----
+
+#[test]
+fn test_iseven_isodd() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("iseven(4)").unwrap(), "1");
+    assert_eq!(it.eval_render("iseven(3)").unwrap(), "0");
+    assert_eq!(it.eval_render("iseven(1/2)").unwrap(), "0");
+    assert_eq!(it.eval_render("isodd(3)").unwrap(), "1");
+    assert_eq!(it.eval_render("isodd(-3)").unwrap(), "1");
+}
+
+#[test]
+fn test_isint_isnum_isreal_isstr() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isint(5)").unwrap(), "1");
+    assert_eq!(it.eval_render("isint(1/2)").unwrap(), "0");
+    assert_eq!(it.eval_render("isnum(5)").unwrap(), "1");
+    assert_eq!(it.eval_render("isnum(\"x\")").unwrap(), "0");
+    assert_eq!(it.eval_render("isreal(sqrt(-1))").unwrap(), "0");
+    assert_eq!(it.eval_render("isstr(\"x\")").unwrap(), "1");
+}
+
+#[test]
+fn test_islist_isnull_ishash() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("islist(list(1,2))").unwrap(), "1");
+    assert_eq!(it.eval_render("islist(5)").unwrap(), "0");
+    assert_eq!(it.eval_render("ishash(assoc(\"a\", 1))").unwrap(), "1");
+    assert_eq!(it.eval_render("isassoc(assoc(\"a\", 1))").unwrap(), "1");
+}
+
+#[test]
+fn test_ismult_isrel() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("ismult(12, 4)").unwrap(), "1");
+    assert_eq!(it.eval_render("ismult(13, 4)").unwrap(), "0");
+    assert_eq!(it.eval_render("isrel(9, 4)").unwrap(), "1");
+    assert_eq!(it.eval_render("isrel(9, 6)").unwrap(), "0");
+}
+
+#[test]
+fn test_issq_rational() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("issq(16)").unwrap(), "1");
+    assert_eq!(it.eval_render("issq(8)").unwrap(), "0");
+    assert_eq!(it.eval_render("issq(4/9)").unwrap(), "1");
+    assert_eq!(it.eval_render("issq(-4)").unwrap(), "0");
+}
+
+#[test]
+fn test_ismat_isident() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("ismat(list(list(1,2),list(3,4)))").unwrap(),
+        "1"
+    );
+    assert_eq!(it.eval_render("ismat(list(1,2))").unwrap(), "0");
+    assert_eq!(
+        it.eval_render("isident(list(list(1,0),list(0,1)))")
+            .unwrap(),
+        "1"
+    );
+    assert_eq!(
+        it.eval_render("isident(list(list(1,1),list(0,1)))")
+            .unwrap(),
+        "0"
+    );
+}
+
+#[test]
+fn test_istype_and_never_types() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("istype(1, 2)").unwrap(), "1");
+    assert_eq!(it.eval_render("istype(1, \"a\")").unwrap(), "0");
+    assert_eq!(it.eval_render("isobj(1)").unwrap(), "0");
+    assert_eq!(it.eval_render("isptr(1)").unwrap(), "0");
+    assert_eq!(it.eval_render("isblk(1)").unwrap(), "0");
+    assert_eq!(it.eval_render("issimple(1)").unwrap(), "1");
+    assert_eq!(it.eval_render("issimple(list(1))").unwrap(), "0");
+}
