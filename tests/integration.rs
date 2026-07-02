@@ -3853,3 +3853,70 @@ fn test_cp_and_rm() {
     );
     std::fs::remove_file(&src).ok();
 }
+
+// ---- Upstream parity B8: config/session, REDC & misc ----
+
+#[test]
+fn test_config_getters_setters() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("config(\"display\")").unwrap(), "20");
+    // setting returns the old value
+    assert_eq!(it.eval_render("display(30)").unwrap(), "20");
+    assert_eq!(it.eval_render("display()").unwrap(), "30");
+    it.eval_render("config(\"mode\", \"frac\")").unwrap();
+    assert_eq!(it.eval_render("1/2").unwrap(), "1/2");
+}
+
+#[test]
+fn test_epsilon_get_set() {
+    let mut it = Interp::new();
+    it.eval_render("epsilon(1e-5)").unwrap();
+    let e = it.eval_render("epsilon()").unwrap();
+    assert_eq!(e, "0.00001");
+}
+
+#[test]
+fn test_places() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("places(3.14159)").unwrap(), "5");
+    assert_eq!(it.eval_render("places(1/3)").unwrap(), "-1");
+    assert_eq!(it.eval_render("places(1/8, 2)").unwrap(), "3");
+    assert_eq!(it.eval_render("places(7)").unwrap(), "0");
+}
+
+#[test]
+fn test_ltol_and_hash() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("ltol(0.6)").unwrap(), "0.8");
+    assert_eq!(it.eval_render("hash(42) == hash(42)").unwrap(), "1");
+    assert_eq!(it.eval_render("hash(42) == hash(43)").unwrap(), "0");
+}
+
+#[test]
+fn test_redc_ops() {
+    let mut it = Interp::new();
+    // rcout inverts rcin
+    assert_eq!(it.eval_render("rcout(rcin(5, 13), 13)").unwrap(), "5");
+    // squaring inside the REDC domain: 5^2 mod 13 = 12
+    assert_eq!(
+        it.eval_render("rcout(rcsq(rcin(5, 13), 13), 13)").unwrap(),
+        "12"
+    );
+    // cubing via rcpow: 5^3 mod 13 = 8
+    assert_eq!(
+        it.eval_render("rcout(rcpow(rcin(5, 13), 3, 13), 13)")
+            .unwrap(),
+        "8"
+    );
+}
+
+#[test]
+fn test_free_noops_and_runtime() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("isnull(freebernoulli())").unwrap(), "1");
+    assert_eq!(it.eval_render("isnull(freeeuler())").unwrap(), "1");
+    assert_eq!(it.eval_render("isnull(freeredc())").unwrap(), "1");
+    assert_eq!(it.eval_render("isnull(freestatics())").unwrap(), "1");
+    assert_eq!(it.eval_render("runtime() >= 0").unwrap(), "1");
+    assert_eq!(it.eval_render("base2()").unwrap(), "0");
+}

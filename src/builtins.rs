@@ -1089,6 +1089,311 @@ fn f_usertime(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     ))
 }
 
+// ---- Config/session, REDC & misc (upstream-parity batch B8) ----
+
+// config(name [, value]): read or set a named config item; returns the old value
+fn f_config(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("config", a, 1, 2)?;
+    let name = str_arg("config", a, 0)?.to_string();
+    let old = match name.as_str() {
+        "mode" => Value::Str(it.cfg.mode.as_str().to_string()),
+        "display" => Value::Number(Num::from_integer(BigInt::from(it.cfg.display as i64))),
+        "epsilon" => Value::Number(it.cfg.epsilon.clone()),
+        "ibase" => Value::Number(Num::from_integer(BigInt::from(it.cfg.ibase as i64))),
+        "obase" => Value::Number(Num::from_integer(BigInt::from(it.cfg.obase as i64))),
+        _ => return Err(format!("config: unknown item {}", name)),
+    };
+    if a.len() == 2 {
+        match name.as_str() {
+            "mode" => {
+                let m = str_arg("config", a, 1)?;
+                it.cfg.mode = crate::config::Mode::parse(m)
+                    .ok_or_else(|| format!("config: invalid mode {}", m))?;
+            }
+            "display" => {
+                it.cfg.display = int(a, 1)?
+                    .to_usize()
+                    .ok_or("config: display out of range")?;
+            }
+            "epsilon" => {
+                let e = n(a, 1)?;
+                if e.is_zero() || e.is_negative() {
+                    return Err("config: epsilon must be positive".to_string());
+                }
+                it.cfg.epsilon = e.clone();
+            }
+            "ibase" => {
+                let b = int(a, 1)?.to_u32().ok_or("config: ibase out of range")?;
+                if !(2..=36).contains(&b) {
+                    return Err("config: ibase must be 2-36".to_string());
+                }
+                it.cfg.ibase = b;
+            }
+            "obase" => {
+                let b = int(a, 1)?.to_u32().ok_or("config: obase out of range")?;
+                if !(2..=36).contains(&b) {
+                    return Err("config: obase must be 2-36".to_string());
+                }
+                it.cfg.obase = b;
+            }
+            _ => unreachable!(),
+        }
+    }
+    Ok(old)
+}
+
+// display([n]): read or set the number of displayed digits; returns the old value
+fn f_display(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("display", a, 0, 1)?;
+    let old = it.cfg.display as i64;
+    if a.len() == 1 {
+        it.cfg.display = int(a, 0)?.to_usize().ok_or("display: out of range")?;
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(old))))
+}
+
+// epsilon([e]): read or set the session epsilon; returns the old value
+fn f_epsilon(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("epsilon", a, 0, 1)?;
+    let old = it.cfg.epsilon.clone();
+    if a.len() == 1 {
+        let e = n(a, 0)?;
+        if e.is_zero() || e.is_negative() {
+            return Err("epsilon: must be positive".to_string());
+        }
+        it.cfg.epsilon = e.clone();
+    }
+    Ok(Value::Number(old))
+}
+
+// places(x [, base]): digits after the point in x's expansion, -1 if infinite
+fn f_places(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("places", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let base = if a.len() == 2 {
+        int(a, 1)?.to_u32().ok_or("places: base out of range")?
+    } else {
+        10
+    };
+    if base < 2 {
+        return Err("places: base must be at least 2".to_string());
+    }
+    // count k = smallest k with denom | base^k; -1 if none (repeating expansion)
+    let mut denom = x.denom().clone();
+    let base_big = BigInt::from(base);
+    let mut k: i64 = 0;
+    loop {
+        if denom == BigInt::from(1) {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(k))));
+        }
+        let g = number::gcd_int(&denom, &base_big);
+        if g == BigInt::from(1) {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(-1))));
+        }
+        denom /= &g;
+        k += 1;
+    }
+}
+
+// base2([b]): secondary display base — not supported by this renderer
+fn f_base2(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("base2", a, 0, 1)?;
+    if a.is_empty() {
+        // 0 means "no secondary base configured", matching calc's default
+        return Ok(Value::Number(Num::zero()));
+    }
+    Err("base2: secondary display base not supported".to_string())
+}
+
+// hash(...): stable FNV-1a hash of the rendered arguments
+fn f_hash(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("hash", a, 1, 100)?;
+    let mut h: u64 = 0xcbf29ce484222325;
+    for v in a {
+        for byte in v.render(&it.cfg).bytes() {
+            h ^= byte as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(h))))
+}
+
+// scan(): read one line from stdin, split into whitespace tokens (numbers parsed)
+fn f_scan(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("scan", a, 0, 1)?;
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| format!("scan: read error: {}", e))?;
+    let vals: Vec<Value> = line
+        .split_whitespace()
+        .map(|tok| match number::parse_number(tok) {
+            Some(v) => Value::Number(v),
+            None => Value::Str(tok.to_string()),
+        })
+        .collect();
+    Ok(Value::List(vals))
+}
+
+// scanf(fmt): read one line from stdin and scan values per the format
+fn f_scanf(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("scanf", a, 1, 2)?;
+    let fmt = str_arg("scanf", a, 0)?.to_string();
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| format!("scanf: read error: {}", e))?;
+    Ok(Value::List(scan_str(&line, &fmt)?))
+}
+
+// REDC (Montgomery) residue arithmetic. R = 2^bitlen(m).
+fn redc_r(m: &BigInt) -> BigInt {
+    BigInt::from(1) << m.bits()
+}
+
+// rcin(x, m): convert into REDC form: x*R mod m
+fn f_rcin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcin", a, 2)?;
+    let x = int(a, 0)?;
+    let m = int(a, 1)?;
+    if m <= BigInt::from(0) || (&m % BigInt::from(2)).is_zero() {
+        return Err("rcin: modulus must be a positive odd integer".to_string());
+    }
+    let r = redc_r(&m);
+    Ok(Value::Number(Num::from_integer(normalize_mod(
+        &(x * r),
+        &m,
+    ))))
+}
+
+// rcout(x, m): convert out of REDC form: x*R^-1 mod m
+fn f_rcout(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcout", a, 2)?;
+    let x = int(a, 0)?;
+    let m = int(a, 1)?;
+    if m <= BigInt::from(0) || (&m % BigInt::from(2)).is_zero() {
+        return Err("rcout: modulus must be a positive odd integer".to_string());
+    }
+    let r = redc_r(&m);
+    // R^-1 mod m via the existing extended-Euclid builtin
+    let rinv = match f_rcinv(
+        it,
+        &[
+            Value::Number(Num::from_integer(normalize_mod(&r, &m))),
+            Value::Number(Num::from_integer(m.clone())),
+        ],
+    )? {
+        Value::Number(v) => v.numer().clone(),
+        _ => unreachable!(),
+    };
+    Ok(Value::Number(Num::from_integer(normalize_mod(
+        &(x * rinv),
+        &m,
+    ))))
+}
+
+// rcpow(x, k, m): x^k within the REDC domain
+fn f_rcpow(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcpow", a, 3)?;
+    let x = int(a, 0)?;
+    let k = int(a, 1)?.to_u64().ok_or("rcpow: exponent out of range")?;
+    let m = int(a, 2)?;
+    if m <= BigInt::from(0) || (&m % BigInt::from(2)).is_zero() {
+        return Err("rcpow: modulus must be a positive odd integer".to_string());
+    }
+    // convert out, exponentiate mod m, convert back in
+    let plain = match f_rcout(
+        it,
+        &[
+            Value::Number(Num::from_integer(x)),
+            Value::Number(Num::from_integer(m.clone())),
+        ],
+    )? {
+        Value::Number(v) => v.numer().clone(),
+        _ => unreachable!(),
+    };
+    let powered = plain.modpow(&BigInt::from(k), &m);
+    f_rcin(
+        it,
+        &[
+            Value::Number(Num::from_integer(powered)),
+            Value::Number(Num::from_integer(m)),
+        ],
+    )
+}
+
+// rcsq(x, m): x^2 within the REDC domain
+fn f_rcsq(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("rcsq", a, 2)?;
+    let x = int(a, 0)?;
+    let m = int(a, 1)?;
+    let args = [
+        Value::Number(Num::from_integer(x)),
+        Value::Number(Num::from_integer(BigInt::from(2))),
+        Value::Number(Num::from_integer(m)),
+    ];
+    f_rcpow(it, &args)
+}
+
+// free*(): cache-release no-ops — this port computes bernoulli/euler/REDC
+// values on demand and keeps no caches, so there is nothing to free.
+fn f_freebernoulli(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freebernoulli", a, 0)?;
+    Ok(Value::Null)
+}
+fn f_freeeuler(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freeeuler", a, 0)?;
+    Ok(Value::Null)
+}
+fn f_freeredc(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freeredc", a, 0)?;
+    Ok(Value::Null)
+}
+fn f_freestatics(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("freestatics", a, 0)?;
+    Ok(Value::Null)
+}
+
+// runtime(): CPU time used, in seconds (same source as usertime)
+fn f_runtime(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("runtime", a, 0)?;
+    f_usertime(it, &[])
+}
+
+// links(name): number of hard links to a file
+fn f_links(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("links", a, 1)?;
+    let path = str_arg("links", a, 0)?;
+    let meta = std::fs::metadata(path).map_err(|e| format!("links: {}: {}", path, e))?;
+    #[cfg(unix)]
+    let nlinks = {
+        use std::os::unix::fs::MetadataExt;
+        meta.nlink() as i64
+    };
+    #[cfg(not(unix))]
+    let nlinks = {
+        let _ = &meta;
+        1i64
+    };
+    Ok(Value::Number(Num::from_integer(BigInt::from(nlinks))))
+}
+
+// ltol(a [, eps]): leg-to-leg of a unit right triangle: sqrt(1 - a^2)
+fn f_ltol(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("ltol", a, 1, 2)?;
+    let x = n(a, 0)?;
+    let eps = if a.len() == 2 {
+        n(a, 1)?.abs()
+    } else {
+        it.epsilon()
+    };
+    let one_minus = Num::one() - &(x * x);
+    if one_minus.is_negative() {
+        return Err("ltol: |a| must be at most 1".to_string());
+    }
+    Ok(Value::Number(number::sqrt(&one_minus, &eps)?))
+}
+
 // Phase 5.1: Character Classification Functions
 
 fn f_isalnum(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
@@ -6832,6 +7137,25 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("config".to_string(), f_config as BuiltinFn);
+    builtins.insert("display".to_string(), f_display as BuiltinFn);
+    builtins.insert("epsilon".to_string(), f_epsilon as BuiltinFn);
+    builtins.insert("places".to_string(), f_places as BuiltinFn);
+    builtins.insert("base2".to_string(), f_base2 as BuiltinFn);
+    builtins.insert("hash".to_string(), f_hash as BuiltinFn);
+    builtins.insert("scan".to_string(), f_scan as BuiltinFn);
+    builtins.insert("scanf".to_string(), f_scanf as BuiltinFn);
+    builtins.insert("rcin".to_string(), f_rcin as BuiltinFn);
+    builtins.insert("rcout".to_string(), f_rcout as BuiltinFn);
+    builtins.insert("rcpow".to_string(), f_rcpow as BuiltinFn);
+    builtins.insert("rcsq".to_string(), f_rcsq as BuiltinFn);
+    builtins.insert("freebernoulli".to_string(), f_freebernoulli as BuiltinFn);
+    builtins.insert("freeeuler".to_string(), f_freeeuler as BuiltinFn);
+    builtins.insert("freeredc".to_string(), f_freeredc as BuiltinFn);
+    builtins.insert("freestatics".to_string(), f_freestatics as BuiltinFn);
+    builtins.insert("runtime".to_string(), f_runtime as BuiltinFn);
+    builtins.insert("links".to_string(), f_links as BuiltinFn);
+    builtins.insert("ltol".to_string(), f_ltol as BuiltinFn);
     builtins.insert("ferror".to_string(), f_ferror as BuiltinFn);
     builtins.insert("fgetstr".to_string(), f_fgetstr as BuiltinFn);
     builtins.insert("fgetfield".to_string(), f_fgetfield as BuiltinFn);
@@ -7341,6 +7665,49 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        (
+            "config",
+            "config(name[,val])",
+            "read or set a named config item",
+        ),
+        ("display", "display([n])", "read or set displayed digits"),
+        ("epsilon", "epsilon([e])", "read or set the session epsilon"),
+        (
+            "places",
+            "places(x[,base])",
+            "digits after the point, -1 if infinite",
+        ),
+        (
+            "base2",
+            "base2([b])",
+            "secondary display base (not supported)",
+        ),
+        ("hash", "hash(x,...)", "stable hash of values"),
+        (
+            "scan",
+            "scan()",
+            "read stdin line as whitespace-separated values",
+        ),
+        ("scanf", "scanf(fmt)", "read stdin line per scanf format"),
+        ("rcin", "rcin(x,m)", "convert into REDC form: x*R mod m"),
+        ("rcout", "rcout(x,m)", "convert out of REDC form: x/R mod m"),
+        ("rcpow", "rcpow(x,k,m)", "x^k within the REDC domain"),
+        ("rcsq", "rcsq(x,m)", "x^2 within the REDC domain"),
+        (
+            "freebernoulli",
+            "freebernoulli()",
+            "release bernoulli cache (no-op)",
+        ),
+        ("freeeuler", "freeeuler()", "release euler cache (no-op)"),
+        ("freeredc", "freeredc()", "release REDC cache (no-op)"),
+        (
+            "freestatics",
+            "freestatics()",
+            "release static caches (no-op)",
+        ),
+        ("runtime", "runtime()", "CPU time used, in seconds"),
+        ("links", "links(name)", "number of hard links to a file"),
+        ("ltol", "ltol(a[,eps])", "leg-to-leg: sqrt(1 - a^2)"),
         (
             "ferror",
             "ferror(fd)",
