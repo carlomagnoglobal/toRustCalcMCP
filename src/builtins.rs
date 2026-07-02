@@ -4017,6 +4017,243 @@ fn f_near(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(Num::from_integer(BigInt::from(sign))))
 }
 
+// ---- Number theory & math (upstream-parity batch B5) ----
+
+// frem(x, y): remove all factors of y from x (x with every power of y divided out)
+fn f_frem(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("frem", a, 2)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    let y_abs = y.abs();
+    if y_abs <= BigInt::from(1) {
+        return Ok(Value::Number(Num::from_integer(x.abs())));
+    }
+    let mut r = x.abs();
+    if r.is_zero() {
+        return Ok(Value::Number(Num::zero()));
+    }
+    while (&r % &y_abs).is_zero() {
+        r /= &y_abs;
+    }
+    Ok(Value::Number(Num::from_integer(r)))
+}
+
+// lcmfact(n): lcm of 1..n
+fn f_lcmfact(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("lcmfact", a, 1)?;
+    let n_val = int(a, 0)?.to_i64().ok_or("lcmfact: n too large")?;
+    if n_val < 1 {
+        return Err("lcmfact: n must be at least 1".to_string());
+    }
+    if n_val > 100_000 {
+        return Err("lcmfact: n too large".to_string());
+    }
+    let mut acc = BigInt::from(1);
+    for k in 2..=n_val {
+        let k = BigInt::from(k);
+        let g = number::gcd_int(&acc, &k);
+        acc = &acc / &g * &k;
+    }
+    Ok(Value::Number(Num::from_integer(acc)))
+}
+
+// pfact(n): product of primes <= n (primorial)
+fn f_pfact(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("pfact", a, 1)?;
+    let n_val = int(a, 0)?.to_u64().ok_or("pfact: n out of range")?;
+    if n_val > 1_000_000 {
+        return Err("pfact: n too large".to_string());
+    }
+    let mut acc = BigInt::from(1);
+    for k in 2..=n_val {
+        if is_prime(k) {
+            acc *= BigInt::from(k);
+        }
+    }
+    Ok(Value::Number(Num::from_integer(acc)))
+}
+
+// pix(n): number of primes <= n
+fn f_pix(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("pix", a, 1)?;
+    let n_val = int(a, 0)?.to_u64().ok_or("pix: n out of range")?;
+    if n_val > 10_000_000 {
+        return Err("pix: n too large".to_string());
+    }
+    let mut count: i64 = 0;
+    for k in 2..=n_val {
+        if is_prime(k) {
+            count += 1;
+        }
+    }
+    Ok(Value::Number(Num::from_integer(BigInt::from(count))))
+}
+
+// mmin(x, m): residue of x mod m with minimal absolute value
+fn f_mmin(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mmin", a, 2)?;
+    let x = int(a, 0)?;
+    let m = int(a, 1)?.abs();
+    if m.is_zero() {
+        return Ok(Value::Number(Num::from_integer(x)));
+    }
+    let mut r = normalize_mod(&x, &m);
+    let twice = &r * BigInt::from(2);
+    if twice > m {
+        r -= &m;
+    }
+    Ok(Value::Number(Num::from_integer(r)))
+}
+
+// minv(a, m): modular inverse (same math as rcinv)
+fn f_minv(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("minv", a, 2)?;
+    f_rcinv(it, a)
+}
+
+// meq(a, b, m): 1 if a ≡ b (mod m)
+fn f_meq(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("meq", a, 3)?;
+    let x = int(a, 0)?;
+    let y = int(a, 1)?;
+    let m = int(a, 2)?;
+    if m.is_zero() {
+        return Ok(Value::boolean(x == y));
+    }
+    Ok(Value::boolean(((x - y) % m).is_zero()))
+}
+
+// mne(a, b, m): 1 if a ≢ b (mod m)
+fn f_mne(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("mne", a, 3)?;
+    match f_meq(it, a)? {
+        Value::Number(v) => Ok(Value::boolean(v.is_zero())),
+        _ => unreachable!(),
+    }
+}
+
+// power(x, y [, eps]): x^y; non-integer exponents via exp(y ln x) to epsilon
+fn f_power(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("power", a, 2, 3)?;
+    let x = n(a, 0)?;
+    let y = n(a, 1)?;
+    let eps = if a.len() == 3 {
+        n(a, 2)?.abs()
+    } else {
+        it.epsilon()
+    };
+    if y.is_integer() {
+        return Ok(Value::Number(number::pow_int(x, &y.to_integer())?));
+    }
+    if x.is_zero() {
+        return Ok(Value::Number(Num::zero()));
+    }
+    if x.is_negative() {
+        return Err("power: negative base with non-integer exponent".to_string());
+    }
+    let ln_x = number::ln(x, &eps)?;
+    let result = number::exp(&(y * &ln_x), &eps)?;
+    Ok(Value::Number(number::round_to_epsilon(&result, &eps)))
+}
+
+// poly: poly(coeff_list, x) evaluates sum(c[i]*x^i);
+// poly(a_n, ..., a_0, x) evaluates with a_n the highest-order coefficient
+fn f_poly(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("poly", a, 2, 100)?;
+    if matches!(&a[0], Value::List(_)) {
+        argc("poly", a, 2)?;
+        return f_polyval(it, a);
+    }
+    let x = n(a, a.len() - 1)?.clone();
+    let mut result = n(a, 0)?.clone();
+    for item in &a[1..a.len() - 1] {
+        let c = item.as_number()?;
+        result = &(&result * &x) + c;
+    }
+    Ok(Value::Number(result))
+}
+
+// polar(r, theta [, eps]): complex value r*cos(theta) + r*sin(theta)*i
+fn f_polar(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("polar", a, 2, 3)?;
+    let r = n(a, 0)?;
+    let theta = n(a, 1)?;
+    let eps = if a.len() == 3 {
+        n(a, 2)?.abs()
+    } else {
+        it.epsilon()
+    };
+    let re = r * &number::cos(theta, &eps)?;
+    let im = r * &number::sin(theta, &eps)?;
+    if im.is_zero() {
+        Ok(Value::Number(re))
+    } else {
+        Ok(Value::Complex(re, im))
+    }
+}
+
+// ssq(...): sum of squares of all arguments (lists included)
+fn f_ssq(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("ssq", a, 1, 100)?;
+    fn add_sq(acc: &mut Num, v: &Value) -> Result<(), String> {
+        match v {
+            Value::Number(x) => {
+                *acc = &*acc + &(x * x);
+                Ok(())
+            }
+            Value::List(items) => {
+                for item in items {
+                    add_sq(acc, item)?;
+                }
+                Ok(())
+            }
+            _ => Err("ssq: arguments must be numbers or lists".to_string()),
+        }
+    }
+    let mut acc = Num::zero();
+    for v in a {
+        add_sq(&mut acc, v)?;
+    }
+    Ok(Value::Number(acc))
+}
+
+// setbit(x, n [, v]): set (v=1, default) or clear (v=0) bit n of integer x
+fn f_setbit(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("setbit", a, 2, 3)?;
+    let x = int(a, 0)?;
+    let bit = int(a, 1)?.to_u64().ok_or("setbit: bit out of range")?;
+    if bit > 1_000_000 {
+        return Err("setbit: bit out of range".to_string());
+    }
+    let v = if a.len() == 3 {
+        let v = int(a, 2)?;
+        !v.is_zero()
+    } else {
+        true
+    };
+    let mask = BigInt::from(1) << bit;
+    let result = if v { x | mask } else { x & !mask };
+    Ok(Value::Number(Num::from_integer(result)))
+}
+
+// randombit([n]): integer made of n random bits (default 1)
+fn f_randombit(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("randombit", a, 0, 1)?;
+    let bits = if a.is_empty() {
+        1
+    } else {
+        int(a, 0)?.to_u64().ok_or("randombit: n out of range")?
+    };
+    if bits > 100_000 {
+        return Err("randombit: n too large".to_string());
+    }
+    let mut acc = BigInt::from(0);
+    for _ in 0..bits {
+        acc = (acc << 1) | BigInt::from(number::randbit(&mut it.rng_seed));
+    }
+    Ok(Value::Number(Num::from_integer(acc)))
+}
+
 // Simple primality test (trial division for small primes, then test a few bases)
 fn is_prime(n: u64) -> bool {
     if n < 2 {
@@ -6193,6 +6430,21 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("frem".to_string(), f_frem as BuiltinFn);
+    builtins.insert("lcmfact".to_string(), f_lcmfact as BuiltinFn);
+    builtins.insert("pfact".to_string(), f_pfact as BuiltinFn);
+    builtins.insert("pix".to_string(), f_pix as BuiltinFn);
+    builtins.insert("mmin".to_string(), f_mmin as BuiltinFn);
+    builtins.insert("minv".to_string(), f_minv as BuiltinFn);
+    builtins.insert("meq".to_string(), f_meq as BuiltinFn);
+    builtins.insert("mne".to_string(), f_mne as BuiltinFn);
+    builtins.insert("power".to_string(), f_power as BuiltinFn);
+    builtins.insert("poly".to_string(), f_poly as BuiltinFn);
+    builtins.insert("polar".to_string(), f_polar as BuiltinFn);
+    builtins.insert("ssq".to_string(), f_ssq as BuiltinFn);
+    builtins.insert("setbit".to_string(), f_setbit as BuiltinFn);
+    builtins.insert("randombit".to_string(), f_randombit as BuiltinFn);
+    builtins.insert("popcnt".to_string(), f_popcount as BuiltinFn);
     builtins.insert("d2dm".to_string(), f_d2dm as BuiltinFn);
     builtins.insert("d2dms".to_string(), f_d2dms as BuiltinFn);
     builtins.insert("dm2d".to_string(), f_dm2d as BuiltinFn);
@@ -6658,6 +6910,33 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        ("frem", "frem(x,y)", "x with all factors of y removed"),
+        ("lcmfact", "lcmfact(n)", "lcm of 1..n"),
+        ("pfact", "pfact(n)", "product of primes <= n (primorial)"),
+        ("pix", "pix(n)", "number of primes <= n"),
+        (
+            "mmin",
+            "mmin(x,m)",
+            "residue of x mod m with minimal absolute value",
+        ),
+        ("minv", "minv(a,m)", "modular inverse of a mod m"),
+        ("meq", "meq(a,b,m)", "1 if a == b (mod m)"),
+        ("mne", "mne(a,b,m)", "1 if a != b (mod m)"),
+        ("power", "power(x,y[,eps])", "x^y computed to epsilon"),
+        (
+            "poly",
+            "poly(a_n,...,a_0,x)",
+            "polynomial evaluation (or poly(list,x))",
+        ),
+        (
+            "polar",
+            "polar(r,theta[,eps])",
+            "complex from polar coordinates",
+        ),
+        ("ssq", "ssq(x,...)", "sum of squares (lists included)"),
+        ("setbit", "setbit(x,n[,v])", "set or clear bit n of x"),
+        ("randombit", "randombit([n])", "integer of n random bits"),
+        ("popcnt", "popcnt(x)", "count set bits (alias for popcount)"),
         ("d2dm", "d2dm(x)", "degrees to [deg, min] (deg mod 360)"),
         (
             "d2dms",

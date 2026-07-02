@@ -3654,3 +3654,54 @@ fn test_r2g_and_near() {
     assert_eq!(it.eval_render("near(1, 2)").unwrap(), "1");
     assert_eq!(it.eval_render("near(1, 1.5, 0.5)").unwrap(), "0");
 }
+
+// ---- Upstream parity B5: number theory & math ----
+
+#[test]
+fn test_frem_lcmfact_pfact_pix() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("frem(60, 2)").unwrap(), "15");
+    assert_eq!(it.eval_render("frem(7, 2)").unwrap(), "7");
+    assert_eq!(it.eval_render("lcmfact(6)").unwrap(), "60");
+    assert_eq!(it.eval_render("pfact(10)").unwrap(), "210");
+    assert_eq!(it.eval_render("pix(100)").unwrap(), "25");
+}
+
+#[test]
+fn test_modular_batch() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("mmin(7, 10)").unwrap(), "-3");
+    assert_eq!(it.eval_render("mmin(3, 10)").unwrap(), "3");
+    assert_eq!(it.eval_render("minv(3, 7)").unwrap(), "5");
+    assert_eq!(it.eval_render("meq(4, 10, 3)").unwrap(), "1");
+    assert_eq!(it.eval_render("mne(4, 10, 3)").unwrap(), "0");
+}
+
+#[test]
+fn test_power_poly_polar() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("power(2, 10)").unwrap(), "1024");
+    // power(2, 0.5) == sqrt(2)
+    let p = it.eval_render("power(2, 0.5)").unwrap();
+    assert!(p.starts_with("1.4142135623730950488"));
+    // x^2 + 2x + 3 at x=2 -> 11
+    assert_eq!(it.eval_render("poly(1, 2, 3, 2)").unwrap(), "11");
+    // list form is ascending: 3 + 2x + x^2 at x=2 -> 11
+    assert_eq!(it.eval_render("poly(list(3, 2, 1), 2)").unwrap(), "11");
+    assert_eq!(it.eval_render("polar(2, 0)").unwrap(), "2");
+}
+
+#[test]
+fn test_ssq_setbit_randombit() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("ssq(1, 2, 3)").unwrap(), "14");
+    assert_eq!(it.eval_render("ssq(list(1, 2), 3)").unwrap(), "14");
+    assert_eq!(it.eval_render("setbit(0, 3)").unwrap(), "8");
+    assert_eq!(it.eval_render("setbit(15, 0, 0)").unwrap(), "14");
+    assert_eq!(it.eval_render("popcnt(7)").unwrap(), "3");
+    // randombit(8) is in [0, 256)
+    it.eval_render("seed(1)").unwrap();
+    let r = it.eval_render("randombit(8)").unwrap();
+    let v: i64 = r.parse().unwrap();
+    assert!((0..256).contains(&v));
+}
