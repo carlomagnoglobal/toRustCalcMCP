@@ -2757,6 +2757,99 @@ fn f_exsec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     f_exsecant(it, a)
 }
 
+// Vercosine: 1 + cos(x)
+fn f_vercosin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("vercosin", a, 1)?;
+    let x = n(a, 0)?;
+    let cos_x = number::cos(x, &it.cfg.epsilon)?;
+    let result = Num::from_integer(BigInt::from(1)) + &cos_x;
+    Ok(Value::Number(result))
+}
+
+// Vercosine alternative spelling
+fn f_vercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for vercosin
+    f_vercosin(it, a)
+}
+
+// Covercosine: 1 + sin(x)
+fn f_covercosin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("covercosin", a, 1)?;
+    let x = n(a, 0)?;
+    let sin_x = number::sin(x, &it.cfg.epsilon)?;
+    let result = Num::from_integer(BigInt::from(1)) + &sin_x;
+    Ok(Value::Number(result))
+}
+
+// Covercosine alternative spelling
+fn f_covercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for covercosin
+    f_covercosin(it, a)
+}
+
+// Cohaversine (half-coversine): (1 - sin(x)) / 2
+fn f_cohaversin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cohaversin", a, 1)?;
+    let x = n(a, 0)?;
+    let sin_x = number::sin(x, &it.cfg.epsilon)?;
+    let result =
+        (&Num::from_integer(BigInt::from(1)) - &sin_x) / &Num::from_integer(BigInt::from(2));
+    Ok(Value::Number(result))
+}
+
+// Hacovercosine (half-covercosine): (1 + sin(x)) / 2
+fn f_hacovercosin(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("hacovercosin", a, 1)?;
+    let x = n(a, 0)?;
+    let sin_x = number::sin(x, &it.cfg.epsilon)?;
+    let result =
+        (&Num::from_integer(BigInt::from(1)) + &sin_x) / &Num::from_integer(BigInt::from(2));
+    Ok(Value::Number(result))
+}
+
+// Excosecant: csc(x) - 1
+fn f_excosec(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("excosec", a, 1)?;
+    let x = n(a, 0)?;
+    let sin_x = number::sin(x, &it.cfg.epsilon)?;
+    if sin_x.is_zero() {
+        return Err("excosec: division by zero".to_string());
+    }
+    let csc_x = Num::from_integer(BigInt::from(1)) / &sin_x;
+    let result = csc_x - &Num::from_integer(BigInt::from(1));
+    Ok(Value::Number(result))
+}
+
+// Excosecant alternative spelling
+fn f_excsc(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for excosec
+    f_excosec(it, a)
+}
+
+// Haversine short name
+fn f_hav(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for haversin
+    f_haversin(it, a)
+}
+
+// Chord short name
+fn f_crd(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for chord
+    f_chord(it, a)
+}
+
+// Coversine short name
+fn f_cvs(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for coversin
+    f_coversin(it, a)
+}
+
+// Havercosine proper name: (1 + cos(x)) / 2
+fn f_havercos(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    // Alias for hacoversin (havercosine)
+    f_hacoversin(it, a)
+}
+
 // Phase 6.6: Cryptographic & Hashing
 
 use crc::{Crc, CRC_32_CKSUM};
@@ -5526,6 +5619,18 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("hacoversin".to_string(), f_hacoversin as BuiltinFn);
     builtins.insert("vers".to_string(), f_vers as BuiltinFn);
     builtins.insert("exsec".to_string(), f_exsec as BuiltinFn);
+    builtins.insert("vercosin".to_string(), f_vercosin as BuiltinFn);
+    builtins.insert("vercos".to_string(), f_vercos as BuiltinFn);
+    builtins.insert("covercosin".to_string(), f_covercosin as BuiltinFn);
+    builtins.insert("covercos".to_string(), f_covercos as BuiltinFn);
+    builtins.insert("cohaversin".to_string(), f_cohaversin as BuiltinFn);
+    builtins.insert("hacovercosin".to_string(), f_hacovercosin as BuiltinFn);
+    builtins.insert("excosec".to_string(), f_excosec as BuiltinFn);
+    builtins.insert("excsc".to_string(), f_excsc as BuiltinFn);
+    builtins.insert("hav".to_string(), f_hav as BuiltinFn);
+    builtins.insert("crd".to_string(), f_crd as BuiltinFn);
+    builtins.insert("cvs".to_string(), f_cvs as BuiltinFn);
+    builtins.insert("havercos".to_string(), f_havercos as BuiltinFn);
     // Cryptographic & hashing (Phase 6.6)
     builtins.insert("sha1".to_string(), f_sha1 as BuiltinFn);
     builtins.insert("md5".to_string(), f_md5 as BuiltinFn);
@@ -6026,6 +6131,30 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ),
         ("vers", "vers(x)", "versed sine: alias for versin"),
         ("exsec", "exsec(x)", "exsecant: alias for exsecant"),
+        ("vercosin", "vercosin(x)", "vercosine: 1 + cos(x)"),
+        ("vercos", "vercos(x)", "vercosine: alias for vercosin"),
+        ("covercosin", "covercosin(x)", "covercosine: 1 + sin(x)"),
+        ("covercos", "covercos(x)", "covercosine: alias for covercosin"),
+        (
+            "cohaversin",
+            "cohaversin(x)",
+            "cohaversine: (1 - sin(x)) / 2",
+        ),
+        (
+            "hacovercosin",
+            "hacovercosin(x)",
+            "hacovercosine: (1 + sin(x)) / 2",
+        ),
+        ("excosec", "excosec(x)", "excosecant: csc(x) - 1"),
+        ("excsc", "excsc(x)", "excosecant: alias for excosec"),
+        ("hav", "hav(x)", "haversine: alias for haversin"),
+        ("crd", "crd(x)", "chord: alias for chord"),
+        ("cvs", "cvs(x)", "coversine: alias for coversin"),
+        (
+            "havercos",
+            "havercos(x)",
+            "havercosine: (1 + cos(x)) / 2",
+        ),
         // Cryptographic & hashing (Phase 6.6)
         ("sha1", "sha1(str)", "SHA-1 hash (returns hex string)"),
         ("md5", "md5(str)", "MD5 hash (returns hex string)"),

@@ -55,7 +55,7 @@ A modern browser-based REPL with:
 - Interactive expression evaluation
 - Command history (↑/↓ arrow keys)
 - Syntax-highlighted output
-- Full calc functionality (all 351 builtins)
+- Full calc functionality (all 365 builtins)
 - Responsive design for mobile/desktop
 
 Try it: open http://localhost:8888 and enter `2^256` or `sin(pi()/6)`.
@@ -94,7 +94,7 @@ changes them for the session.
 - Lists: `list(1,2,3); append(x,4); slice(x,1,3)`.
 - Complex numbers: `sqrt(-1)` → `i`; arithmetic with `+`, `-`, `*`, `/`.
 - String literals: `"hello"; strlen(s); index(haystack, needle)`.
-- **351 builtins** (100% of calc's ~350) organized by category — see implementation status below.
+- **365 builtins** (100%+ of calc's ~350) organized by category — see implementation status below.
 
 ## Precision model
 
@@ -105,7 +105,7 @@ and Newton's method. `sqrt`, `sin`, `cos`, etc. converge until term < epsilon.
 `pi`/`e` are 60-digit constants. A leading `~` in real-mode output marks an
 inexact (rounded/non-terminating) rendering, as in calc.
 
-## Implementation Status — 351 of ~350 builtins (100%+ coverage) ✅ COMPLETE
+## Implementation Status — 365 of ~350 builtins (100%+ coverage) ✅ COMPLETE
 
 calc upstream has ~350 builtins. This port implements **291 core functions** organized by category:
 

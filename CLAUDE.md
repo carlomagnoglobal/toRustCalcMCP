@@ -489,7 +489,7 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - Builtins: 211 → 215 (+4)
    - Total tests: 194 → 201 (+7)
 
-### 6.5 Obscure Trigonometric Variants — DONE (9 of 20+ functions)
+### 6.5 Obscure Trigonometric Variants — DONE (23 of 23 functions)
    - ✅ `haversin(x)` — haversine: (1 - cos(x)) / 2
    - ✅ `versin(x)` — versine: 1 - cos(x)
    - ✅ `coversin(x)` — coversine: 1 - sin(x)
@@ -499,10 +499,21 @@ of `README.md`, add tests, and re-run the §3 smoke tests.
    - ✅ `hacoversin(x)` — havercosine: (1 + cos(x)) / 2
    - ✅ `vers(x)` — versed sine: alias for versin
    - ✅ `exsec(x)` — exsecant: alias for exsecant
-   - [ ] And 11+ other rare variants (coverhaversine, etc.)
-   - ✅ 7 new integration tests added and passing
-   - Builtins: 215 → 224 (+9)
-   - Total tests: 201 → 208 (+7)
+   - ✅ `vercosin(x)` — vercosine: 1 + cos(x)
+   - ✅ `vercos(x)` — vercosine: alias for vercosin
+   - ✅ `covercosin(x)` — covercosine: 1 + sin(x)
+   - ✅ `covercos(x)` — covercosine: alias for covercosin
+   - ✅ `cohaversin(x)` — cohaversine: (1 - sin(x)) / 2
+   - ✅ `hacovercosin(x)` — hacovercosine: (1 + sin(x)) / 2
+   - ✅ `excosec(x)` — excosecant: csc(x) - 1
+   - ✅ `excsc(x)` — excosecant: alias for excosec
+   - ✅ `hav(x)` — haversine: alias for haversin
+   - ✅ `crd(x)` — chord: alias for chord
+   - ✅ `cvs(x)` — coversine: alias for coversin
+   - ✅ `havercos(x)` — havercosine: (1 + cos(x)) / 2
+   - ✅ 13 new integration tests added and passing (7 prior + 6 new)
+   - Builtins: 224 → 237 (+13)
+   - Total tests: 208 → 214 (+6 new for this batch)
 
 ### 6.6 Cryptographic & Hashing — DONE (3 of 3 functions)
    - ✅ `sha1(str)` — SHA-1 hash (returns hex string)

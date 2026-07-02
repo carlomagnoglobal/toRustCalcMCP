@@ -1952,6 +1952,60 @@ fn test_vers_alias() {
     assert_eq!(result1.trim(), result2.trim());
 }
 
+#[test]
+fn test_vercosin_zero() {
+    let mut it = Interp::new();
+    // vercosin(0) = 1 + cos(0) = 1 + 1 = 2
+    let result = it.eval_render("vercosin(0)").unwrap();
+    assert_eq!(result.trim().trim_start_matches('~'), "2");
+}
+
+#[test]
+fn test_covercosin_zero() {
+    let mut it = Interp::new();
+    // covercosin(0) = 1 + sin(0) = 1 + 0 = 1
+    let result = it.eval_render("covercosin(0)").unwrap();
+    assert_eq!(result.trim().trim_start_matches('~'), "1");
+}
+
+#[test]
+fn test_cohaversin_zero() {
+    let mut it = Interp::new();
+    // cohaversin(0) = (1 - sin(0)) / 2 = 1/2
+    let result = it.eval_render("cohaversin(0)").unwrap();
+    let val: f64 = result.trim().trim_start_matches('~').parse().unwrap_or(0.0);
+    assert!((val - 0.5).abs() < 1e-10);
+}
+
+#[test]
+fn test_hacovercosin_zero() {
+    let mut it = Interp::new();
+    // hacovercosin(0) = (1 + sin(0)) / 2 = 1/2
+    let result = it.eval_render("hacovercosin(0)").unwrap();
+    let val: f64 = result.trim().trim_start_matches('~').parse().unwrap_or(0.0);
+    assert!((val - 0.5).abs() < 1e-10);
+}
+
+#[test]
+fn test_excosec_alias() {
+    let mut it = Interp::new();
+    // excsc should be same as excosec
+    it.eval_render("x = 1").ok();
+    let result1 = it.eval_render("excosec(x)").unwrap();
+    let result2 = it.eval_render("excsc(x)").unwrap();
+    assert_eq!(result1.trim(), result2.trim());
+}
+
+#[test]
+fn test_hav_alias() {
+    let mut it = Interp::new();
+    // hav should be same as haversin
+    it.eval_render("x = 1").ok();
+    let result1 = it.eval_render("haversin(x)").unwrap();
+    let result2 = it.eval_render("hav(x)").unwrap();
+    assert_eq!(result1.trim(), result2.trim());
+}
+
 // Phase 6.6: Cryptographic & Hashing
 
 #[test]
