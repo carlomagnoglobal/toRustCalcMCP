@@ -3705,3 +3705,63 @@ fn test_ssq_setbit_randombit() {
     let v: i64 = r.parse().unwrap();
     assert!((0..256).contains(&v));
 }
+
+// ---- Upstream parity B6: list/struct ops ----
+
+#[test]
+fn test_head_tail_segment() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("head(list(1,2,3,4), 2)").unwrap(), "[1, 2]");
+    assert_eq!(it.eval_render("tail(list(1,2,3,4), 2)").unwrap(), "[3, 4]");
+    assert_eq!(
+        it.eval_render("segment(list(1,2,3,4,5), 1, 3)").unwrap(),
+        "[2, 3, 4]"
+    );
+    assert_eq!(it.eval_render("size(makelist(3))").unwrap(), "3");
+}
+
+#[test]
+fn test_search_rsearch() {
+    let mut it = Interp::new();
+    assert_eq!(it.eval_render("search(list(5,6,7), 6)").unwrap(), "1");
+    assert_eq!(it.eval_render("rsearch(list(1,2,1), 1)").unwrap(), "2");
+    assert_eq!(it.eval_render("search(list(1,2,1), 1, 1)").unwrap(), "2");
+    // not found -> null (renders empty)
+    assert_eq!(it.eval_render("isnull(search(list(1), 9))").unwrap(), "1");
+}
+
+#[test]
+fn test_select_forall_modify() {
+    let mut it = Interp::new();
+    it.eval_render("define big(x) = x > 2").unwrap();
+    assert_eq!(
+        it.eval_render("select(list(1,2,3,4), big)").unwrap(),
+        "[3, 4]"
+    );
+    it.eval_render("define dbl(x) = x * 2").unwrap();
+    assert_eq!(
+        it.eval_render("modify(list(1,2,3), dbl)").unwrap(),
+        "[2, 4, 6]"
+    );
+    assert_eq!(
+        it.eval_render("isnull(forall(list(1,2), dbl))").unwrap(),
+        "1"
+    );
+}
+
+#[test]
+fn test_copy_cmp_swap_test_null() {
+    let mut it = Interp::new();
+    assert_eq!(
+        it.eval_render("copy(list(9,9), list(1,2,3))").unwrap(),
+        "[9, 9, 3]"
+    );
+    assert_eq!(it.eval_render("cmp(2, 3)").unwrap(), "-1");
+    assert_eq!(it.eval_render("cmp(\"b\", \"a\")").unwrap(), "1");
+    assert_eq!(it.eval_render("cmp(list(1,2), list(1,2))").unwrap(), "0");
+    assert_eq!(it.eval_render("swap(1, 2)").unwrap(), "[2, 1]");
+    assert_eq!(it.eval_render("test(5)").unwrap(), "1");
+    assert_eq!(it.eval_render("test(0)").unwrap(), "0");
+    assert_eq!(it.eval_render("test(\"\")").unwrap(), "0");
+    assert_eq!(it.eval_render("isnull(null())").unwrap(), "1");
+}

@@ -4937,6 +4937,218 @@ fn f_product(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     Ok(Value::Number(total))
 }
 
+// ---- List/struct ops (upstream-parity batch B6) ----
+
+fn list_arg<'a>(name: &str, a: &'a [Value], i: usize) -> Result<&'a [Value], String> {
+    match &a[i] {
+        Value::List(items) => Ok(items.as_slice()),
+        _ => Err(format!("{}: argument {} must be a list", name, i + 1)),
+    }
+}
+
+// head(list, n): first n elements
+fn f_head(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("head", a, 2)?;
+    let items = list_arg("head", a, 0)?;
+    let count = int(a, 1)?.to_usize().ok_or("head: n out of range")?;
+    Ok(Value::List(items.iter().take(count).cloned().collect()))
+}
+
+// tail(list, n): last n elements
+fn f_tail(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("tail", a, 2)?;
+    let items = list_arg("tail", a, 0)?;
+    let count = int(a, 1)?.to_usize().ok_or("tail: n out of range")?;
+    let skip = items.len().saturating_sub(count);
+    Ok(Value::List(items.iter().skip(skip).cloned().collect()))
+}
+
+// segment(list, start [, end]): elements start..end inclusive (0-based)
+fn f_segment(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("segment", a, 2, 3)?;
+    let items = list_arg("segment", a, 0)?;
+    let start = int(a, 1)?.to_usize().ok_or("segment: start out of range")?;
+    let end = if a.len() == 3 {
+        int(a, 2)?.to_usize().ok_or("segment: end out of range")?
+    } else {
+        items.len().saturating_sub(1)
+    };
+    if start >= items.len() || end < start {
+        return Ok(Value::List(Vec::new()));
+    }
+    let end = end.min(items.len() - 1);
+    Ok(Value::List(items[start..=end].to_vec()))
+}
+
+// makelist(n): list of n nulls
+fn f_makelist(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("makelist", a, 1)?;
+    let count = int(a, 0)?.to_usize().ok_or("makelist: n out of range")?;
+    if count > 10_000_000 {
+        return Err("makelist: n too large".to_string());
+    }
+    Ok(Value::List(vec![Value::Null; count]))
+}
+
+// select(list, f): elements for which f(element) is nonzero
+fn f_select(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("select", a, 2)?;
+    let items = list_arg("select", a, 0)?.to_vec();
+    let func = a[1].clone();
+    let mut out = Vec::new();
+    for item in items {
+        let keep = match it.call_value(&func, &[item.clone()])? {
+            Value::Number(v) => !v.is_zero(),
+            Value::Null => false,
+            _ => true,
+        };
+        if keep {
+            out.push(item);
+        }
+    }
+    Ok(Value::List(out))
+}
+
+// forall(list, f): call f on every element (for side effects); returns null
+fn f_forall(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("forall", a, 2)?;
+    let items = list_arg("forall", a, 0)?.to_vec();
+    let func = a[1].clone();
+    for item in items {
+        it.call_value(&func, &[item])?;
+    }
+    Ok(Value::Null)
+}
+
+// modify(list, f): list of f(element) (upstream modifies in place; we return the new list)
+fn f_modify(it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("modify", a, 2)?;
+    let items = list_arg("modify", a, 0)?.to_vec();
+    let func = a[1].clone();
+    let mut out = Vec::with_capacity(items.len());
+    for item in items {
+        out.push(it.call_value(&func, &[item])?);
+    }
+    Ok(Value::List(out))
+}
+
+// search(list, value [, start]): index of first match at/after start, or null
+fn f_search(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("search", a, 2, 3)?;
+    let items = list_arg("search", a, 0)?;
+    let start = if a.len() == 3 {
+        int(a, 2)?.to_usize().ok_or("search: start out of range")?
+    } else {
+        0
+    };
+    for (i, item) in items.iter().enumerate().skip(start) {
+        if item == &a[1] {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(i as i64))));
+        }
+    }
+    Ok(Value::Null)
+}
+
+// rsearch(list, value [, start]): index of last match at/before start, or null
+fn f_rsearch(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc_range("rsearch", a, 2, 3)?;
+    let items = list_arg("rsearch", a, 0)?;
+    if items.is_empty() {
+        return Ok(Value::Null);
+    }
+    let last = if a.len() == 3 {
+        int(a, 2)?.to_usize().ok_or("rsearch: start out of range")?
+    } else {
+        items.len() - 1
+    };
+    for i in (0..=last.min(items.len() - 1)).rev() {
+        if items.get(i) == Some(&a[1]) {
+            return Ok(Value::Number(Num::from_integer(BigInt::from(i as i64))));
+        }
+    }
+    Ok(Value::Null)
+}
+
+// copy(src, dst): dst with the leading elements replaced by src's elements
+// (upstream copies via out-parameter; values are immutable here, so we return it)
+fn f_copy(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("copy", a, 2)?;
+    match (&a[0], &a[1]) {
+        (Value::List(src), Value::List(dst)) => {
+            let mut out = dst.clone();
+            for (i, v) in src.iter().enumerate() {
+                if i < out.len() {
+                    out[i] = v.clone();
+                } else {
+                    out.push(v.clone());
+                }
+            }
+            Ok(Value::List(out))
+        }
+        (src, _) => Ok(src.clone()),
+    }
+}
+
+// cmp(a, b): -1/0/1 for numbers and strings; lists compare lexicographically
+fn f_cmp(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("cmp", a, 2)?;
+    let ord = cmp_values(&a[0], &a[1])?;
+    Ok(Value::Number(Num::from_integer(BigInt::from(ord))))
+}
+
+fn cmp_values(x: &Value, y: &Value) -> Result<i64, String> {
+    match (x, y) {
+        (Value::Number(p), Value::Number(q)) => Ok(match p.cmp(q) {
+            std::cmp::Ordering::Less => -1,
+            std::cmp::Ordering::Equal => 0,
+            std::cmp::Ordering::Greater => 1,
+        }),
+        (Value::Str(p), Value::Str(q)) => Ok(p.cmp(q) as i64),
+        (Value::Null, Value::Null) => Ok(0),
+        (Value::List(p), Value::List(q)) => {
+            for (pi, qi) in p.iter().zip(q.iter()) {
+                let ord = cmp_values(pi, qi)?;
+                if ord != 0 {
+                    return Ok(ord);
+                }
+            }
+            Ok(match p.len().cmp(&q.len()) {
+                std::cmp::Ordering::Less => -1,
+                std::cmp::Ordering::Equal => 0,
+                std::cmp::Ordering::Greater => 1,
+            })
+        }
+        _ => Err("cmp: values are not comparable".to_string()),
+    }
+}
+
+// swap(a, b): [b, a] (upstream swaps two lvalues; builtins here receive
+// values, so the swapped pair is returned as a list)
+fn f_swap(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("swap", a, 2)?;
+    Ok(Value::List(vec![a[1].clone(), a[0].clone()]))
+}
+
+// test(x): 1 if x is "true" (nonzero / nonempty), else 0
+fn f_test(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("test", a, 1)?;
+    Ok(Value::boolean(match &a[0] {
+        Value::Number(v) => !v.is_zero(),
+        Value::Complex(r, i) => !(r.is_zero() && i.is_zero()),
+        Value::Str(s) => !s.is_empty(),
+        Value::List(l) => !l.is_empty(),
+        Value::Hash(h) => !h.is_empty(),
+        Value::Function(_, _) => true,
+        Value::Null => false,
+    }))
+}
+
+// null(): the null value
+fn f_null(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
+    argc("null", a, 0)?;
+    Ok(Value::Null)
+}
+
 // Find index of value in list
 fn f_find(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("find", a, 2)?;
@@ -6430,6 +6642,20 @@ pub fn register(builtins: &mut std::collections::HashMap<String, crate::eval::Bu
     builtins.insert("isprime".to_string(), f_isprime as BuiltinFn);
     builtins.insert("nextprime".to_string(), f_nextprime as BuiltinFn);
     builtins.insert("prevprime".to_string(), f_prevprime as BuiltinFn);
+    builtins.insert("head".to_string(), f_head as BuiltinFn);
+    builtins.insert("tail".to_string(), f_tail as BuiltinFn);
+    builtins.insert("segment".to_string(), f_segment as BuiltinFn);
+    builtins.insert("makelist".to_string(), f_makelist as BuiltinFn);
+    builtins.insert("select".to_string(), f_select as BuiltinFn);
+    builtins.insert("forall".to_string(), f_forall as BuiltinFn);
+    builtins.insert("modify".to_string(), f_modify as BuiltinFn);
+    builtins.insert("search".to_string(), f_search as BuiltinFn);
+    builtins.insert("rsearch".to_string(), f_rsearch as BuiltinFn);
+    builtins.insert("copy".to_string(), f_copy as BuiltinFn);
+    builtins.insert("cmp".to_string(), f_cmp as BuiltinFn);
+    builtins.insert("swap".to_string(), f_swap as BuiltinFn);
+    builtins.insert("test".to_string(), f_test as BuiltinFn);
+    builtins.insert("null".to_string(), f_null as BuiltinFn);
     builtins.insert("frem".to_string(), f_frem as BuiltinFn);
     builtins.insert("lcmfact".to_string(), f_lcmfact as BuiltinFn);
     builtins.insert("pfact".to_string(), f_pfact as BuiltinFn);
@@ -6910,6 +7136,40 @@ pub fn catalog() -> &'static [(&'static str, &'static str, &'static str)] {
         ("isprime", "isprime(n)", "is n prime? (1 or 0)"),
         ("nextprime", "nextprime(n)", "next prime after n"),
         ("prevprime", "prevprime(n)", "previous prime before n"),
+        ("head", "head(list,n)", "first n elements"),
+        ("tail", "tail(list,n)", "last n elements"),
+        (
+            "segment",
+            "segment(list,start[,end])",
+            "elements start..end inclusive (0-based)",
+        ),
+        ("makelist", "makelist(n)", "list of n nulls"),
+        (
+            "select",
+            "select(list,f)",
+            "elements where f(element) is nonzero",
+        ),
+        ("forall", "forall(list,f)", "call f on every element"),
+        ("modify", "modify(list,f)", "list of f(element)"),
+        (
+            "search",
+            "search(list,value[,start])",
+            "index of first match, or null",
+        ),
+        (
+            "rsearch",
+            "rsearch(list,value[,start])",
+            "index of last match, or null",
+        ),
+        (
+            "copy",
+            "copy(src,dst)",
+            "dst with leading elements from src",
+        ),
+        ("cmp", "cmp(a,b)", "compare values (-1/0/1)"),
+        ("swap", "swap(a,b)", "swapped pair [b, a]"),
+        ("test", "test(x)", "1 if x is true (nonzero/nonempty)"),
+        ("null", "null()", "the null value"),
         ("frem", "frem(x,y)", "x with all factors of y removed"),
         ("lcmfact", "lcmfact(n)", "lcm of 1..n"),
         ("pfact", "pfact(n)", "product of primes <= n (primorial)"),
