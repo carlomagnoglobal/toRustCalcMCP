@@ -1,6 +1,6 @@
 [package]
 name = "torustcalcmcp"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 description = "A Rust port of calc (lcn2/calc): exact-rational calculator usable as the `rcalc` CLI and as an MCP (JSON-RPC 2.0) server."
 license = "LGPL-2.1"
