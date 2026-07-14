@@ -1,6 +1,6 @@
 # Complete Function Reference
 
-rcalc includes **351 builtin functions** covering:
+rcalc includes **483 builtin functions** (487 catalog entries, since a few names like `min`/`max`/`round`/`count` have multiple documented signatures) covering:
 
 - **Arithmetic & Math** — 60+ functions
 - **Strings** — 17 functions  
@@ -36,17 +36,17 @@ See the help topics for detailed information:
 
 ## All Functions
 
-For the complete list of all 351 functions with signatures and descriptions, run:
+For the complete generated list of all 487 catalog entries (name, signature,
+description), grouped by category, see the
+**[Full Builtin Reference](../mcp_functions/README.md)**.
+
+You can also search interactively:
 
 ```bash
 rcalc
-> help
+> help sin           # Find all sine-related functions
+> help                # Full topic list + all builtins
 ```
-
-This will display:
-- Topic list
-- All 351 builtin functions
-- Search guide
 
 ## Examples by Function Type
 

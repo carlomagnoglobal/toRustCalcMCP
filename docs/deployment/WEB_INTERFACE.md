@@ -208,4 +208,4 @@ ff
 - [GETTING_STARTED.md](GETTING_STARTED.md) — quick start guide
 - [USAGE.md](USAGE.md) — comprehensive usage guide
 - [QUICKSTART.md](QUICKSTART.md) — quick reference
-- [README.md](README.md) — project overview
+- [README.md](../../README.md) — project overview

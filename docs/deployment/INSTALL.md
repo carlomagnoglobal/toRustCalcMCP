@@ -128,4 +128,4 @@ If this succeeds, the server is working. The issue may be in Claude Desktop's in
 
 ## For developers
 
-See [README.md](README.md) for language syntax, [GETTING_STARTED.md](GETTING_STARTED.md) for examples, and [docs/MCP_TOOL_SCHEMA.json](docs/MCP_TOOL_SCHEMA.json) for the authoritative MCP tool schema.
+See [README.md](../../README.md) for language syntax, [GETTING_STARTED.md](GETTING_STARTED.md) for examples, and [docs/MCP_TOOL_SCHEMA.json](../MCP_TOOL_SCHEMA.json) for the authoritative MCP tool schema.

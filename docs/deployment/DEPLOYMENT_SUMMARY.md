@@ -250,14 +250,14 @@ git push origin v0.1.1
 
 **For Users:**
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Step-by-step deployment guide
-- [MCP_SUBMISSION_GUIDE.md](MCP_SUBMISSION_GUIDE.md) - MCP registry configuration
-- [README.md](README.md) - Full project documentation
+- [MCP_SUBMISSION_GUIDE.md](../registry/MCP_SUBMISSION_GUIDE.md) - MCP registry configuration
+- [README.md](../../README.md) - Full project documentation
 - [QUICKSTART.md](QUICKSTART.md) - Get started in 5 minutes
 
 **For Developers:**
-- [CLAUDE.md](CLAUDE.md) - Architecture and conventions
-- [Dockerfile](Dockerfile) - Container build specification
-- [.github/workflows/release.yml](.github/workflows/release.yml) - CI/CD pipeline
+- [CLAUDE.md](../../CLAUDE.md) - Architecture and conventions
+- [Dockerfile](../../Dockerfile) - Container build specification
+- [.github/workflows/release.yml](../../.github/workflows/release.yml) - CI/CD pipeline
 
 ---
 

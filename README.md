@@ -11,8 +11,8 @@ arbitrary-precision calculator) that works as:
 (`num-rational` over `num-bigint`), which is the same model calc uses natively —
 so `1/3 * 3` is exactly `1`, and `2^256` is computed to the last digit.
 
-**👉 [Getting Started in 2 minutes](GETTING_STARTED.md) — new to rcalc? Start here.**
-**👉 [Install as Claude Desktop MCP](INSTALL.md) — integrate with Claude Desktop.**
+**👉 [Getting Started in 2 minutes](docs/deployment/GETTING_STARTED.md) — new to rcalc? Start here.**
+**👉 [Install as Claude Desktop MCP](docs/deployment/INSTALL.md) — integrate with Claude Desktop.**
 
 ## Build
 

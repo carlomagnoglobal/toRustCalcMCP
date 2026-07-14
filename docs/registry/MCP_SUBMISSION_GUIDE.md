@@ -236,9 +236,9 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"calc_eval"
 
 ## Support & Documentation
 
-- **Installation Help:** See [DEPLOYMENT.md](DEPLOYMENT.md)
-- **Quick Start:** See [QUICKSTART.md](QUICKSTART.md)
-- **Full Usage:** See [README.md](README.md)
+- **Installation Help:** See [DEPLOYMENT.md](../deployment/DEPLOYMENT.md)
+- **Quick Start:** See [QUICKSTART.md](../deployment/QUICKSTART.md)
+- **Full Usage:** See [README.md](../../README.md)
 - **Issue Tracker:** https://github.com/carlomagnoglobal/toRustCalcMCP/issues
 - **Discussions:** https://github.com/carlomagnoglobal/toRustCalcMCP/discussions
 

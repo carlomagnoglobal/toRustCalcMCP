@@ -32,6 +32,7 @@
 - [Math Functions](functions-math.md)
 - [String Functions](functions-string.md)
 - [List Functions](functions-list.md)
+- [Full Builtin Reference (487 entries)](../mcp_functions/README.md)
 
 ## Examples
 - [Examples](examples.md)

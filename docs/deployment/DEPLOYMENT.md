@@ -197,4 +197,4 @@ docker run -i --rm ghcr.io/carlomagnoglobal/toRustCalcMCP:latest
 3. Add to your Claude configuration
 4. Test with: `echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | toRustCalcMCP --mcp`
 
-For more information, see [README.md](README.md) and [QUICKSTART.md](QUICKSTART.md).
+For more information, see [README.md](../../README.md) and [QUICKSTART.md](QUICKSTART.md).
