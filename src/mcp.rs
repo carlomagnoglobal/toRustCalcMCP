@@ -40,6 +40,15 @@ pub fn tools_list_result() -> J {
                     },
                     "required": ["expression"],
                     "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "expression": { "type": "string", "description": "The expression that was evaluated" },
+                        "result":     { "type": "string", "description": "Rendered result" },
+                        "mode":       { "type": "string", "description": "Rendering mode used" }
+                    },
+                    "required": ["expression", "result", "mode"]
                 }
             },
             {
@@ -56,10 +65,23 @@ pub fn tools_list_result() -> J {
                         },
                         "mode":    { "type": "string", "enum": ["real", "frac", "int"] },
                         "digits":  { "type": "integer", "minimum": 1, "maximum": 10000 },
-                        "epsilon": { "type": "string" }
+                        "epsilon": { "type": "string" },
+                        "ibase":   { "type": "integer", "minimum": 2, "maximum": 36, "description": "Input base (2-36)" },
+                        "obase":   { "type": "integer", "minimum": 2, "maximum": 36, "description": "Output base (2-36)" }
                     },
                     "required": ["action"],
                     "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "mode":    { "type": "string" },
+                        "digits":  { "type": "integer" },
+                        "epsilon": { "type": "string" },
+                        "ibase":   { "type": "integer" },
+                        "obase":   { "type": "integer" }
+                    },
+                    "required": ["mode", "digits", "epsilon", "ibase", "obase"]
                 }
             },
             {
@@ -75,6 +97,25 @@ pub fn tools_list_result() -> J {
                         }
                     },
                     "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "functions": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name":        { "type": "string" },
+                                    "signature":   { "type": "string" },
+                                    "description": { "type": "string" }
+                                },
+                                "required": ["name", "signature", "description"]
+                            }
+                        },
+                        "count": { "type": "integer" }
+                    },
+                    "required": ["functions", "count"]
                 }
             },
             {
@@ -92,6 +133,19 @@ pub fn tools_list_result() -> J {
                     },
                     "required": ["action"],
                     "additionalProperties": false
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action":    { "type": "string", "description": "The action performed" },
+                        "variables": { "type": "integer" },
+                        "scopes":    { "type": "integer" },
+                        "mode":      { "type": "string" },
+                        "ibase":     { "type": "integer" },
+                        "obase":     { "type": "integer" },
+                        "epsilon":   { "type": "string" }
+                    },
+                    "required": ["action"]
                 }
             }
         ]
@@ -140,6 +194,7 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 let _ = it.cfg.set_epsilon_from_str(e);
             }
             let res = it.eval_render(expr);
+            let mode_used = it.cfg.mode.as_str();
             it.cfg = saved;
             match res {
                 Ok(text) => {
@@ -147,6 +202,11 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                         "content": [
                             { "type": "text", "text": text }
                         ],
+                        "structuredContent": {
+                            "expression": expr,
+                            "result": text,
+                            "mode": mode_used
+                        },
                         "isError": false
                     })
                 }
@@ -189,11 +249,12 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                     }
                 }
             }
+            let epsilon = crate::number::to_decimal_string(&it.cfg.epsilon, 60);
             let text = format!(
                 "mode={} digits={} epsilon={} ibase={} obase={}",
                 it.cfg.mode.as_str(),
                 it.cfg.display,
-                crate::number::to_decimal_string(&it.cfg.epsilon, 60),
+                epsilon,
                 it.cfg.ibase,
                 it.cfg.obase
             );
@@ -201,6 +262,13 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 "content": [
                     { "type": "text", "text": text }
                 ],
+                "structuredContent": {
+                    "mode": it.cfg.mode.as_str(),
+                    "digits": it.cfg.display,
+                    "epsilon": epsilon,
+                    "ibase": it.cfg.ibase,
+                    "obase": it.cfg.obase
+                },
                 "isError": false
             })
         }
@@ -233,6 +301,10 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 "content": [
                     { "type": "text", "text": text }
                 ],
+                "structuredContent": {
+                    "functions": functions,
+                    "count": lines.len()
+                },
                 "isError": false
             })
         }
@@ -243,8 +315,13 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                 .unwrap_or("state");
             if action == "reset" {
                 *it = Interp::new();
-                json!({ "content": [{ "type": "text", "text": "session reset" }], "isError": false })
+                json!({
+                    "content": [{ "type": "text", "text": "session reset" }],
+                    "structuredContent": { "action": "reset" },
+                    "isError": false
+                })
             } else {
+                let epsilon = crate::number::to_decimal_string(&it.cfg.epsilon, 60);
                 let text = format!(
                     "variables={} scopes={} mode={} ibase={} obase={} epsilon={}",
                     it.global_vars.len(),
@@ -252,12 +329,21 @@ fn handle_tool_call(it: &mut Interp, params: &J) -> J {
                     it.cfg.mode.as_str(),
                     it.cfg.ibase,
                     it.cfg.obase,
-                    crate::number::to_decimal_string(&it.cfg.epsilon, 60)
+                    epsilon
                 );
                 json!({
                     "content": [
                         { "type": "text", "text": text }
                     ],
+                    "structuredContent": {
+                        "action": "state",
+                        "variables": it.global_vars.len(),
+                        "scopes": it.scope_stack.len(),
+                        "mode": it.cfg.mode.as_str(),
+                        "ibase": it.cfg.ibase,
+                        "obase": it.cfg.obase,
+                        "epsilon": epsilon
+                    },
                     "isError": false
                 })
             }

@@ -6452,7 +6452,7 @@ fn f_hmean(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
 // Get version string
 fn f_version(_it: &mut Interp, a: &[Value]) -> Result<Value, String> {
     argc("version", a, 0)?;
-    Ok(Value::Str("toRustCalcMCP 1.0.0".to_string()))
+    Ok(Value::Str(format!("toRustCalcMCP {}", crate::RCALC_VERSION)))
 }
 
 // Get platform/OS name

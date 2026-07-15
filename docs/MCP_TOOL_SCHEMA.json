@@ -3,7 +3,7 @@
   "serverInfo": {
     "name": "toRustCalcMCP",
     "title": "calc \u2014 arbitrary-precision calculator",
-    "version": "0.1.0"
+    "version": "0.3.0"
   },
   "capabilities": {
     "tools": {
@@ -47,6 +47,28 @@
           "type": "object"
         },
         "name": "calc_eval",
+        "outputSchema": {
+          "properties": {
+            "expression": {
+              "description": "The expression that was evaluated",
+              "type": "string"
+            },
+            "mode": {
+              "description": "Rendering mode used",
+              "type": "string"
+            },
+            "result": {
+              "description": "Rendered result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression",
+            "result",
+            "mode"
+          ],
+          "type": "object"
+        },
         "title": "Evaluate calc expression"
       },
       {
@@ -70,6 +92,12 @@
             "epsilon": {
               "type": "string"
             },
+            "ibase": {
+              "description": "Input base (2-36)",
+              "maximum": 36,
+              "minimum": 2,
+              "type": "integer"
+            },
             "mode": {
               "enum": [
                 "real",
@@ -77,6 +105,12 @@
                 "int"
               ],
               "type": "string"
+            },
+            "obase": {
+              "description": "Output base (2-36)",
+              "maximum": 36,
+              "minimum": 2,
+              "type": "integer"
             }
           },
           "required": [
@@ -85,6 +119,33 @@
           "type": "object"
         },
         "name": "calc_config",
+        "outputSchema": {
+          "properties": {
+            "digits": {
+              "type": "integer"
+            },
+            "epsilon": {
+              "type": "string"
+            },
+            "ibase": {
+              "type": "integer"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "obase": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "mode",
+            "digits",
+            "epsilon",
+            "ibase",
+            "obase"
+          ],
+          "type": "object"
+        },
         "title": "Get or set session configuration"
       },
       {
@@ -100,6 +161,40 @@
           "type": "object"
         },
         "name": "calc_functions",
+        "outputSchema": {
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "functions": {
+              "items": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "signature": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "signature",
+                  "description"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "functions",
+            "count"
+          ],
+          "type": "object"
+        },
         "title": "List builtin functions"
       },
       {
@@ -122,6 +217,36 @@
           "type": "object"
         },
         "name": "calc_session",
+        "outputSchema": {
+          "properties": {
+            "action": {
+              "description": "The action performed",
+              "type": "string"
+            },
+            "epsilon": {
+              "type": "string"
+            },
+            "ibase": {
+              "type": "integer"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "obase": {
+              "type": "integer"
+            },
+            "scopes": {
+              "type": "integer"
+            },
+            "variables": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "type": "object"
+        },
         "title": "Session control"
       }
     ]

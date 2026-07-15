@@ -1,4 +1,4 @@
-pub const RCALC_VERSION: &str = "0.1.0";
+pub const RCALC_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub mod builtins;
 pub mod cli;

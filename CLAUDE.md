@@ -130,7 +130,7 @@ live in `src/` and compile cleanly.
 | `eval.rs` | **DONE.** Tree-walk `Interp` with scoped environments for function calls. `eval`, `eval_all`, `eval_render`. Handles user-defined functions, if/while/for, print. |
 | `builtins.rs` | **DONE.** 79 builtins: arithmetic, rounding, number theory, transcendentals (sin/cos/tan/asin/acos/atan/atan2/sinh/cosh/tanh/asinh/acosh/atanh/cas/cis), special functions (erf/erfc/hypot/gd/agd/j0/j1), Catalan, bitwise/shifts/bits, digits, list ops, complex ops, base conversion. All registered + catalog. |
 | `cli.rs` | **DONE.** Arg parsing: `-p` pipe, `-q` quiet, `-f` file, `-m` mode, `-v` version. REPL with `>` prompt. Handles interactive, pipe, file, and expression modes. |
-| `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (4 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`, `calc_session`. Structured JSON output alongside text. |
+| `mcp.rs` | **DONE.** JSON-RPC 2.0 over stdio. `initialize`, `tools/list` (4 tools), `tools/call` dispatch. `calc_eval`, `calc_config`, `calc_functions`, `calc_session`. Success responses carry `structuredContent` alongside text; each tool declares an `outputSchema`; `calc_config` accepts `ibase`/`obase`. Tests in `tests/mcp.rs`. |
 | `main.rs` | **DONE.** Entry point. Dispatches `--mcp` → server; else CLI (also CLI when argv0 ends in `rcalc`). |
 | `bin_rcalc.rs` | **DONE.** Thin `rcalc` binary that always runs CLI. |
 | `lib.rs` | **DONE.** Module declarations. |
@@ -238,11 +238,11 @@ top-down; they're ordered by value-to-effort and by what unblocks the most.
    - ✅ New `calc_session` tool: reset session or show session state
    - ✅ Session reset: `calc_session` with action "reset" clears all variables and config
    - ✅ Session state: `calc_session` with action "state" returns session info as JSON
-   - ✅ Structured JSON output: all tools now return both text and application/json content types
-   - ✅ calc_eval: returns text result + JSON with expression, result, and mode
-   - ✅ calc_config: returns text summary + JSON with all config fields (including ibase/obase)
-   - ✅ calc_functions: returns text list + JSON with structured function catalog
-   - ✅ calc_session: returns text summary + JSON with session state
+   - ✅ Structured output: all tools return `structuredContent` (MCP 2025-06-18) alongside the text block; each tool declares an `outputSchema` in `tools/list`
+   - ✅ calc_eval: text result + structuredContent {expression, result, mode}
+   - ✅ calc_config: text summary + structuredContent with all config fields (including ibase/obase, which are declared in the inputSchema)
+   - ✅ calc_functions: text list + structuredContent {functions:[{name,signature,description}], count}
+   - ✅ calc_session: text summary + structuredContent with session state
    - ✅ Updated tools_list_result to include new calc_session tool
    - ✅ Schema regenerated: MCP_TOOL_SCHEMA.json updated with 4 tools
    - Total tools: 4 (calc_eval, calc_config, calc_functions, calc_session)

@@ -45,12 +45,16 @@ Evaluate an arbitrary-precision expression:
                         "mode":"real",
                         "epsilon":"1e-20"}}}
 
-Response includes both text and JSON output:
+Response includes a text block plus machine-readable structuredContent:
 
-  {"jsonrpc":"2.0","id":3,"result":{"content":[
-      {"type":"text","text":"<numeric result>"},
-      {"type":"application/json","json":{"expression":"...","result":"..."}}
-    ],"isError":false}}
+  {"jsonrpc":"2.0","id":3,"result":{
+    "content":[{"type":"text","text":"<numeric result>"}],
+    "structuredContent":{"expression":"2^256","result":"<numeric result>","mode":"real"},
+    "isError":false}}
+
+All four tools return structuredContent on success (shape declared in each
+tool's outputSchema, visible via tools/list). Errors return only a text
+block with isError:true.
 
 Arguments:
   - expression (required): expression string
