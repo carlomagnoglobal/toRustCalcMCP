@@ -60,7 +60,11 @@ fn unknown_method_returns_32601() {
 #[test]
 fn tools_list_has_four_tools_with_output_schemas() {
     let mut it = Interp::new();
-    let resp = call(&mut it, json!({"jsonrpc":"2.0","id":2,"method":"tools/list"})).unwrap();
+    let resp = call(
+        &mut it,
+        json!({"jsonrpc":"2.0","id":2,"method":"tools/list"}),
+    )
+    .unwrap();
     let tools = resp["result"]["tools"].as_array().unwrap();
     assert_eq!(tools.len(), 4);
     for t in tools {
@@ -125,7 +129,12 @@ fn calc_config_set_persists_bases_and_mode() {
 #[test]
 fn calc_config_obase_affects_eval_rendering() {
     let mut it = Interp::new();
-    tool_call(&mut it, 7, "calc_config", json!({"action":"set","obase":16}));
+    tool_call(
+        &mut it,
+        7,
+        "calc_config",
+        json!({"action":"set","obase":16}),
+    );
     let result = tool_call(&mut it, 8, "calc_eval", json!({"expression":"255"}));
     assert_eq!(result["content"][0]["text"], "ff");
 }
