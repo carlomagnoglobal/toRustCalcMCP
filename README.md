@@ -1,5 +1,9 @@
 # toRustCalcMCP
 
+[![License](https://img.shields.io/badge/license-LGPL--2.1-blue)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)](https://www.rust-lang.org)
+[![Crates.io](https://img.shields.io/badge/crates.io-toRustCalcMCP-brightgreen)](https://crates.io/crates/toRustCalcMCP)
+
 A Rust port of [`calc`](https://github.com/lcn2/calc) (Landon Curt Noll's
 arbitrary-precision calculator) that works as:
 
